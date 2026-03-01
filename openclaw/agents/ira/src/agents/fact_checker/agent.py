@@ -48,32 +48,24 @@ async def verify(
     context: Optional[Dict] = None
 ) -> str:
     """
-    Main verification function - can be called as an OpenClaw tool.
+    Retrieval-augmented fact-checker. Verifies ALL factual claims in a draft
+    by extracting them, searching the knowledge base for evidence, and then
+    rewriting the draft to remove or flag anything unsupported.
     
-    Verifies a draft response for accuracy and compliance.
-    
-    Args:
-        draft: The draft response to verify
-        original_query: The original user query
-        context: Additional context
-        
-    Returns:
-        Verified (and possibly corrected) response
+    Two-pass system:
+      Pass 1: Rule-based checks (AM thickness, pricing, spec ranges)
+      Pass 2: LLM-powered claim extraction + retrieval verification
     """
     context = context or {}
     
-    logger.info({
-        "agent": "Vera",
-        "event": "verification_started",
-        "draft_length": len(draft)
-    })
+    logger.info({"agent": "Vera", "event": "verification_started", "draft_length": len(draft)})
     
     issues = []
-    warnings = []
     corrections_made = []
     verified_draft = draft
     
-    # Check 1: AM Series Thickness Rule (CRITICAL)
+    # ── PASS 1: Rule-based checks (fast, deterministic) ──────────────
+    
     am_check = _check_am_series_rule(draft, original_query)
     if am_check["violation"]:
         issues.append(am_check["issue"])
@@ -81,39 +73,141 @@ async def verify(
             verified_draft = _add_am_warning(verified_draft, original_query)
             corrections_made.append("Added AM series thickness warning")
     
-    # Check 2: Pricing Disclaimer
     if _needs_pricing_disclaimer(verified_draft):
         verified_draft = _add_pricing_disclaimer(verified_draft)
         corrections_made.append("Added pricing disclaimer")
     
-    # Check 3: Hallucination Detection
     hallucinations = _detect_hallucinations(verified_draft)
     if hallucinations:
         for h in hallucinations:
             issues.append(f"Potential hallucination: '{h}'")
         verified_draft = _flag_hallucinations(verified_draft, hallucinations)
     
-    # Check 4: Validate Specifications
     spec_issues = _validate_specifications(verified_draft)
     issues.extend(spec_issues)
     
-    # Log results
+    # ── PASS 2: Retrieval-augmented claim verification (LLM) ─────────
+    # Only run on substantive responses (skip short acks, greetings, etc.)
+    if len(verified_draft) > 150:
+        rav_result = await _retrieval_augmented_verify(verified_draft, original_query, context)
+        if rav_result:
+            verified_draft = rav_result["verified_draft"]
+            corrections_made.extend(rav_result.get("corrections", []))
+            issues.extend(rav_result.get("issues", []))
+    
     logger.info({
         "agent": "Vera",
         "event": "verification_complete",
         "issues_found": len(issues),
-        "corrections_made": len(corrections_made)
+        "corrections_made": len(corrections_made),
     })
-    
-    # If issues were found, log them
     if issues:
-        logger.warning({
-            "agent": "Vera",
-            "event": "issues_detected",
-            "issues": issues
-        })
+        logger.warning({"agent": "Vera", "event": "issues_detected", "issues": issues})
     
     return verified_draft
+
+
+async def _retrieval_augmented_verify(
+    draft: str,
+    original_query: str,
+    context: Dict,
+) -> Optional[Dict]:
+    """Extract claims from draft, search for evidence, rewrite to remove unsupported claims."""
+    import os
+    
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return None
+    
+    # Step 1: Gather evidence from all available sources
+    evidence_parts = []
+    
+    # From pipeline context (research output already fetched)
+    research = context.get("research_output", "")
+    if research:
+        evidence_parts.append(f"RESEARCH OUTPUT:\n{research[:3000]}")
+    
+    # From Mem0
+    try:
+        from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+        mem0 = get_mem0_service()
+        for uid in ["machinecraft_customers", "machinecraft_knowledge", "machinecraft_pricing"]:
+            memories = mem0.search(original_query, uid, limit=8)
+            if memories:
+                evidence_parts.append(f"MEM0 [{uid}]:\n" + "\n".join(f"- {m.memory}" for m in memories))
+    except Exception as e:
+        logger.debug(f"Vera: Mem0 evidence fetch failed: {e}")
+    
+    # From Qdrant
+    try:
+        from openclaw.agents.ira.src.brain.qdrant_retriever import retrieve as qdrant_retrieve
+        rag_result = qdrant_retrieve(original_query, top_k=5)
+        if hasattr(rag_result, 'citations') and rag_result.citations:
+            rag_text = "\n".join(
+                f"- [{c.filename}] {c.text[:300]}" for c in rag_result.citations[:5]
+            )
+            evidence_parts.append(f"DOCUMENTS:\n{rag_text}")
+    except Exception as e:
+        logger.debug(f"Vera: Qdrant evidence fetch failed: {e}")
+    
+    if not evidence_parts:
+        return None
+    
+    evidence = "\n\n".join(evidence_parts)
+    
+    # Step 2: Ask LLM to verify the draft against the evidence
+    try:
+        import openai
+        client = openai.OpenAI(api_key=api_key)
+        
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": """You are Vera, a rigorous fact-checker for Machinecraft Technologies.
+
+Given a DRAFT response and EVIDENCE from our databases, verify every factual claim.
+
+Your job:
+1. Check each specific claim (company names, machine models, specs, prices, relationships, dates, regions)
+2. If a claim is SUPPORTED by the evidence, keep it
+3. If a claim is CONTRADICTED by the evidence, REMOVE it or correct it
+4. If a claim has NO evidence either way, add "(unverified)" after it
+5. If a company is called a "customer" but evidence doesn't confirm they bought a machine, change to "contact" or remove
+
+Output the CORRECTED draft. Keep the same tone and structure. Only change factual claims.
+If everything checks out, return the draft unchanged.
+
+At the end, add a line: [Vera: X claims verified, Y corrected, Z flagged as unverified]"""},
+                {"role": "user", "content": f"DRAFT:\n{draft}\n\nEVIDENCE:\n{evidence[:6000]}"},
+            ],
+            max_tokens=2048,
+            temperature=0.1,
+        )
+        
+        result_text = resp.choices[0].message.content.strip()
+        
+        # Extract Vera's summary line
+        vera_corrections = []
+        vera_issues = []
+        if "[Vera:" in result_text:
+            summary_start = result_text.rfind("[Vera:")
+            summary = result_text[summary_start:]
+            result_text = result_text[:summary_start].strip()
+            if "corrected" in summary.lower():
+                vera_corrections.append(summary.strip("[]"))
+            if "unverified" in summary.lower():
+                vera_issues.append(summary.strip("[]"))
+        
+        if result_text and len(result_text) > 50:
+            return {
+                "verified_draft": result_text,
+                "corrections": vera_corrections,
+                "issues": vera_issues,
+            }
+    except Exception as e:
+        logger.warning(f"Vera: Retrieval-augmented verification failed: {e}")
+    
+    return None
 
 
 def _check_am_series_rule(draft: str, query: str) -> Dict[str, Any]:
@@ -251,6 +345,118 @@ def _validate_specifications(draft: str) -> List[str]:
             issues.append(f"Unusually high max thickness: {max_t}mm")
     
     return issues
+
+
+async def _cross_reference_entities(
+    draft: str,
+    original_query: str,
+    context: Optional[Dict] = None,
+) -> Dict[str, Any]:
+    """Cross-reference company names and factual claims in the draft against source data.
+    
+    Uses an LLM to compare the draft against the raw data that was used to generate it,
+    flagging any claims that aren't supported by the evidence.
+    """
+    result = {"corrected_draft": draft, "corrections": [], "issues": []}
+    
+    company_pattern = re.compile(
+        r'\*\*([A-Z][A-Za-z\s&\-\.]+?)\*\*|'
+        r'(?:^|\d+\.\s+)([A-Z][A-Za-z\s&\-\.]{2,}?)(?:\s*[-–(]|\s*$)',
+        re.MULTILINE,
+    )
+    matches = company_pattern.findall(draft)
+    company_names = [m[0] or m[1] for m in matches if (m[0] or m[1]).strip()]
+    
+    if not company_names or len(company_names) < 2:
+        return result
+    
+    source_data = ""
+    if context:
+        research = context.get("research_output", "")
+        if research:
+            source_data = research[:3000]
+    
+    if not source_data:
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            mem0 = get_mem0_service()
+            memories = mem0.search(original_query, "machinecraft_customers", limit=15)
+            source_data = "\n".join(f"- {m.memory}" for m in memories)
+        except Exception:
+            pass
+    
+    if not source_data:
+        return result
+    
+    try:
+        import openai
+        import os
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            return result
+        
+        client = openai.OpenAI(api_key=api_key)
+        companies_str = ", ".join(company_names[:15])
+        
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "You are Vera, a fact-checker. Given a draft response and the SOURCE DATA it was based on, "
+                    "check if each company listed in the draft is actually supported by the source data.\n\n"
+                    "For each company, output ONE line:\n"
+                    "VERIFIED: [Company] - reason\n"
+                    "UNVERIFIED: [Company] - not found in source data\n"
+                    "WRONG_ROLE: [Company] - listed as customer but source says agent/partner/prospect\n\n"
+                    "Only flag issues. If everything checks out, say ALL_VERIFIED."
+                )},
+                {"role": "user", "content": (
+                    f"DRAFT mentions these companies: {companies_str}\n\n"
+                    f"SOURCE DATA:\n{source_data[:4000]}\n\n"
+                    f"Check each company against the source data."
+                )},
+            ],
+            max_tokens=500,
+            temperature=0.1,
+        )
+        
+        analysis = resp.choices[0].message.content.strip()
+        
+        if "ALL_VERIFIED" in analysis:
+            return result
+        
+        unverified = []
+        wrong_role = []
+        for line in analysis.split("\n"):
+            line = line.strip()
+            if line.startswith("UNVERIFIED:"):
+                company = line.split(":", 1)[1].split("-")[0].strip()
+                unverified.append(company)
+            elif line.startswith("WRONG_ROLE:"):
+                company = line.split(":", 1)[1].split("-")[0].strip()
+                wrong_role.append(company)
+        
+        if unverified or wrong_role:
+            disclaimer_parts = []
+            if unverified:
+                disclaimer_parts.append(
+                    f"Could not verify from our records: {', '.join(unverified)}"
+                )
+            if wrong_role:
+                disclaimer_parts.append(
+                    f"May not be customers (could be agents/partners): {', '.join(wrong_role)}"
+                )
+            disclaimer = "\n\nNote: " + ". ".join(disclaimer_parts) + "."
+            result["corrected_draft"] = draft + disclaimer
+            result["corrections"].append(f"Added entity verification note ({len(unverified)} unverified, {len(wrong_role)} wrong role)")
+            result["issues"].extend([f"Unverified entity: {c}" for c in unverified])
+            result["issues"].extend([f"Wrong role: {c}" for c in wrong_role])
+            logger.info(f"[Vera] Entity cross-reference: {len(unverified)} unverified, {len(wrong_role)} wrong role")
+    
+    except Exception as e:
+        logger.warning(f"[Vera] Entity cross-reference failed: {e}")
+    
+    return result
 
 
 # =============================================================================

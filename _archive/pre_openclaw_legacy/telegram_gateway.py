@@ -3783,6 +3783,29 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 if STRUCTURED_LOGGING_AVAILABLE:
                     log_error("learning", learn_err, {"phase": "correction_detection"})
         
+        # ===== FEEDBACK DETECTION (Positive / Negative) =====
+        try:
+            from openclaw.agents.ira.src.brain.feedback_handler import (
+                detect_feedback, handle_positive_feedback, handle_negative_feedback
+            )
+            feedback_type, feedback_confidence = detect_feedback(text)
+            if feedback_type and feedback_confidence > 0.5:
+                _prev_response = getattr(self, '_last_response', '') or ''
+                _gen_path = getattr(self, '_last_generation_path', '') or ''
+                if feedback_type == "positive":
+                    ack = handle_positive_feedback(text, _prev_response, _gen_path, chat_id or "")
+                else:
+                    ack = handle_negative_feedback(text, _prev_response, _gen_path, chat_id or "")
+                logger.info(f"[FEEDBACK] {feedback_type} (confidence={feedback_confidence:.2f})")
+                return GatewayResponse(text=ack, log_entry={
+                    "type": f"feedback_{feedback_type}",
+                    "confidence": feedback_confidence,
+                })
+        except ImportError as _fb_err:
+            logger.debug(f"Feedback handler not available: {_fb_err}")
+        except Exception as _fb_err:
+            logger.warning(f"Feedback detection error (non-fatal): {_fb_err}")
+        
         # ===== UNIFIED RESPONSE GENERATION =====
         try:
             sys.path.insert(0, str(BRAIN_DIR))
@@ -4561,8 +4584,9 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
             # Duplicate saves were filling the 12-message window in 3 turns instead of 6.
             # self._save_conversation_turn(chat_id, text, response_text)
             
-            # Store last response for feedback learning
+            # Store last response and generation path for feedback learning
             self._last_response = response_text
+            self._last_generation_path = getattr(result, 'generation_path', '') or ''
             
             # Store consolidated knowledge IDs for quality tracking
             self._last_consolidated_ids = getattr(result, 'consolidated_knowledge_ids', []) or []

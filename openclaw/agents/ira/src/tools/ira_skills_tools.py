@@ -179,7 +179,7 @@ async def execute_tool_call(
             from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
             mem0 = get_mem0_service()
             for uid in ["machinecraft_customers", "machinecraft_knowledge"]:
-                memories = mem0.search(query, uid, limit=5)
+                memories = mem0.search(query, uid, limit=10)
                 for m in memories:
                     results.append(f"[{uid}] {m.memory}")
         except Exception as e:
@@ -187,10 +187,19 @@ async def execute_tool_call(
         try:
             result = await invoke_research(f"customer {query}", context)
             if result:
-                results.append(f"[knowledge_base] {result[:1000]}")
+                results.append(f"[knowledge_base] {result[:2000]}")
         except Exception:
             pass
-        return "\n".join(results) if results else f"(No customer data found for '{query}')"
+        if results:
+            header = (
+                "WARNING: These results come from memory and documents. "
+                "Not every company mentioned is a CONFIRMED CUSTOMER. "
+                "A company is only a confirmed customer if the data says they BOUGHT/ORDERED a machine. "
+                "Companies that are agents, prospects, competitors, or just mentioned in passing are NOT customers. "
+                "Label each as CONFIRMED CUSTOMER, PROSPECT, AGENT, or UNKNOWN based on the evidence.\n\n"
+            )
+            return header + "\n".join(results)
+        return f"(No customer data found for '{query}')"
 
     elif tool_name == "memory_search":
         query = arguments.get("query", "")
@@ -205,7 +214,7 @@ async def execute_tool_call(
                 "machinecraft_general",
             ]
             for uid in search_ids:
-                memories = mem0.search(query, uid, limit=5)
+                memories = mem0.search(query, uid, limit=10)
                 for m in memories:
                     results.append(f"[{uid}] {m.memory}")
         except Exception as e:
