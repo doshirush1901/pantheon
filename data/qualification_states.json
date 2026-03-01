@@ -1,0 +1,157 @@
+{
+  "test_thread_001": {
+    "thread_id": "test_thread_001",
+    "customer_email": "customer@example.com",
+    "customer_name": "",
+    "company_name": "",
+    "max_forming_area": [
+      1500,
+      2000
+    ],
+    "max_forming_depth": 500,
+    "max_sheet_thickness": null,
+    "materials": [
+      "HDPE"
+    ],
+    "sheet_loading": "automatic",
+    "production_volume": "high",
+    "heater_type": null,
+    "cooling_system": null,
+    "tool_change": null,
+    "application": "automotive",
+    "part_description": "pickup truck bedliner",
+    "qualification_stage": 3,
+    "questions_asked": [
+      "sheet_loading",
+      "production_volume"
+    ],
+    "last_updated": "2026-02-27T22:20:00.497057"
+  },
+  "19ca0054478a23de": {
+    "thread_id": "19ca0054478a23de",
+    "customer_email": "Rushabh Doshi <rushabh@machinecraft.org>",
+    "customer_name": "",
+    "company_name": "",
+    "max_forming_area": [
+      1500,
+      2000
+    ],
+    "max_forming_depth": 500,
+    "max_sheet_thickness": null,
+    "materials": [
+      "HDPE"
+    ],
+    "sheet_loading": null,
+    "production_volume": null,
+    "heater_type": null,
+    "cooling_system": null,
+    "tool_change": null,
+    "application": "automotive",
+    "part_description": "pickup truck bedliner",
+    "qualification_stage": 2,
+    "questions_asked": [
+      "sheet_loading",
+      "production_volume"
+    ],
+    "last_updated": "2026-02-27T22:26:51.333972"
+  },
+  "19ca008f0155c2c7": {
+    "thread_id": "19ca008f0155c2c7",
+    "customer_email": "Rushabh Doshi <rushabh@machinecraft.org>",
+    "customer_name": "",
+    "company_name": "",
+    "max_forming_area": [
+      1500,
+      2000
+    ],
+    "max_forming_depth": 500,
+    "max_sheet_thickness": null,
+    "materials": [],
+    "sheet_loading": null,
+    "production_volume": null,
+    "heater_type": null,
+    "cooling_system": null,
+    "tool_change": null,
+    "application": null,
+    "part_description": null,
+    "qualification_stage": 2,
+    "questions_asked": [
+      "sheet_loading",
+      "production_volume"
+    ],
+    "last_updated": "2026-02-27T22:30:47.124488"
+  },
+  "19ca00bea9c62dd4": {
+    "thread_id": "19ca00bea9c62dd4",
+    "customer_email": "Rushabh Doshi <rushabh@machinecraft.org>",
+    "customer_name": "",
+    "company_name": "",
+    "max_forming_area": null,
+    "max_forming_depth": null,
+    "max_sheet_thickness": null,
+    "materials": [
+      "ABS"
+    ],
+    "sheet_loading": null,
+    "production_volume": null,
+    "heater_type": null,
+    "cooling_system": null,
+    "tool_change": null,
+    "application": "automotive",
+    "part_description": null,
+    "qualification_stage": 0,
+    "questions_asked": [
+      "max_forming_area",
+      "max_forming_depth"
+    ],
+    "last_updated": "2026-02-27T22:41:43.550349"
+  },
+  "19ca01644b9adca1": {
+    "thread_id": "19ca01644b9adca1",
+    "customer_email": "Rushabh Doshi <rushabh@machinecraft.org>",
+    "customer_name": "",
+    "company_name": "",
+    "max_forming_area": null,
+    "max_forming_depth": null,
+    "max_sheet_thickness": null,
+    "materials": [],
+    "sheet_loading": null,
+    "production_volume": null,
+    "heater_type": null,
+    "cooling_system": null,
+    "tool_change": null,
+    "application": null,
+    "part_description": null,
+    "qualification_stage": 0,
+    "questions_asked": [
+      "max_forming_area",
+      "max_forming_depth",
+      "materials"
+    ],
+    "last_updated": "2026-02-27T22:46:06.379116"
+  },
+  "19ca01a2b877b47f": {
+    "thread_id": "19ca01a2b877b47f",
+    "customer_email": "Rushabh Doshi <rushabh@machinecraft.org>",
+    "customer_name": "",
+    "company_name": "",
+    "max_forming_area": null,
+    "max_forming_depth": null,
+    "max_sheet_thickness": null,
+    "materials": [],
+    "sheet_loading": null,
+    "production_volume": null,
+    "heater_type": null,
+    "cooling_system": null,
+    "tool_change": null,
+    "application": null,
+    "part_description": null,
+    "qualification_stage": 0,
+    "questions_asked": [
+      "max_forming_area",
+      "max_forming_depth",
+      "materials"
+    ],
+    "last_updated": "2026-02-27T22:51:15.802423"
+  }
+}

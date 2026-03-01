@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Machinecraft</title>
+    
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- vis.js for graph visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1a1a2e;
+            --card-bg: #f8f9fa;
+            --border-color: #e0e0e0;
+            --primary-color: #0088cc;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --danger-color: #f44336;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a2e;
+                --text-color: #ffffff;
+                --card-bg: #16213e;
+                --border-color: #0f3460;
+            }
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            opacity: 0.7;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab:hover {
+            opacity: 1;
+        }
+        
+        .tab.active {
+            opacity: 1;
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .panel {
+            display: none;
+        }
+        
+        .panel.active {
+            display: block;
+        }
+        
+        #graph-container {
+            width: 100%;
+            height: 500px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+            padding: 12px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        .relationship-list {
+            margin-top: 16px;
+        }
+        
+        .relationship-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .relationship-info h3 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        
+        .relationship-info p {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            color: var(--text-color);
+            opacity: 0.6;
+        }
+        
+        .loading::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 12px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: var(--danger-color);
+            padding: 20px;
+            text-align: center;
+            background-color: rgba(244, 67, 54, 0.1);
+            border-radius: 8px;
+        }
+        
+        /* Graph Controls */
+        .graph-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+        
+        .filter-select {
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-size: 0.9rem;
+            min-width: 140px;
+        }
+        
+        .btn-secondary {
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--border-color);
+        }
+        
+        /* Node Details Sidebar */
+        .node-details {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 320px;
+            height: 100vh;
+            background-color: var(--card-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s;
+        }
+        
+        .node-details.hidden {
+            transform: translateX(100%);
+        }
+        
+        .close-btn {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        
+        .close-btn:hover {
+            opacity: 1;
+        }
+        
+        .node-details h3 {
+            margin-bottom: 16px;
+            padding-right: 30px;
+        }
+        
+        .node-meta {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-bottom: 12px;
+        }
+        
+        .node-text {
+            background-color: var(--bg-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+        
+        .related-list {
+            font-size: 0.85rem;
+        }
+        
+        .related-item {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* Conflict List */
+        .conflict-list {
+            margin-top: 16px;
+        }
+        
+        .conflict-item {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .conflict-item.warning {
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .conflict-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .conflict-id {
+            font-family: monospace;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+        
+        .conflict-content {
+            background-color: var(--bg-color);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        
+        .conflict-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            padding: 8px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .btn-danger {
+            padding: 8px 16px;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .btn-success {
+            padding: 8px 16px;
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 IRA Dashboard</h1>
+            <div class="status">
+                <span class="status-dot"></span>
+                <span>Connected</span>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" data-panel="graph">Knowledge Graph</button>
+            <button class="tab" data-panel="relationships">Relationships</button>
+            <button class="tab" data-panel="pipeline">Pipeline</button>
+            <button class="tab" data-panel="conflicts">Conflicts</button>
+        </div>
+        
+        <!-- Knowledge Graph Panel -->
+        <div id="graph" class="panel active">
+            <div class="stats-grid" id="graph-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-nodes">-</div>
+                    <div class="stat-label">Nodes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-edges">-</div>
+                    <div class="stat-label">Connections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="machine-specs">-</div>
+                    <div class="stat-label">Machine Specs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="customers">-</div>
+                    <div class="stat-label">Customers</div>
+                </div>
+            </div>
+            
+            <!-- Graph Search & Filter Controls -->
+            <div class="graph-controls">
+                <input type="text" id="graph-search" placeholder="Search nodes..." class="search-input">
+                <select id="graph-filter" class="filter-select">
+                    <option value="">All Types</option>
+                    <option value="machine_spec">Machine Specs</option>
+                    <option value="pricing">Pricing</option>
+                    <option value="customer">Customers</option>
+                    <option value="process">Processes</option>
+                    <option value="materials">Materials</option>
+                    <option value="application">Applications</option>
+                </select>
+                <button id="graph-reset" class="btn-secondary">Reset</button>
+            </div>
+            
+            <div id="graph-container">
+                <div class="loading">Loading knowledge graph</div>
+            </div>
+            
+            <!-- Node Details Sidebar -->
+            <div id="node-details" class="node-details hidden">
+                <button class="close-btn" onclick="closeNodeDetails()">&times;</button>
+                <h3 id="node-title">Node Details</h3>
+                <div id="node-content"></div>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #4CAF50;"></div>
+                    <span>Machine Specs</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #2196F3;"></div>
+                    <span>Pricing</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #FF9800;"></div>
+                    <span>Customers</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #9C27B0;"></div>
+                    <span>Processes</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00BCD4;"></div>
+                    <span>Materials</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #E91E63;"></div>
+                    <span>Applications</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Relationships Panel -->
+        <div id="relationships" class="panel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-contacts">-</div>
+                    <div class="stat-label">Total Contacts</div>
+                </div>
+            </div>
+            
+            <div class="relationship-list" id="relationship-list">
+                <div class="loading">Loading relationships</div>
+            </div>
+        </div>
+        
+        <!-- Pipeline Panel -->
+        <div id="pipeline" class="panel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="pipeline-total">-</div>
+                    <div class="stat-label">Total Quotes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pipeline-pending">-</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pipeline-sent">-</div>
+                    <div class="stat-label">Sent</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pipeline-won">-</div>
+                    <div class="stat-label">Won</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conflicts Panel -->
+        <div id="conflicts" class="panel">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="conflicts-pending">-</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="conflicts-resolved">-</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            </div>
+            
+            <div class="conflict-list" id="conflict-list">
+                <div class="loading">Loading conflicts</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Telegram Web App
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            
+            // Apply Telegram theme
+            if (tg.themeParams) {
+                document.documentElement.style.setProperty('--bg-color', tg.themeParams.bg_color || '#ffffff');
+                document.documentElement.style.setProperty('--text-color', tg.themeParams.text_color || '#1a1a2e');
+                document.documentElement.style.setProperty('--card-bg', tg.themeParams.secondary_bg_color || '#f8f9fa');
+            }
+        }
+        
+        // Load and render knowledge graph
+        async function loadGraph() {
+            try {
+                const response = await fetch('/api/graph');
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('total-nodes').textContent = data.total_nodes || 0;
+                document.getElementById('total-edges').textContent = data.total_edges || 0;
+                
+                // Count by type
+                const machineSpecs = data.nodes.filter(n => n.group === 'machine_spec').length;
+                const customers = data.nodes.filter(n => n.group === 'customer').length;
+                document.getElementById('machine-specs').textContent = machineSpecs;
+                document.getElementById('customers').textContent = customers;
+                
+                // Render graph
+                renderGraph(data);
+                
+            } catch (error) {
+                document.getElementById('graph-container').innerHTML = 
+                    '<div class="error">Failed to load knowledge graph: ' + error.message + '</div>';
+            }
+        }
+        
+        // Load relationships
+        async function loadRelationships() {
+            const listEl = document.getElementById('relationship-list');
+            listEl.innerHTML = '<div class="loading">Loading relationships</div>';
+            
+            try {
+                const response = await fetch('/api/relationships');
+                const data = await response.json();
+                
+                document.getElementById('total-contacts').textContent = data.total || 0;
+                
+                if (data.relationships.length === 0) {
+                    listEl.innerHTML = '<p>No relationships found.</p>';
+                    return;
+                }
+                
+                listEl.innerHTML = data.relationships.map(r => `
+                    <div class="relationship-item">
+                        <div class="relationship-info">
+                            <h3>${r.name || 'Unknown'}</h3>
+                            <p>${r.company || ''} ${r.email ? '• ' + r.email : ''}</p>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                listEl.innerHTML = '<div class="error">Failed to load relationships: ' + error.message + '</div>';
+            }
+        }
+        
+        // Load pipeline
+        async function loadPipeline() {
+            try {
+                const response = await fetch('/api/pipeline');
+                const data = await response.json();
+                
+                document.getElementById('pipeline-total').textContent = data.total || 0;
+                document.getElementById('pipeline-pending').textContent = data.pending || 0;
+                document.getElementById('pipeline-sent').textContent = data.sent || 0;
+                document.getElementById('pipeline-won').textContent = data.won || 0;
+                
+            } catch (error) {
+                console.error('Failed to load pipeline:', error);
+            }
+        }
+        
+        // Graph network instance
+        let graphNetwork = null;
+        
+        // Graph search and filter
+        document.getElementById('graph-search').addEventListener('input', debounce(searchGraph, 300));
+        document.getElementById('graph-filter').addEventListener('change', searchGraph);
+        document.getElementById('graph-reset').addEventListener('click', () => {
+            document.getElementById('graph-search').value = '';
+            document.getElementById('graph-filter').value = '';
+            loadGraph();
+        });
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+        
+        async function searchGraph() {
+            const query = document.getElementById('graph-search').value;
+            const filter = document.getElementById('graph-filter').value;
+            
+            if (!query && !filter) {
+                loadGraph();
+                return;
+            }
+            
+            try {
+                const params = new URLSearchParams();
+                if (query) params.set('q', query);
+                if (filter) params.set('node_type', filter);
+                
+                const response = await fetch('/api/graph/search?' + params);
+                const data = await response.json();
+                
+                document.getElementById('total-nodes').textContent = data.total_results || 0;
+                renderGraph(data);
+                
+            } catch (error) {
+                console.error('Search failed:', error);
+            }
+        }
+        
+        function renderGraph(data) {
+            const container = document.getElementById('graph-container');
+            
+            const nodes = new vis.DataSet(data.nodes);
+            const edges = new vis.DataSet(data.edges);
+            
+            const graphData = { nodes, edges };
+            
+            const options = {
+                nodes: {
+                    shape: 'dot',
+                    size: 16,
+                    font: {
+                        size: 12,
+                        color: document.documentElement.style.getPropertyValue('--text-color') || '#1a1a2e'
+                    },
+                    borderWidth: 2,
+                },
+                edges: {
+                    width: 1,
+                    color: { inherit: 'from' },
+                    smooth: {
+                        type: 'continuous'
+                    }
+                },
+                physics: {
+                    forceAtlas2Based: {
+                        gravitationalConstant: -26,
+                        centralGravity: 0.005,
+                        springLength: 230,
+                        springConstant: 0.18
+                    },
+                    maxVelocity: 146,
+                    solver: 'forceAtlas2Based',
+                    timestep: 0.35,
+                    stabilization: {
+                        enabled: true,
+                        iterations: 150,
+                        updateInterval: 25
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+            
+            graphNetwork = new vis.Network(container, graphData, options);
+            
+            // Click handler for node details
+            graphNetwork.on('click', async function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    await showNodeDetails(nodeId);
+                }
+            });
+        }
+        
+        async function showNodeDetails(nodeId) {
+            try {
+                const response = await fetch('/api/graph/node/' + encodeURIComponent(nodeId));
+                const data = await response.json();
+                
+                const detailsEl = document.getElementById('node-details');
+                const titleEl = document.getElementById('node-title');
+                const contentEl = document.getElementById('node-content');
+                
+                const node = data.node;
+                titleEl.textContent = node.entity || nodeId;
+                
+                contentEl.innerHTML = `
+                    <div class="node-meta">
+                        <strong>Type:</strong> ${node.knowledge_type || 'unknown'}<br>
+                        <strong>Source:</strong> ${node.source_file || 'N/A'}
+                    </div>
+                    <div class="node-text">${node.text || 'No content'}</div>
+                    <h4>Related (${data.edge_count})</h4>
+                    <div class="related-list">
+                        ${data.edges.slice(0, 10).map(e => `
+                            <div class="related-item">
+                                ${e.relationship_type}: ${e.source === nodeId ? e.target : e.source}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                detailsEl.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Failed to load node details:', error);
+            }
+        }
+        
+        function closeNodeDetails() {
+            document.getElementById('node-details').classList.add('hidden');
+        }
+        
+        // Load conflicts
+        async function loadConflicts() {
+            const listEl = document.getElementById('conflict-list');
+            listEl.innerHTML = '<div class="loading">Loading conflicts</div>';
+            
+            try {
+                const response = await fetch('/api/conflicts');
+                const data = await response.json();
+                
+                document.getElementById('conflicts-pending').textContent = data.total_pending || 0;
+                document.getElementById('conflicts-resolved').textContent = data.total_resolved || 0;
+                
+                if (data.conflicts.length === 0) {
+                    listEl.innerHTML = '<p style="text-align: center; padding: 40px; opacity: 0.6;">No pending conflicts</p>';
+                    return;
+                }
+                
+                listEl.innerHTML = data.conflicts.map(c => `
+                    <div class="conflict-item warning">
+                        <div class="conflict-header">
+                            <strong>Memory Conflict</strong>
+                            <span class="conflict-id">${c.id.substring(0, 8)}</span>
+                        </div>
+                        <div class="conflict-content">
+                            ${(c.new_content || '').substring(0, 200)}...
+                        </div>
+                        <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 12px;">
+                            Source: ${c.source || 'unknown'} | ${(c.timestamp || '').substring(0, 10)}
+                        </div>
+                        <div class="conflict-actions">
+                            <button class="btn-success" onclick="resolveConflict('${c.id}', 'keep_existing')">Keep Existing</button>
+                            <button class="btn-primary" onclick="resolveConflict('${c.id}', 'use_new')">Use New</button>
+                            <button class="btn-danger" onclick="resolveConflict('${c.id}', 'dismiss')">Dismiss</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                listEl.innerHTML = '<div class="error">Failed to load conflicts: ' + error.message + '</div>';
+            }
+        }
+        
+        async function resolveConflict(conflictId, resolution) {
+            try {
+                const response = await fetch('/api/conflicts/' + conflictId + '/resolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resolution })
+                });
+                
+                if (response.ok) {
+                    loadConflicts();  // Refresh list
+                } else {
+                    alert('Failed to resolve conflict');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Update tab switching to load conflicts
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.panel).classList.add('active');
+                
+                // Load data for panel
+                if (tab.dataset.panel === 'relationships') {
+                    loadRelationships();
+                } else if (tab.dataset.panel === 'pipeline') {
+                    loadPipeline();
+                } else if (tab.dataset.panel === 'conflicts') {
+                    loadConflicts();
+                }
+            });
+        });
+        
+        // Initialize
+        loadGraph();
+    </script>
+</body>
+</html>

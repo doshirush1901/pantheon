@@ -1,0 +1,60 @@
+{
+  "results": [
+    {
+      "scenario": "What if a competitor offered 30% faster delivery?",
+      "impact": "Would lose time-sensitive deals",
+      "readiness": 0.3,
+      "gaps": [
+        "Lack of understanding of competitive delivery times and benchmarks",
+        "No clear strategy for responding to competitors' speed improvements",
+        "Insufficient data on customer preferences regarding delivery speed"
+      ],
+      "preparations": [
+        "Conduct a market analysis to understand competitors' delivery capabilities",
+        "Develop a flexible logistics strategy to enhance delivery speed",
+        "Gather customer feedback regarding delivery expectations and satisfaction"
+      ]
+    },
+    {
+      "scenario": "What if prices increased by 15%?",
+      "impact": "May lose price-sensitive customers",
+      "readiness": 0.4,
+      "gaps": [
+        "Inability to calculate new prices from existing data when faced with a percentage increase.",
+        "Limited understanding of economic principles related to pricing and inflation."
+      ],
+      "preparations": [
+        "Develop algorithms for updating price information based on percentage changes.",
+        "Create educational resources to explain economic concepts related to pricing and market changes."
+      ]
+    },
+    {
+      "scenario": "What if key raw materials became scarce?",
+      "impact": "Delivery times would extend",
+      "readiness": 0.3,
+      "gaps": [
+        "Lack of data on alternative raw material sourcing options",
+        "Insufficient analysis on the impact of material scarcity on production and machine pricing"
+      ],
+      "preparations": [
+        "Develop a comprehensive risk assessment plan for raw material scarcity",
+        "Create partnerships with alternative suppliers or find substitutes for key materials"
+      ]
+    },
+    {
+      "scenario": "What if a customer asked for a feature we don't have?",
+      "impact": "Could lose deal to competitor",
+      "readiness": 0.4,
+      "gaps": [
+        "Lack of documentation or process on how to handle feature requests.",
+        "No clear communication strategy for informing customers about feature availability."
+      ],
+      "preparations": [
+        "Develop a standardized response guideline for feature requests.",
+        "Create a feedback loop to document customer feature requests and assess demand."
+      ]
+    }
+  ],
+  "overall_readiness": 0.35,
+  "timestamp": "2026-02-28T14:23:44.760225"
+}

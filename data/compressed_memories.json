@@ -1,0 +1,60 @@
+[
+  {
+    "original_ids": [
+      "45d2698fe3f9",
+      "3a56f9a68107",
+      "d6a791b5179a",
+      "ce93d983473e",
+      "5a2f463e977f",
+      "fb4c53295020",
+      "fda00d50b3bd",
+      "bf5087cd81b3",
+      "a6d845d1bc2c",
+      "10f8a2aa5212",
+      "177ed5f1b915",
+      "f44c37e557ef",
+      "755bb3f1d15c",
+      "da2302d3bf0f",
+      "5eae8d9c5fc2",
+      "92952c9e8520",
+      "9af2a23a6c05",
+      "f97a1468ca45",
+      "1e9c17d1fc50",
+      "f224a8aebab6"
+    ],
+    "compressed_content": "### Summary of Facts\n\n#### Machine Models and Pricing\n1. **PF1-C-3020**\n   - Price: \u20b98,500,000\n   - Source: PF1-C-3020 Machinecraft PF1 Quotation\n   - Confidence: 90%\n\n2. **PF1-C-2525**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence: 70%\n\n3. **PF1-X-1210**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence: 70%\n\n4. **PF1-X-1510**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence: 70%\n\n5. **PF1-C-1510**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence: 70%\n\n#### Interactions and Knowledge Updates (Timestamped Data)\n- **February 27, 2026**\n   - Analyzed Interactions: 41\n   - Edges Strengthened: 0\n   - Edges Weakened: 5,827\n\n- **February 28, 2026**\n   - **12:39 - 12:52 PM**: \n     - Analyzed Interactions: 25 \n     - Edges Weakened: 7,462 \n     - Edges Created: 45 \n     - Episodes Reviewed: 66 \n     - Patterns Identified: 10 \n     - Semantic Facts Created: 7 \n     - Procedures Created: 1 \n     - Relationships Created: 2\n\n   - **1:09 - 1:26 PM**:\n     - Analyzed Interactions: 25 \n     - Edges Weakened: 7,587 \n     - Edges Created: 45 \n     - Episodes Reviewed: 66 \n     - Patterns Identified: 11 \n     - Procedures Created: 2\n\n   - **Ongoing Analysis**:\n     - Edges Weakened continued to increase with each analysis session.\n     - Consistent pattern of 25 interactions analyzed with varying numbers of edges created and weakened across timestamps.\n\nThis summary encapsulates the key details about machine pricing and interaction analysis efficiently, while avoiding redundancy.",
+    "original_count": 20,
+    "compression_ratio": 0.13946666666666666,
+    "domain": "general",
+    "created_at": "2026-02-28T14:21:33.431600"
+  },
+  {
+    "original_ids": [
+      "45d2698fe3f9",
+      "3a56f9a68107",
+      "d6a791b5179a",
+      "ce93d983473e",
+      "5a2f463e977f",
+      "fb4c53295020",
+      "fda00d50b3bd",
+      "bf5087cd81b3",
+      "a6d845d1bc2c",
+      "10f8a2aa5212",
+      "177ed5f1b915",
+      "f44c37e557ef",
+      "755bb3f1d15c",
+      "da2302d3bf0f",
+      "5eae8d9c5fc2",
+      "92952c9e8520",
+      "9af2a23a6c05",
+      "f97a1468ca45",
+      "1e9c17d1fc50",
+      "f224a8aebab6"
+    ],
+    "compressed_content": "### Summary of Machine Models and Prices\n\n#### Machine Models and Pricing Information:\n1. **PF1-C-3020**\n   - Price: \u20b98,500,000\n   - Source: PF1-C-3020 Machinecraft PF1 Quotation (2).pdf\n   - Confidence Level: 0.9\n   - Context: Known as \"zero sag\" type machine.\n\n2. **PF1-C-2525**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence Level: 0.7\n   - Context: Associated with Georg Fischer, Finland.\n\n3. **PF1-X-1210**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence Level: 0.7\n   - Context: Related to various dealers and listings.\n\n4. **PF1-X-1510**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence Level: 0.7\n   - Context: Information includes references to Paracoat and India.\n\n5. **PF1-C-1510**\n   - Price: \u20b94,100,000\n   - Source: K2025 Leads.xlsx\n   - Confidence Level: 0.7\n   - Context: Includes details about Dott Mazza and related vendors.\n\n#### Interaction Analysis Data:\n- All data points collected on **February 27 and 28, 2026**, focus on interactions and network modifications, with specific details on edges strengthened, weakened, and created.\n  \n- **February 27, 2026**:\n   - Multiple interactions analyzed (41).\n   - Edges weakened significantly (5827), with no edges created or nodes updated.\n\n- **February 28, 2026**:\n  - Continued analysis of interactions (25) with reported edges weakened ranging from 7462 to 7787.\n  - Identified patterns and created semantic facts and procedures across multiple episodes (66 reviewed).\n  - Significant amount of edges created (up to 45).\n  \nThis structured summary encapsulates the crucial pricing details for each machine model alongside key interaction data for the specified dates.",
+    "original_count": 20,
+    "compression_ratio": 0.15093333333333334,
+    "domain": "general",
+    "created_at": "2026-02-28T14:23:31.095556"
+  }
+]

@@ -1,0 +1,288 @@
+{
+  "cbff5ffb15d5": {
+    "fact_id": "cbff5ffb15d5",
+    "fact_content": "PF1-C-3020 base price is EUR 180,000",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T13:50:07.497648",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "d93c4172d2e0": {
+    "fact_id": "d93c4172d2e0",
+    "fact_content": "PF1-C-3020 base price is EUR 175,000",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T13:50:07.497753",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "710b468a81d4": {
+    "fact_id": "710b468a81d4",
+    "fact_content": "Delivery time is 16-18 weeks standard",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T13:50:07.497827",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "2ab08940bc82": {
+    "fact_id": "2ab08940bc82",
+    "fact_content": "IMG-1350 can produce 35 cycles per minute",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T13:50:07.497999",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "e9198522096b": {
+    "fact_id": "e9198522096b",
+    "fact_content": "Machinecraft was founded in 1995",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T13:50:07.498067",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "7a19335f09de": {
+    "fact_id": "7a19335f09de",
+    "fact_content": "PF1 series supports up to 850mm forming depth",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T13:50:07.498237",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "45d2698fe3f9": {
+    "fact_id": "45d2698fe3f9",
+    "fact_content": "{'machine_model': 'PF1-C-3020', 'prices': [{'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type machine.\\nSpecification PF1 Series (Base Config)\\nMachine Model '}, {'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type machine.\\nSpecification PF1 Series (Base Config)\\nMachine Model '}, {'price_inr':",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.730662",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "3a56f9a68107": {
+    "fact_id": "3a56f9a68107",
+    "fact_content": "{'machine_model': 'PF1-C-2525', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': '29.0 | Georg Fischer | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics |'}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': '29.0 | Georg Fischer | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics |'}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'contex",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.732077",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "d6a791b5179a": {
+    "fact_id": "d6a791b5179a",
+    "fact_content": "{'machine_model': 'PF1-X-1210', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'scher | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics | Phillipines | '}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'scher | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics | Phillipines | '}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'contex",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.732546",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "ce93d983473e": {
+    "fact_id": "ce93d983473e",
+    "fact_content": "{'machine_model': 'PF1-X-1510', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'ld Machine\\n32.0 | Paracoat | India | Sanjay | AM-M-1807\\n33.0 | Bega | Idris Zamard | www.bega.com | '}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'ld Machine\\n32.0 | Paracoat | India | Sanjay | AM-M-1807\\n33.0 | Bega | Idris Zamard | www.bega.com | '}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'cont",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.733146",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "5a2f463e977f": {
+    "fact_id": "5a2f463e977f",
+    "fact_content": "{'machine_model': 'PF1-C-1510', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ' | Dott Mazza | www.apform.it\\n36.0 | Plastiart | jf.deltenre@plastiart.com | Belgium | Jean | CEO | '}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ' | Dott Mazza | www.apform.it\\n36.0 | Plastiart | jf.deltenre@plastiart.com | Belgium | Jean | CEO | '}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'contex",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.733594",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "fb4c53295020": {
+    "fact_id": "fb4c53295020",
+    "fact_content": "{'timestamp': '2026-02-27T22:08:58.008447', 'interactions_analyzed': 41, 'edges_strengthened': 0, 'edges_weakened': 5827, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.734017",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "fda00d50b3bd": {
+    "fact_id": "fda00d50b3bd",
+    "fact_content": "{'timestamp': '2026-02-27T23:21:58.200767', 'interactions_analyzed': 41, 'edges_strengthened': 0, 'edges_weakened': 5827, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.734604",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "bf5087cd81b3": {
+    "fact_id": "bf5087cd81b3",
+    "fact_content": "{'timestamp': '2026-02-27T23:29:58.516190', 'interactions_analyzed': 41, 'edges_strengthened': 0, 'edges_weakened': 5827, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.735171",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "a6d845d1bc2c": {
+    "fact_id": "a6d845d1bc2c",
+    "fact_content": "{'timestamp': '2026-02-28T12:39:20.187582', 'interactions_analyzed': 25, 'edges_strengthened': 0, 'edges_weakened': 7462, 'edges_created': 45, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.735716",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "10f8a2aa5212": {
+    "fact_id": "10f8a2aa5212",
+    "fact_content": "{'timestamp': '2026-02-28T12:39:37.931111', 'episodes_reviewed': 66, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 2, 'knowledge_reinforced': 0, 'duration_seconds': 15.154352188110352, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_c",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.736251",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "177ed5f1b915": {
+    "fact_id": "177ed5f1b915",
+    "fact_content": "{'timestamp': '2026-02-28T12:39:40.337554', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7462, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.736784",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "f44c37e557ef": {
+    "fact_id": "f44c37e557ef",
+    "fact_content": "{'timestamp': '2026-02-28T12:52:02.193551', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7462, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.737295",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "755bb3f1d15c": {
+    "fact_id": "755bb3f1d15c",
+    "fact_content": "{'timestamp': '2026-02-28T12:52:23.712139', 'episodes_reviewed': 66, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 1, 'knowledge_reinforced': 0, 'duration_seconds': 17.72682499885559, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_co",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.737811",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "da2302d3bf0f": {
+    "fact_id": "da2302d3bf0f",
+    "fact_content": "{'timestamp': '2026-02-28T12:52:31.074136', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7462, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.738358",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "5eae8d9c5fc2": {
+    "fact_id": "5eae8d9c5fc2",
+    "fact_content": "{'timestamp': '2026-02-28T13:09:53.459366', 'interactions_analyzed': 25, 'edges_strengthened': 0, 'edges_weakened': 7587, 'edges_created': 45, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.738841",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "92952c9e8520": {
+    "fact_id": "92952c9e8520",
+    "fact_content": "{'timestamp': '2026-02-28T13:10:13.383601', 'episodes_reviewed': 66, 'patterns_identified': 11, 'semantic_facts_created': 7, 'procedures_created': 2, 'relationships_created': 1, 'knowledge_reinforced': 0, 'duration_seconds': 17.407886028289795, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about Thermoforming machines', 'confidence': 0.9, 'evidence_c",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.739342",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "9af2a23a6c05": {
+    "fact_id": "9af2a23a6c05",
+    "fact_content": "{'timestamp': '2026-02-28T13:10:15.894234', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7587, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.739918",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "f97a1468ca45": {
+    "fact_id": "f97a1468ca45",
+    "fact_content": "{'timestamp': '2026-02-28T13:26:33.057339', 'interactions_analyzed': 25, 'edges_strengthened': 0, 'edges_weakened': 7787, 'edges_created': 45, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.740453",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "1e9c17d1fc50": {
+    "fact_id": "1e9c17d1fc50",
+    "fact_content": "{'timestamp': '2026-02-28T13:26:51.410097', 'episodes_reviewed': 66, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 0, 'knowledge_reinforced': 0, 'duration_seconds': 16.032817840576172, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_c",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.740913",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "f224a8aebab6": {
+    "fact_id": "f224a8aebab6",
+    "fact_content": "{'timestamp': '2026-02-28T13:26:58.239693', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7787, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-02-28T14:23:22.741361",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  }
+}

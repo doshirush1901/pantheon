@@ -1,0 +1,42 @@
+[
+  {
+    "type": "critical_correction",
+    "topic": "Kiefel relationship",
+    "timestamp": "2026-02-28T15:51:53.350570"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "heater power",
+    "timestamp": "2026-02-28T15:51:55.379988"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "PF1-C-2015 price",
+    "timestamp": "2026-02-28T15:52:34.674814"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "Kiefel relationship",
+    "timestamp": "2026-02-28T15:52:37.587762"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "heater power",
+    "timestamp": "2026-02-28T15:52:39.574358"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "PF1-C-2015 price",
+    "timestamp": "2026-02-28T15:53:06.332252"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "price",
+    "timestamp": "2026-02-28T15:58:45.691251"
+  },
+  {
+    "type": "critical_correction",
+    "topic": "PF1-C-2015 price",
+    "timestamp": "2026-02-28T16:00:01.582523"
+  }
+]

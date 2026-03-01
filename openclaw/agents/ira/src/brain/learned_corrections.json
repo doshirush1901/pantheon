@@ -1,0 +1,17 @@
+{
+  "corrections": [
+    {
+      "id": "fact_20260301_100341",
+      "correction_type": "fact",
+      "original": "Hi! Happy to help.\n\nI'm Ira, your Intelligent Revenue Assistant here at Machinecraft Technologies. My main role is to assist you with information about our thermoforming machines, answer queries, and ",
+      "corrected": "but what's your architecture?",
+      "entity": "but what's your architecture?",
+      "context": "No but what's your architecture?",
+      "timestamp": "2026-03-01T10:03:41.642240",
+      "confidence": 1.0
+    }
+  ],
+  "competitors": [],
+  "existing_customers": [],
+  "last_updated": "2026-03-01T10:03:41.642379"
+}

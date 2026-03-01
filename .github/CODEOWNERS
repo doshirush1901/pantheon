@@ -1,0 +1,28 @@
+# Code Owners
+# These users will be requested for review when someone opens a pull request.
+
+# Default owners for everything in the repo
+*       @rushabhdoshi
+
+# Core agent code
+/openclaw/agents/ira/  @rushabhdoshi
+
+# Brain system (RAG, retrieval)
+/openclaw/agents/ira/src/brain/  @rushabhdoshi
+
+# Memory system
+/openclaw/agents/ira/src/memory/  @rushabhdoshi
+
+# Specialist agents
+/agents/  @rushabhdoshi
+
+# Skills
+/skills/  @rushabhdoshi
+
+# Infrastructure and configuration
+/docker-compose.yml  @rushabhdoshi
+/.github/  @rushabhdoshi
+
+# Documentation
+/docs/  @rushabhdoshi
+README.md  @rushabhdoshi

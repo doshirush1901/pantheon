@@ -1,0 +1,42 @@
+[
+  {
+    "memory_1_id": "1",
+    "memory_1_content": "PF1-C-3020 base price is EUR 180,000",
+    "memory_2_id": "2",
+    "memory_2_content": "PF1-C-3020 base price is EUR 175,000",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1-C-3020",
+    "detected_at": "2026-02-28T13:49:45.417310"
+  },
+  {
+    "memory_1_id": "1",
+    "memory_1_content": "PF1-C-3020 base price is EUR 180,000",
+    "memory_2_id": "2",
+    "memory_2_content": "PF1-C-3020 base price is EUR 175,000",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1-C-3020",
+    "detected_at": "2026-02-28T13:50:07.496738"
+  },
+  {
+    "memory_1_id": "45d2698fe3f9",
+    "memory_1_content": "{'machine_model': 'PF1-C-3020', 'prices': [{'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type mac",
+    "memory_2_id": "5a2f463e977f",
+    "memory_2_content": "{'machine_model': 'PF1-C-1510', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ' | Dott Mazza | www.apform.it\\n36.0 | Plastiart | jf.deltenre@plastiart.c",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1-C-1510 and PF1-C-3020",
+    "detected_at": "2026-02-28T14:21:23.392143"
+  },
+  {
+    "memory_1_id": "45d2698fe3f9",
+    "memory_1_content": "{'machine_model': 'PF1-C-3020', 'prices': [{'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type mac",
+    "memory_2_id": "ce93d983473e",
+    "memory_2_content": "{'machine_model': 'PF1-X-1510', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'ld Machine\\n32.0 | Paracoat | India | Sanjay | AM-M-1807\\n33.0 | Bega | I",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1 models: PF1-C-3020 is 8500000 INR while PF1-X-1510 is 4100000 INR.",
+    "detected_at": "2026-02-28T14:23:22.728043"
+  }
+]

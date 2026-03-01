@@ -1,0 +1,18 @@
+{
+  "facts": [
+    {
+      "fact_id": "financial_20260227_160118",
+      "query_type": "financial",
+      "question_pattern": "turnover|revenue|sales.*(?:last year|20\\d{2}|annual)",
+      "answer": "\u20b960 Cr",
+      "source_document": "Machinecraft Technologies\u25a1 Evolution and Performance (1976\u20132025).pdf",
+      "extracted_at": "2026-02-27T16:01:18.496371",
+      "confidence": 1.0,
+      "metadata": {
+        "turnover_last_year": "\u20b960 Cr",
+        "year": "2022"
+      }
+    }
+  ],
+  "last_updated": "2026-02-27T16:01:18.496382"
+}

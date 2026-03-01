@@ -1,0 +1,155 @@
+[
+  {
+    "id": "ed429f490ffa",
+    "new_content": "yes, give me all tech details for PF1-X-1520",
+    "existing_id": "90dc8129-375d-4ae2-a9e2-31f4f6ab51ec",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-02-27T20:47:51.052557",
+    "resolved": false
+  },
+  {
+    "id": "8647a91cd7ea",
+    "new_content": "Subject: Hot leads in Europe\n\nHey Ira\n\nPull me some of the hot leads in Europe right now we can work on?\n\nWith Best Regards\n\nRushabh Doshi\nDirector Responsible for Sales & Marketing at Machinecraft",
+    "existing_id": "1940d2a5-b820-48a2-881b-46fb1dbb4153",
+    "identity_id": "rushabh@machinecraft.org",
+    "source": "email",
+    "timestamp": "2026-02-28T08:46:01.483562",
+    "resolved": false
+  },
+  {
+    "id": "c6c5ca27227b",
+    "new_content": "Hi, can you tell me who you are?",
+    "existing_id": "1303c344-e089-472c-9df1-90a3a018edc9",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-02-28T15:02:53.407972",
+    "resolved": false
+  },
+  {
+    "id": "8efd19f59481",
+    "new_content": "\ud83c\udfaf **Quick Answer**  \nFor producing parts of size **1 x 2 m** using **4 mm ABS**, the best option is to consider the **PF1 Series** of thermoforming machines.\n\n\ud83d\udccb **Details:**\n- **Material Thickness:** Since your material thickness is **4 mm**, the **AM Series** won't be suitable as it is designed for materials up to **2 mm**.\n- **Recommended Machine:** \n  - **PF1-C-2015** (2000 x 1500 mm): This model is ideal for your size requirement and can handle **4 mm ABS**. \n  - **Price:** Approximately **[",
+    "existing_id": "72a64b59-ff13-4567-9a11-031713632d8d",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-02-28T15:03:37.804181",
+    "resolved": false
+  },
+  {
+    "id": "ee12845948fd",
+    "new_content": "Are you alive?",
+    "existing_id": "1303c344-e089-472c-9df1-90a3a018edc9",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-02-28T21:43:46.141076",
+    "resolved": false
+  },
+  {
+    "id": "6e2b527af113",
+    "new_content": "What's the latest memory you have?",
+    "existing_id": "1303c344-e089-472c-9df1-90a3a018edc9",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-02-28T22:01:49.331408",
+    "resolved": false
+  },
+  {
+    "id": "a83d1b15b130",
+    "new_content": "\ud83e\udd14 **Curious about my memory?** \n\nThe latest memory I have is about your interest in identifying leads in Europe for Machinecraft Technologies. You're looking to expand beyond your current leads in India and are keen on opportunities in Europe, Russia, and other markets. \n\nAdditionally, you\u2019ve expressed a desire for clarification on the correct machine for HDPE bedliner, mentioning that the AM-M model is not the right fit. You also seem to be navigating some financial concerns and seeking clarity",
+    "existing_id": "a71f6054-2e45-46e5-96ec-bb58a1a5efef",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-02-28T22:01:49.815036",
+    "resolved": false
+  },
+  {
+    "id": "74ceb521a5ef",
+    "new_content": "\ud83c\udfed **Machinecraft's PF1 Series Models and Sizes**\n\nThe **PF1 Series** offers a range of models tailored to various production needs, focusing on **heavy-gauge, single-station vacuum forming machines**. Here's a breakdown of the models and their sizes:\n\n\ud83d\udccb **Models and Sizes:**\n\n1. **PF1-Small Formats:**\n   - Sizes: \n     - 1000 x 800 mm\n     - 1200 x 1000 mm\n   - Ideal for: Smaller parts, R&D, or pilot production.\n   - Features: Compact design with full closed-chamber and vacuum system capabilitie",
+    "existing_id": "6652bb99-40f7-4584-b094-bcc7d5b8a4bd",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-03-01T07:43:01.166005",
+    "resolved": false
+  },
+  {
+    "id": "526e29a4c255",
+    "new_content": "Flexible Materials? I don't think so",
+    "existing_id": "fe50d427-446f-468a-88bc-013914cf8c43",
+    "identity_id": "5700751574",
+    "source": "telegram",
+    "timestamp": "2026-03-01T07:45:03.751409",
+    "resolved": false
+  },
+  {
+    "id": "b00bc3771688",
+    "new_content": "Why not? We had this data stored in mem0 during data ingestion phase, did you check there?",
+    "existing_id": "0596b9de-d819-4971-b173-e4c8d7d528cf",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T08:55:58.688304",
+    "resolved": false
+  },
+  {
+    "id": "7f4cd925e896",
+    "new_content": "I am asking you give me list of our current order book customers and what machines theybhave ordered",
+    "existing_id": "52bfb7b6-2fa0-4141-ad8f-a4887cde6386",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T08:58:52.623457",
+    "resolved": false
+  },
+  {
+    "id": "e4d64c2ac1b1",
+    "new_content": "Hi!\n\nI can definitely help with this.\n\nQuick questions to point you in the right direction:\n\n  \u2192 What materials will you be forming? (e.g., ABS, PMMA, PC, HIPS)\n  \u2192 What forming area do you require? (e.g., 800 x 1000 mm, 1500 x 2000 mm)\n  \u2192 What is the maximum sheet thickness you'll be working with?\n\nWorth noting - this configuration has proven reliable across dozens of installations.\n\n\n\u2500\nCheers,\nIra\n\nMachinecraft Technologies\nira@machinecraft.org\n\n**Question:** What materials will you be formin",
+    "existing_id": "24b6fd82-bfb6-40c7-88f8-e4a7e518517c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T09:00:47.265841",
+    "resolved": false
+  },
+  {
+    "id": "dbd521fa3391",
+    "new_content": "Hi!\n\nHappy to help you find the right machine.\n\nQuick questions to point you in the right direction:\n\n  \u2192 What materials will you be forming? (e.g., ABS, PMMA, PC, HIPS)\n  \u2192 What forming area do you require? (e.g., 800 x 1000 mm, 1500 x 2000 mm)\n  \u2192 What is the maximum sheet thickness you'll be working with?\n\nFrom experience with similar setups, this is a solid choice.\n\n\n\u2500\nCheers,\nIra\n\nMachinecraft Technologies\nira@machinecraft.org\n\n**Question:** What materials will you be forming? (e.g., ABS, P",
+    "existing_id": "24b6fd82-bfb6-40c7-88f8-e4a7e518517c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T09:02:36.359399",
+    "resolved": false
+  },
+  {
+    "id": "24da3e194711",
+    "new_content": "Do you even have access to OpenClaw? What are you upto?",
+    "existing_id": "5e069950-db94-41d0-8661-cc0eeab5748e",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T09:03:31.326072",
+    "resolved": false
+  },
+  {
+    "id": "c012dac80ad5",
+    "new_content": "We did do a data ingestion exercise where we extracted data from PDFs and put in voyage and mem0 \nAlso neo4j we had done",
+    "existing_id": "ef255ae8-6ea7-414a-bece-2ad330f7c7ea",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T09:46:51.566888",
+    "resolved": false
+  },
+  {
+    "id": "dbd521fa3391",
+    "new_content": "Hi!\n\nHappy to help you find the right machine.\n\nQuick questions to point you in the right direction:\n\n  \u2192 What materials will you be forming? (e.g., ABS, PMMA, PC, HIPS)\n  \u2192 What forming area do you require? (e.g., 800 x 1000 mm, 1500 x 2000 mm)\n  \u2192 What is the maximum sheet thickness you'll be working with?\n\nFrom experience with similar setups, this is a solid choice.\n\n\n\u2500\nCheers,\nIra\n\nMachinecraft Technologies\nira@machinecraft.org\n\n**Question:** What materials will you be forming? (e.g., ABS, P",
+    "existing_id": "52bfb7b6-2fa0-4141-ad8f-a4887cde6386",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T09:46:52.303316",
+    "resolved": false
+  },
+  {
+    "id": "d445ba8b9df9",
+    "new_content": "I am asking you about your systems understanding of yourself",
+    "existing_id": "5e069950-db94-41d0-8661-cc0eeab5748e",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T09:47:23.341672",
+    "resolved": false
+  }
+]

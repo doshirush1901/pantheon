@@ -1,0 +1,55 @@
+{
+  "identities": [
+    {
+      "canonical_id": "id_1b5d664dcaaf",
+      "name": null,
+      "email": "john@company.com",
+      "telegram_id": null,
+      "phone": null,
+      "company": null,
+      "aliases": [
+        "john@company.com",
+        "telegram_12345",
+        "id_4c4fde3407cb"
+      ],
+      "metadata": {}
+    },
+    {
+      "canonical_id": "id_973dfe463ec8",
+      "name": null,
+      "email": "test@example.com",
+      "telegram_id": null,
+      "phone": null,
+      "company": null,
+      "aliases": [
+        "test@example.com"
+      ],
+      "metadata": {}
+    },
+    {
+      "canonical_id": "id_e233d4a29013",
+      "name": null,
+      "email": "customer@example.com",
+      "telegram_id": null,
+      "phone": null,
+      "company": null,
+      "aliases": [
+        "customer@example.com"
+      ],
+      "metadata": {}
+    },
+    {
+      "canonical_id": "id_717dd419440d",
+      "name": null,
+      "email": null,
+      "telegram_id": null,
+      "phone": null,
+      "company": null,
+      "aliases": [
+        "ira_corrections"
+      ],
+      "metadata": {}
+    }
+  ],
+  "updated_at": "2026-02-28T15:53:05.717457"
+}

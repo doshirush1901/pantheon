@@ -1,0 +1,36 @@
+
+# Correction from 2026-02-28
+# Topic: heater power
+# WRONG: 100kW
+# CORRECT: 125kW
+
+
+# Correction from 2026-02-28
+# Topic: PF1-C-2015 price
+# WRONG: ₹65 Lakhs
+# CORRECT: ₹60 Lakhs
+
+
+# Correction from 2026-02-28
+# Topic: heater power
+# WRONG: 100kW
+# CORRECT: 125kW
+
+
+# Correction from 2026-02-28
+# Topic: PF1-C-2015 price
+# WRONG: ₹65 Lakhs
+# CORRECT: ₹60 Lakhs
+
+
+# Correction from 2026-02-28
+# Topic: price
+# WRONG: ₹65 Lakhs
+# CORRECT: ₹60 Lakhs
+
+
+# Correction from 2026-02-28
+# Topic: PF1-C-2015 price
+# WRONG: ₹65 Lakhs
+# CORRECT: ₹60 Lakhs
+

@@ -1,0 +1,9 @@
+{
+  "hallucinated_models": [],
+  "wrong_model_routing": [],
+  "series_confusion": [],
+  "spec_hallucination": [],
+  "missing_disclaimer": 0,
+  "deflection": 0,
+  "total_mistakes": 0
+}

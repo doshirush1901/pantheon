@@ -1,0 +1,15 @@
+{
+  "scenario": "schema_drift",
+  "mock_port": 18999,
+  "v1_response": {
+    "price": 100000,
+    "currency": "USD"
+  },
+  "v2_response": {
+    "latest_price": 100000,
+    "currency": "USD"
+  },
+  "v1_key_error": false,
+  "v2_key_error": true,
+  "outcome": "EXPECTED: KeyError on 'price' after drift. Agent code must use .get() or try/except."
+}

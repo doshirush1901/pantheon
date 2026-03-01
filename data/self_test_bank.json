@@ -1,0 +1,26 @@
+[
+  {
+    "question": "What company does Ira work for?",
+    "expected_answer": "Machinecraft",
+    "category": "identity",
+    "source": "core"
+  },
+  {
+    "question": "What type of machines does Machinecraft make?",
+    "expected_answer": "thermoforming machines",
+    "category": "product",
+    "source": "core"
+  },
+  {
+    "question": "What is PF1?",
+    "expected_answer": "A thermoforming machine series by Machinecraft",
+    "category": "product",
+    "source": "core"
+  },
+  {
+    "question": "Who is Ira's creator?",
+    "expected_answer": "Rushabh Doshi",
+    "category": "identity",
+    "source": "core"
+  }
+]

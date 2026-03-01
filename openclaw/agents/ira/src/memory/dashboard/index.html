@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ira Memory Dashboard</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        h1 span { font-size: 32px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-size: 16px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: var(--accent-hover);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .memory-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .memory-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .memory-content {
+            flex: 1;
+        }
+        
+        .memory-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .memory-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .memory-meta span {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .badge-fact { background: #3b82f620; color: #60a5fa; }
+        .badge-preference { background: #f59e0b20; color: #fbbf24; }
+        .badge-context { background: #22c55e20; color: #4ade80; }
+        .badge-correction { background: #ef444420; color: #f87171; }
+        .badge-relationship { background: #8b5cf620; color: #a78bfa; }
+        
+        .badge-company { background: #0ea5e920; color: #22d3ee; }
+        .badge-contact { background: #ec489920; color: #f472b6; }
+        
+        .delete-btn {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        
+        .refresh-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span>🧠</span> Ira Memory Dashboard</h1>
+            <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+        </header>
+        
+        <div class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-user">-</div>
+                <div class="stat-label">User Memories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-users">-</div>
+                <div class="stat-label">Users Tracked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-entity">-</div>
+                <div class="stat-label">Entity Memories</div>
+            </div>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search memories..." onkeypress="if(event.key==='Enter')doSearch()">
+            <button onclick="doSearch()">Search</button>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('users')" id="tab-users">User Memories</div>
+            <div class="tab" onclick="switchTab('entities')" id="tab-entities">Entity Memories</div>
+            <div class="tab" onclick="switchTab('search')" id="tab-search">Search Results</div>
+        </div>
+        
+        <div class="memory-list" id="memory-list">
+            <div class="empty-state">
+                <h3>Loading...</h3>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentTab = 'users';
+        let cachedData = { users: [], entities: [], search: [] };
+        
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                document.getElementById('stat-user').textContent = data.user_memories?.total || 0;
+                document.getElementById('stat-users').textContent = data.user_memories?.users_with_memories || 0;
+                document.getElementById('stat-entity').textContent = data.entity_memories?.total || 0;
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+        
+        async function loadUserMemories() {
+            try {
+                const res = await fetch('/api/memories');
+                const data = await res.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                cachedData.users = data.memories || [];
+                if (currentTab === 'users') renderMemories();
+            } catch (e) {
+                console.error('Failed to load memories:', e);
+            }
+        }
+        
+        async function loadEntityMemories() {
+            try {
+                const res = await fetch('/api/entities');
+                const data = await res.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                cachedData.entities = data.entities || [];
+                if (currentTab === 'entities') renderMemories();
+            } catch (e) {
+                console.error('Failed to load entities:', e);
+            }
+        }
+        
+        async function doSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+            
+            switchTab('search');
+            
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                cachedData.search = data.results || [];
+                renderMemories();
+            } catch (e) {
+                console.error('Search failed:', e);
+            }
+        }
+        
+        async function deleteMemory(type, id, identityId) {
+            if (!confirm('Delete this memory?')) return;
+            
+            try {
+                const res = await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, id, identity_id: identityId })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    loadAll();
+                } else {
+                    alert('Failed to delete: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error('Delete failed:', e);
+            }
+        }
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            renderMemories();
+        }
+        
+        function renderMemories() {
+            const list = document.getElementById('memory-list');
+            let memories = [];
+            
+            if (currentTab === 'users') {
+                memories = cachedData.users;
+            } else if (currentTab === 'entities') {
+                memories = cachedData.entities;
+            } else {
+                memories = cachedData.search;
+            }
+            
+            if (!memories.length) {
+                list.innerHTML = `<div class="empty-state">
+                    <h3>No memories found</h3>
+                    <p>${currentTab === 'search' ? 'Try a different search term' : 'Memories will appear as Ira learns from conversations'}</p>
+                </div>`;
+                return;
+            }
+            
+            list.innerHTML = memories.map(m => renderMemoryCard(m, currentTab)).join('');
+        }
+        
+        function renderMemoryCard(mem, type) {
+            const isUser = type === 'users' || (type === 'search' && mem.type === 'user');
+            const isEntity = type === 'entities' || (type === 'search' && mem.type === 'entity');
+            
+            const memType = mem.memory_type || 'fact';
+            const badgeClass = `badge-${memType}`;
+            
+            let entityBadge = '';
+            if (isEntity) {
+                const entType = mem.entity_type || 'company';
+                entityBadge = `<span class="badge badge-${entType}">${entType}</span>`;
+            }
+            
+            const identity = isUser ? (mem.identity_id || mem.entity || '?').substring(0, 12) : (mem.entity_name || mem.entity || '?');
+            
+            const date = mem.created_at ? new Date(mem.created_at).toLocaleDateString() : '';
+            const uses = mem.use_count || 0;
+            
+            const deleteBtn = isUser 
+                ? `<button class="delete-btn" onclick="deleteMemory('user', ${mem.id}, '${mem.identity_id || ''}')">Delete</button>`
+                : `<button class="delete-btn" onclick="deleteMemory('entity', ${mem.id})">Delete</button>`;
+            
+            return `<div class="memory-card">
+                <div class="memory-content">
+                    <div class="memory-text">${escapeHtml(mem.memory_text)}</div>
+                    <div class="memory-meta">
+                        <span class="badge ${badgeClass}">${memType}</span>
+                        ${entityBadge}
+                        <span>👤 ${escapeHtml(identity)}</span>
+                        <span>📅 ${date}</span>
+                        <span>🔄 Used ${uses}x</span>
+                        ${mem.source_channel ? `<span>📱 ${mem.source_channel}</span>` : ''}
+                    </div>
+                </div>
+                ${deleteBtn}
+            </div>`;
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        
+        function loadAll() {
+            loadStats();
+            loadUserMemories();
+            loadEntityMemories();
+        }
+        
+        // Initial load
+        loadAll();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>

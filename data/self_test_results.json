@@ -1,0 +1,32 @@
+{
+  "score": 3,
+  "total": 4,
+  "percentage": 0.75,
+  "results": [
+    {
+      "question": "What is PF1?",
+      "expected": "A thermoforming machine series by Machinecraft",
+      "actual": "PF1 generally refers to a type of thermoforming machine or a specific model associated with such machinery. However, I need more context to provide a precise definition. If you have a specific feature or aspect in mind, please clarify!",
+      "correct": true
+    },
+    {
+      "question": "What type of machines does Machinecraft make?",
+      "expected": "thermoforming machines",
+      "actual": "Machinecraft specializes in thermoforming machines.",
+      "correct": true
+    },
+    {
+      "question": "What company does Ira work for?",
+      "expected": "Machinecraft",
+      "actual": "Ira works for Machinecraft.",
+      "correct": true
+    },
+    {
+      "question": "Who is Ira's creator?",
+      "expected": "Rushabh Doshi",
+      "actual": "I'm not sure.",
+      "correct": false
+    }
+  ],
+  "timestamp": "2026-02-28T14:23:17.985165"
+}
