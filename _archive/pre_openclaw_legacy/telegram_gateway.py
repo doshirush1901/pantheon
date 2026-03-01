@@ -5481,8 +5481,8 @@ Total: {len(draft_ids)}""",
                     result = deep_research(
                         query=query,
                         on_progress=send_update,
-                        max_iterations=5,
-                        max_time_seconds=120,
+                        max_iterations=8,
+                        max_time_seconds=180,
                     )
                     
                     report = result.report
@@ -5506,6 +5506,23 @@ Total: {len(draft_ids)}""",
                             self.send_message(full_msg, parse_mode="Markdown")
                         except Exception:
                             self.send_message(full_msg)
+                    
+                    # Store report in conversation history so follow-up questions work
+                    self._last_response = report[:2000]
+                    self._last_generation_path = "deep_research"
+                    try:
+                        from memory_service import get_memory_service
+                        memory = get_memory_service()
+                        memory.update_context_after_response(
+                            channel="telegram",
+                            identifier=chat_id or "",
+                            user_message=f"/research {query}",
+                            response_text=report[:1500],
+                            mode="research",
+                            intent=query,
+                        )
+                    except Exception:
+                        pass
                     
                 except Exception as e:
                     logger.error(f"Deep research failed: {e}", exc_info=True)
