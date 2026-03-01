@@ -932,7 +932,7 @@ class IraAgent:
             # Mem0 semantic memory retrieval
             mem0_context = ""
             try:
-                from mem0_service import get_mem0_service
+                from mem0_memory import get_mem0_service
                 mem0_svc = get_mem0_service()
                 if mem0_svc:
                     mem0_context = mem0_svc.get_relevant_context(

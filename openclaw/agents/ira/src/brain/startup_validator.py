@@ -44,12 +44,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-SKILL_DIR = Path(__file__).parent
-AGENT_DIR = SKILL_DIR.parent.parent
+SKILL_DIR = Path(__file__).parent  # brain/
+SRC_DIR = SKILL_DIR.parent         # src/
+AGENT_DIR = SRC_DIR.parent         # ira/
 PROJECT_ROOT = AGENT_DIR.parent.parent.parent
 sys.path.insert(0, str(AGENT_DIR))
+sys.path.insert(0, str(SKILL_DIR))
 
-# Try to import error monitor
+# Try to import error monitor (lives in brain/)
 try:
     from error_monitor import alert_critical, track_warning
 except ImportError:

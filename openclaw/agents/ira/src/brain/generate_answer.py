@@ -103,7 +103,9 @@ except ImportError:
 
 # Try to import Lesson Injector (continuous learning integration)
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent / "agents" / "apollo"))
+    # Path: brain -> src -> ira -> agents -> openclaw -> Ira (project root) -> agents/apollo
+    _project_root = Path(__file__).parent.parent.parent.parent.parent.parent
+    sys.path.insert(0, str(_project_root / "agents" / "apollo"))
     from lesson_injector import inject_lessons, get_agent_guidance
     LESSON_INJECTION_AVAILABLE = True
     logger.info("Lesson injection enabled - Ira will apply learned lessons")
@@ -134,8 +136,8 @@ except ImportError:
 
 # Try to import Sales Quote Generator for PDF generation
 try:
-    sys.path.insert(0, str(SKILLS_DIR / "sales"))
-    from src.sales.quote_generator import (
+    sys.path.insert(0, str(SKILLS_DIR))
+    from sales.quote_generator import (
         SalesQuoteGenerator as PDFQuoteGenerator,
         generate_quote as generate_pdf_quote,
     )
@@ -200,11 +202,11 @@ except ImportError:
 
 # Try to import Fact Checker (unified in src/agents/fact_checker/)
 try:
-    from src.agents.fact_checker import FactChecker, verify_reply, FactIssue
+    from src.agents.fact_checker.agent import FactChecker, verify_reply, FactIssue
     FACT_CHECKER_AVAILABLE = True
 except ImportError:
     try:
-        from fact_checker import FactChecker, verify_reply, FactIssue
+        from openclaw.agents.ira.src.agents.fact_checker.agent import FactChecker, verify_reply, FactIssue
         FACT_CHECKER_AVAILABLE = True
     except ImportError:
         FACT_CHECKER_AVAILABLE = False

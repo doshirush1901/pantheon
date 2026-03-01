@@ -50,10 +50,11 @@ from .machine_recommender import (
 
 # Fact checking (unified in src/agents/fact_checker/)
 try:
-    from ..agents.fact_checker import FactChecker, verify_reply
+    from ..agents.fact_checker.agent import FactChecker, verify_reply, FactIssue
 except ImportError:
     FactChecker = None
     verify_reply = None
+    FactIssue = None
 
 __all__ = [
     # Retrieval

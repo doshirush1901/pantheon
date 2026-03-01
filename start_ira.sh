@@ -58,7 +58,7 @@ check_ira_agent() {
 }
 
 check_email_handler() {
-    pgrep -f "email_conversation_loop.py" >/dev/null 2>&1 && return 0 || return 1
+    pgrep -f "email_openclaw_bridge" >/dev/null 2>&1 && return 0 || return 1
 }
 
 # Legacy alias
@@ -84,7 +84,6 @@ if [ "$1" = "status" ]; then
     echo -e "  PostgreSQL:       $(status_icon check_postgres)"
     echo -e "  Qdrant:           $(status_icon check_qdrant)"
     echo -e "  Redis:            $(status_icon check_redis) (optional)"
-    echo -e "  Orchestrator:     $(status_icon check_orchestrator)"
     echo -e "  Telegram Gateway: $(status_icon check_telegram_gateway)"
     echo -e "  Email Handler:    $(status_icon check_email_handler) (optional)"
     echo ""
@@ -92,7 +91,7 @@ if [ "$1" = "status" ]; then
     # Show agent status if running
     if check_ira_agent; then
         echo -e "${YELLOW}Agent Status:${NC}"
-        python3 orchestrator.py --status 2>/dev/null | head -30
+        python3 -m openclaw.agents.ira.agent --status 2>/dev/null | head -30
     fi
     exit 0
 fi
@@ -103,7 +102,7 @@ fi
 
 if [ "$1" = "cli" ]; then
     echo -e "${YELLOW}Starting Interactive CLI...${NC}\n"
-    python3 orchestrator.py --cli
+    python3 -m openclaw.agents.ira.agent --cli
     exit 0
 fi
 
@@ -114,14 +113,11 @@ fi
 if [ "$1" = "stop" ]; then
     echo -e "${YELLOW}Stopping Ira services...${NC}\n"
     
-    # Stop Orchestrator
-    pkill -f "orchestrator.py" 2>/dev/null && echo "  Stopped Orchestrator" || echo "  Orchestrator not running"
-    
     # Stop Telegram Gateway
-    pkill -f "telegram_gateway.py --loop" 2>/dev/null && echo "  Stopped Telegram Gateway" || echo "  Telegram Gateway not running"
+    pkill -f "telegram_gateway.py" 2>/dev/null && echo "  Stopped Telegram Gateway" || echo "  Telegram Gateway not running"
     
     # Stop Email Handler
-    pkill -f "email_conversation_loop.py" 2>/dev/null && echo "  Stopped Email Handler" || echo "  Email Handler not running"
+    pkill -f "email_openclaw_bridge" 2>/dev/null && echo "  Stopped Email Handler" || echo "  Email Handler not running"
     
     # Stop Qdrant (if running in Docker)
     docker stop qdrant 2>/dev/null && echo "  Stopped Qdrant" || echo "  Qdrant container not running"
@@ -133,6 +129,9 @@ fi
 # -----------------------------------------------------------------------------
 # Start Services
 # -----------------------------------------------------------------------------
+
+# Ensure logs directory exists
+mkdir -p logs
 
 echo -e "${YELLOW}Starting services...${NC}\n"
 
@@ -208,28 +207,17 @@ if [ "$1" = "legacy" ]; then
         fi
     fi
 else
-    # New mode: use unified orchestrator
-    if check_orchestrator; then
-        echo -e "${GREEN}Already running (orchestrator)${NC}"
-    elif check_telegram_gateway; then
-        echo -e "${GREEN}Already running (legacy mode)${NC}"
+    # New mode: use OpenClaw agent via start_ira_openclaw.sh
+    if check_telegram_gateway; then
+        echo -e "${GREEN}Already running${NC}"
     else
-        nohup python3 orchestrator.py --telegram > logs/orchestrator.log 2>&1 &
+        nohup python3 _archive/pre_openclaw_legacy/telegram_gateway.py --loop > logs/telegram_gateway.log 2>&1 &
         sleep 3
         
-        if check_orchestrator; then
-            echo -e "${GREEN}Started (orchestrator)${NC}"
+        if check_telegram_gateway; then
+            echo -e "${GREEN}Started (Telegram gateway)${NC}"
         else
-            # Fallback to legacy
-            echo -e "${YELLOW}Orchestrator failed, trying legacy...${NC}"
-            nohup python3 _archive/pre_openclaw_legacy/telegram_gateway.py --loop > logs/telegram_gateway.log 2>&1 &
-            sleep 2
-            
-            if check_telegram_gateway; then
-                echo -e "${GREEN}Started (legacy fallback)${NC}"
-            else
-                echo -e "${RED}Failed - check logs/orchestrator.log${NC}"
-            fi
+            echo -e "${RED}Failed - check logs/telegram_gateway.log${NC}"
         fi
     fi
 fi
@@ -294,11 +282,7 @@ if $ALL_OK; then
 fi
 
 echo ""
-if check_orchestrator; then
-    echo -e "   Logs: ${YELLOW}tail -f logs/orchestrator.log${NC}"
-else
-    echo -e "   Logs: ${YELLOW}tail -f logs/telegram_gateway.log${NC}"
-fi
+echo -e "   Logs: ${YELLOW}tail -f logs/telegram_gateway.log${NC}"
 echo -e "   Stop: ${YELLOW}./start_ira.sh stop${NC}"
 echo -e "   Status: ${YELLOW}./start_ira.sh status${NC}"
 echo ""

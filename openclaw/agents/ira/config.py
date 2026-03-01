@@ -293,6 +293,17 @@ DATABASE_URL = os.environ.get(
 POSTGRES_URL = DATABASE_URL
 DB_URL = DATABASE_URL
 
+# Neo4j Graph Database
+NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "ira_knowledge_graph")
+
+# Redis (optional caching)
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
+# Jina AI (web research)
+JINA_API_KEY = os.environ.get("JINA_API_KEY", "")
+
 # =============================================================================
 # DATABASE CONNECTION POOL
 # =============================================================================
@@ -2349,6 +2360,17 @@ __all__ = [
     "DB_URL",
     "get_db_pool",
     "get_db_connection",
+    
+    # Neo4j
+    "NEO4J_URI",
+    "NEO4J_USER",
+    "NEO4J_PASSWORD",
+    
+    # Redis
+    "REDIS_URL",
+    
+    # Jina
+    "JINA_API_KEY",
     
     # Qdrant
     "QDRANT_URL",

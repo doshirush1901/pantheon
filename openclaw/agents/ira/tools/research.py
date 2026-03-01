@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional
 
 TOOLS_DIR = Path(__file__).parent
 AGENT_DIR = TOOLS_DIR.parent
-SKILLS_DIR = AGENT_DIR / "skills"
+SRC_DIR = AGENT_DIR / "src"
 
 sys.path.insert(0, str(AGENT_DIR))
 

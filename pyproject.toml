@@ -100,8 +100,9 @@ Issues = "https://github.com/machinecraft/ira/issues"
 
 [project.scripts]
 ira = "openclaw.agents.ira.agent:main"
-ira-telegram = "openclaw.agents.ira.skills.telegram_channel.telegram_gateway:main"
-ira-email = "openclaw.agents.ira.skills.email_channel.email_handler:main"
+# ira-telegram and ira-email run via start scripts:
+#   Telegram: ./start_ira.sh (runs _archive/pre_openclaw_legacy/telegram_gateway.py)
+#   Email:    ./start_ira_openclaw.sh email (runs scripts/email_openclaw_bridge.py)
 ira-backup = "scripts.backup_data:main"
 
 [tool.setuptools.packages.find]

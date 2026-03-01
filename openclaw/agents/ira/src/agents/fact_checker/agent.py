@@ -325,3 +325,27 @@ def generate_verification_report(
         original_draft=draft,
         verified_draft=verified_draft
     )
+
+
+# =============================================================================
+# BACKWARD-COMPATIBLE ALIASES
+# =============================================================================
+# brain/__init__.py and generate_answer.py import these names
+
+FactIssue = str  # Issues are plain strings in this implementation
+
+class FactChecker:
+    """Wrapper class for backward compatibility with brain imports."""
+
+    @staticmethod
+    async def verify_draft(draft: str, query: str, context: Optional[Dict] = None) -> VerificationReport:
+        return generate_verification_report(draft, query, context)
+
+    @staticmethod
+    async def check(draft: str, query: str, context: Optional[Dict] = None) -> str:
+        return await verify(draft, query, context)
+
+
+async def verify_reply(draft: str, original_query: str, context: Optional[Dict] = None) -> str:
+    """Alias for verify() - used by brain/__init__.py and generate_answer.py."""
+    return await verify(draft, original_query, context)
