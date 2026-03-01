@@ -5211,6 +5211,26 @@ Total: {len(draft_ids)}""",
             return self.handle_train(text)
         
         # =====================================================================
+        # DEEP DIVE - Conversational multi-topic research
+        # =====================================================================
+        
+        deepdive_match = re.match(r'^/deepdive\s+(.+)$', text, re.IGNORECASE)
+        if deepdive_match:
+            return self._handle_deepdive_start(deepdive_match.group(1).strip(), message.chat_id)
+        
+        if text.lower() in ['/deepdive', '/deepdive_cancel', '/cancel_deepdive']:
+            return self._handle_deepdive_cancel(message.chat_id)
+        
+        # Check if there's an active deep dive conversation
+        try:
+            from openclaw.agents.ira.src.brain.deep_dive import get_session
+            active_dd = get_session(message.chat_id)
+            if active_dd and active_dd.phase == "conversation":
+                return self._handle_deepdive_reply(text, message.chat_id)
+        except ImportError:
+            pass
+        
+        # =====================================================================
         # DEEP THINKING COMMANDS
         # =====================================================================
         
@@ -5299,6 +5319,119 @@ Total: {len(draft_ids)}""",
             logger.error(f"NL training error: {e}")
         
         return None
+    
+    # =========================================================================
+    # DEEP DIVE HANDLERS (Conversational multi-topic research)
+    # =========================================================================
+    
+    def _handle_deepdive_start(self, query: str, chat_id: str) -> GatewayResponse:
+        """Start a deep dive session with conversation phase."""
+        try:
+            from openclaw.agents.ira.src.brain.deep_dive import start_session
+            response = start_session(chat_id, query)
+            return GatewayResponse(
+                text=f"🔬 *Deep Dive Mode*\n\n{response}",
+                parse_mode="Markdown",
+                log_entry={"type": "deepdive_start", "query": query[:100]},
+            )
+        except Exception as e:
+            logger.error(f"Deep dive start error: {e}")
+            return GatewayResponse(text=f"Deep dive failed to start: {e}")
+    
+    def _handle_deepdive_reply(self, text: str, chat_id: str) -> GatewayResponse:
+        """Handle a reply during the deep dive conversation phase."""
+        try:
+            from openclaw.agents.ira.src.brain.deep_dive import (
+                continue_conversation, plan_research, execute_research
+            )
+            
+            follow_up = continue_conversation(chat_id, text)
+            
+            if follow_up is not None:
+                return GatewayResponse(
+                    text=f"🔬 *Deep Dive*\n\n{follow_up}",
+                    parse_mode="Markdown",
+                    log_entry={"type": "deepdive_conversation"},
+                )
+            
+            # Conversation done -- move to planning and execution
+            plan = plan_research(chat_id)
+            
+            plan_text = "🔬 *Deep Dive — Research Plan*\n\n"
+            plan_text += f"Breaking this into {len(plan)} parallel research tasks:\n\n"
+            for i, task in enumerate(plan):
+                plan_text += f"{i+1}. *{task.get('topic', 'Task')}*\n"
+                plan_text += f"   {task.get('rationale', '')}\n\n"
+            plan_text += "Starting research now... this may take a few minutes."
+            
+            plan_msg_id = self.send_message(plan_text, parse_mode="Markdown")
+            
+            # Execute research in background thread
+            import threading
+            def _run_deep_dive():
+                try:
+                    def on_progress(msg):
+                        if plan_msg_id:
+                            try:
+                                self.edit_message(
+                                    plan_msg_id,
+                                    f"🔬 *Deep Dive — Researching*\n\n{msg}",
+                                    parse_mode="Markdown",
+                                )
+                            except Exception:
+                                pass
+                        self.send_typing_action()
+                    
+                    report = execute_research(chat_id, on_progress=on_progress)
+                    
+                    if len(report) > 4000:
+                        # Split long reports into multiple messages
+                        chunks = [report[i:i+3900] for i in range(0, len(report), 3900)]
+                        if plan_msg_id:
+                            self.edit_message(
+                                plan_msg_id,
+                                f"🔬 *Deep Dive — Complete*\n\n{chunks[0]}",
+                                parse_mode="Markdown",
+                            )
+                        for chunk in chunks[1:]:
+                            self.send_message(chunk, parse_mode="Markdown")
+                    else:
+                        if plan_msg_id:
+                            self.edit_message(
+                                plan_msg_id,
+                                f"🔬 *Deep Dive — Report*\n\n{report}",
+                                parse_mode="Markdown",
+                            )
+                        else:
+                            self.send_message(
+                                f"🔬 *Deep Dive — Report*\n\n{report}",
+                                parse_mode="Markdown",
+                            )
+                except Exception as e:
+                    logger.error(f"Deep dive execution error: {e}")
+                    self.send_message(f"Deep dive research failed: {e}")
+            
+            thread = threading.Thread(target=_run_deep_dive, daemon=True)
+            thread.start()
+            
+            return GatewayResponse(
+                text=None,
+                log_entry={"type": "deepdive_executing", "tasks": len(plan)},
+            )
+            
+        except Exception as e:
+            logger.error(f"Deep dive reply error: {e}")
+            return GatewayResponse(text=f"Deep dive error: {e}")
+    
+    def _handle_deepdive_cancel(self, chat_id: str) -> GatewayResponse:
+        """Cancel an active deep dive session."""
+        try:
+            from openclaw.agents.ira.src.brain.deep_dive import cancel_session
+            if cancel_session(chat_id):
+                return GatewayResponse(text="Deep dive cancelled.")
+            return GatewayResponse(text="No active deep dive session.")
+        except Exception:
+            return GatewayResponse(text="No active deep dive session.")
     
     # =========================================================================
     # DEEP THINKING HANDLERS
