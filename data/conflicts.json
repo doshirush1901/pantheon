@@ -151,5 +151,50 @@
     "source": "telegram",
     "timestamp": "2026-03-01T09:47:23.341672",
     "resolved": false
+  },
+  {
+    "id": "f55bab9f953c",
+    "new_content": "Hi! Happy to help.\n\nThe average sales cycle for Machinecraft is around 408 days, which is approximately 13.6 months. However, if we exclude outliers, the median sales cycle is about 6 months. \n\nFrom the first interaction to getting an order can vary significantly, but typically, it falls within this average cycle time. \n\nAs for the success rate when an email arrives, we don't have a specific percentage documented, but the average deal size is around \u20ac174,500, indicating a healthy conversion rate",
+    "existing_id": "24b6fd82-bfb6-40c7-88f8-e4a7e518517c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T12:56:01.814551",
+    "resolved": false
+  },
+  {
+    "id": "70b710b1b21c",
+    "new_content": "Hi\n\nGenerate a hot leads profile for me basis of what our customer base is and where our strengths lie\n\nwho are the companies I should email \n\nWhich regions will be hot for me next year",
+    "existing_id": "52bfb7b6-2fa0-4141-ad8f-a4887cde6386",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T13:04:20.650292",
+    "resolved": false
+  },
+  {
+    "id": "a79588d9f3a7",
+    "new_content": "Give me new clients , atleast 50\nAlso sohner does not do bathroom items\nBatelaan as mentioned is now sold and closed and they never made caravan parts \nMutual can be\nFVF is our agent in Japan",
+    "existing_id": "52bfb7b6-2fa0-4141-ad8f-a4887cde6386",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T13:06:07.364764",
+    "resolved": false
+  },
+  {
+    "id": "0345342acd4f",
+    "new_content": "Ones you mentioned above",
+    "existing_id": "52bfb7b6-2fa0-4141-ad8f-a4887cde6386",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T13:11:47.287234",
+    "resolved": false
+  },
+  {
+    "id": "163143aaa1b1",
+    "new_content": "Don't you have the sub agent access who can do this?",
+    "existing_id": "0596b9de-d819-4971-b173-e4c8d7d528cf",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-01T13:57:40.915817",
+    "resolved": false
   }
 ]

@@ -16,7 +16,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "research_skill",
-            "description": "Research the user's question. Search knowledge base, product specs, and memory. Use when you need to find information before answering.",
+            "description": "Search Machinecraft's knowledge base (Qdrant, Mem0, Neo4j, machine database). Use for product specs, customer history, order data, pricing, and any internal knowledge.",
             "parameters": {
                 "type": "object",
                 "properties": {"query": {"type": "string", "description": "The question or topic to research"}},
@@ -27,13 +27,57 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "web_search",
+            "description": "Search the web for external information. Use for company research, industry news, competitor analysis, market trends, or any information not in our internal knowledge base.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The search query"},
+                    "company": {"type": "string", "description": "Company name if researching a specific company"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "customer_lookup",
+            "description": "Look up a customer or company in our CRM/memory. Returns relationship history, past orders, communication history, and preferences.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Customer name, company name, or email to look up"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "memory_search",
+            "description": "Search Ira's long-term memory (Mem0) for stored facts, preferences, past conversations, and ingested data about customers, orders, or Machinecraft operations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "What to search for in memory"},
+                    "user_id": {"type": "string", "description": "Optional: specific user/category to search (e.g. 'machinecraft_customers', 'machinecraft_knowledge')"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "writing_skill",
-            "description": "Draft a response based on research. Use after research_skill when you have context. Handles emails, quotes, and general responses.",
+            "description": "Draft a response, email, or document based on research findings. Use after gathering information with other tools.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "The original user query"},
-                    "research_summary": {"type": "string", "description": "Research findings to base the draft on"},
+                    "research_summary": {"type": "string", "description": "All research findings to base the draft on"},
                 },
                 "required": ["query", "research_summary"],
             },
@@ -43,7 +87,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "fact_checking_skill",
-            "description": "Verify a draft for accuracy, AM series thickness rules, and pricing disclaimers. Use before sending any response.",
+            "description": "Verify a draft for accuracy against the machine database, AM series thickness rules, and pricing disclaimers. Always use before finalizing a response.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -57,12 +101,14 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
-            "name": "orchestrate_full_pipeline",
-            "description": "Run the full pipeline: research -> write -> verify. Use for complex queries that need the complete workflow.",
+            "name": "ask_user",
+            "description": "Ask the user a clarifying question when you need more information to complete a task. Use this instead of guessing.",
             "parameters": {
                 "type": "object",
-                "properties": {"query": {"type": "string", "description": "The user's question"}},
-                "required": ["query"],
+                "properties": {
+                    "question": {"type": "string", "description": "The clarifying question to ask the user"},
+                },
+                "required": ["question"],
             },
         },
     },
@@ -89,17 +135,89 @@ async def execute_tool_call(
     except ImportError:
         return "Error: Skill invocation unavailable."
 
+    # Notify progress callback if available
+    progress_fn = context.get("_progress_callback")
+    if progress_fn:
+        try:
+            progress_fn(tool_name)
+        except Exception:
+            pass
+
     if tool_name == "research_skill":
         query = arguments.get("query", "")
         result = await invoke_research(query, context)
-        return result or "(No results found)"
+        return result or "(No results found in knowledge base)"
+
+    elif tool_name == "web_search":
+        query = arguments.get("query", "")
+        company = arguments.get("company", "")
+        try:
+            from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
+            iris_ctx = {"company": company or query, "query": query}
+            iris_result = await iris_enrich(iris_ctx)
+            if iris_result:
+                parts = []
+                for k, v in iris_result.items():
+                    if v:
+                        parts.append(f"{k}: {v}")
+                return "\n".join(parts) if parts else "(No web results)"
+        except Exception as e:
+            logger.warning(f"Iris web search failed: {e}")
+        try:
+            import httpx
+            resp = httpx.get(f"https://s.jina.ai/{query}", timeout=15, headers={"Accept": "application/json"})
+            if resp.status_code == 200:
+                return resp.text[:3000]
+        except Exception:
+            pass
+        return "(Web search unavailable)"
+
+    elif tool_name == "customer_lookup":
+        query = arguments.get("query", "")
+        results = []
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            mem0 = get_mem0_service()
+            for uid in ["machinecraft_customers", "machinecraft_knowledge"]:
+                memories = mem0.search(query, uid, limit=5)
+                for m in memories:
+                    results.append(f"[{uid}] {m.memory}")
+        except Exception as e:
+            logger.warning(f"Customer lookup Mem0 error: {e}")
+        try:
+            result = await invoke_research(f"customer {query}", context)
+            if result:
+                results.append(f"[knowledge_base] {result[:1000]}")
+        except Exception:
+            pass
+        return "\n".join(results) if results else f"(No customer data found for '{query}')"
+
+    elif tool_name == "memory_search":
+        query = arguments.get("query", "")
+        user_id = arguments.get("user_id", "")
+        results = []
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            mem0 = get_mem0_service()
+            search_ids = [user_id] if user_id else [
+                "machinecraft_knowledge", "machinecraft_customers",
+                "machinecraft_pricing", "machinecraft_processes",
+                "machinecraft_general",
+            ]
+            for uid in search_ids:
+                memories = mem0.search(query, uid, limit=5)
+                for m in memories:
+                    results.append(f"[{uid}] {m.memory}")
+        except Exception as e:
+            logger.warning(f"Memory search error: {e}")
+        return "\n".join(results) if results else f"(No memories found for '{query}')"
 
     elif tool_name == "writing_skill":
         query = arguments.get("query", "")
         research_summary = arguments.get("research_summary", "")
-        context = dict(context)
-        context["research_output"] = research_summary
-        result = await invoke_write(query, context)
+        ctx = dict(context)
+        ctx["research_output"] = research_summary
+        result = await invoke_write(query, ctx)
         return result or "(Draft empty)"
 
     elif tool_name == "fact_checking_skill":
@@ -108,14 +226,9 @@ async def execute_tool_call(
         result = await invoke_verify(draft, original_query, context)
         return result or draft
 
-    elif tool_name == "orchestrate_full_pipeline":
-        query = arguments.get("query", "")
-        ctx = dict(context)
-        research_output = await invoke_research(query, ctx)
-        ctx["research_output"] = research_output
-        draft = await invoke_write(query, ctx)
-        verified = await invoke_verify(draft, query, ctx)
-        return verified or draft
+    elif tool_name == "ask_user":
+        question = arguments.get("question", "")
+        return f"ASK_USER:{question}"
 
     return f"Error: Unknown tool '{tool_name}'"
 

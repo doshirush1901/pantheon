@@ -19,6 +19,7 @@ import base64
 import json
 import logging
 import os
+import random
 import sys
 import time
 from datetime import datetime
@@ -103,6 +104,8 @@ CREDENTIALS_FILE = PROJECT_ROOT / "credentials.json"
 TOKEN_FILE = PROJECT_ROOT / "token.json"
 POLL_INTERVAL = int(os.getenv("EMAIL_POLL_INTERVAL", "60"))  # seconds
 IRA_EMAIL = os.getenv("IRA_EMAIL", "ira@machinecraft.org")
+MAX_REFINEMENT_ROUNDS = int(os.getenv("IRA_MAX_REFINEMENT_ROUNDS", "3"))
+MIN_RESPONSE_TIME = int(os.getenv("IRA_MIN_RESPONSE_TIME", "180"))  # minimum 3 minutes before replying
 
 
 class GmailClient:
@@ -200,6 +203,36 @@ class GmailClient:
         
         return ""
     
+    def get_thread_history(self, thread_id: str, max_messages: int = 10) -> List[Dict]:
+        """Fetch full conversation thread from Gmail for context."""
+        if not thread_id:
+            return []
+        try:
+            thread = self.service.users().threads().get(
+                userId='me',
+                id=thread_id,
+                format='full'
+            ).execute()
+
+            messages = thread.get('messages', [])
+            history = []
+            for msg in messages[-max_messages:]:
+                headers = {h['name'].lower(): h['value'] for h in msg['payload']['headers']}
+                body = self._extract_body(msg['payload'])
+                sender = headers.get('from', '')
+                is_ira = IRA_EMAIL.lower() in sender.lower()
+                history.append({
+                    'role': 'assistant' if is_ira else 'user',
+                    'from': sender,
+                    'body': body,
+                    'date': headers.get('date', ''),
+                    'subject': headers.get('subject', ''),
+                })
+            return history
+        except Exception as e:
+            logger.warning(f"Could not fetch thread {thread_id}: {e}")
+            return []
+
     def send_reply(self, to: str, subject: str, body: str, thread_id: str, message_id: str) -> bool:
         """Send a reply email."""
         try:
@@ -834,17 +867,340 @@ class EmailIraBridge:
         ]
         body_lower = body.lower()
         return any(indicator in body_lower for indicator in feedback_indicators)
+
+    def _deep_think(self, query: str, draft_response: str, from_email: str, start_time: float) -> str:
+        """
+        Full deliberation pipeline using Ira's actual sub-agents.
+
+        Each stage delegates to the real agent — Clio researches, Calliope
+        writes, Vera verifies, Sophia reflects. No raw LLM calls for work
+        that an agent already knows how to do.
+
+        Stages:
+          1. CLIO      — Deep research across Qdrant, Mem0, Neo4j
+          2. VERA      — Rule-based fact-check (AM thickness, pricing, hallucinations)
+          3. RELEVANCE — LLM check: does the draft answer the actual question?
+          4. CALLIOPE  — Rewrite using research if issues found (up to N rounds)
+          5. VERA      — Re-verify each rewrite
+          6. CALLIOPE  — Final packaging with brand voice
+          7. SOPHIA    — Reflect and log learnings for next time
+        """
+        import asyncio
+
+        logger.info("=" * 60)
+        logger.info("DELIBERATION PIPELINE — All agents activated")
+        logger.info("=" * 60)
+
+        current_draft = draft_response
+
+        # ─── Import the real agents ───
+        clio_research = None
+        try:
+            from openclaw.agents.ira.src.agents.researcher.agent import research
+            clio_research = research
+            logger.info("  Clio (researcher): loaded")
+        except ImportError:
+            try:
+                from src.agents.researcher.agent import research
+                clio_research = research
+                logger.info("  Clio (researcher): loaded (relative)")
+            except ImportError:
+                logger.warning("  Clio (researcher): unavailable")
+
+        vera_verify = None
+        vera_report = None
+        try:
+            from openclaw.agents.ira.src.agents.fact_checker.agent import verify, generate_verification_report
+            vera_verify = verify
+            vera_report = generate_verification_report
+            logger.info("  Vera (fact-checker): loaded")
+        except ImportError:
+            try:
+                from src.agents.fact_checker.agent import verify, generate_verification_report
+                vera_verify = verify
+                vera_report = generate_verification_report
+                logger.info("  Vera (fact-checker): loaded (relative)")
+            except ImportError:
+                logger.warning("  Vera (fact-checker): unavailable")
+
+        calliope_write = None
+        try:
+            from openclaw.agents.ira.src.agents.writer.agent import write
+            calliope_write = write
+            logger.info("  Calliope (writer): loaded")
+        except ImportError:
+            try:
+                from src.agents.writer.agent import write
+                calliope_write = write
+                logger.info("  Calliope (writer): loaded (relative)")
+            except ImportError:
+                logger.warning("  Calliope (writer): unavailable")
+
+        sophia_reflect = None
+        try:
+            from openclaw.agents.ira.src.agents.reflector.agent import reflect
+            sophia_reflect = reflect
+            logger.info("  Sophia (reflector): loaded")
+        except ImportError:
+            try:
+                from src.agents.reflector.agent import reflect
+                sophia_reflect = reflect
+                logger.info("  Sophia (reflector): loaded (relative)")
+            except ImportError:
+                logger.warning("  Sophia (reflector): unavailable")
+
+        openai_client = None
+        try:
+            from openai import OpenAI
+            openai_client = OpenAI()
+        except Exception:
+            pass
+
+        def _run_async(coro):
+            """Run an async agent function from sync context."""
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        return pool.submit(asyncio.run, coro).result()
+                return loop.run_until_complete(coro)
+            except RuntimeError:
+                return asyncio.run(coro)
+
+        # ─────────────────────────────────────────────
+        # STAGE 1: CLIO — Deep research
+        # ─────────────────────────────────────────────
+        logger.info("\n[STAGE 1/7] CLIO — Deep research across all knowledge sources...")
+        research_output = ""
+
+        if clio_research:
+            try:
+                research_output = _run_async(clio_research(
+                    query,
+                    context={"user_id": from_email, "channel": "email"}
+                ))
+                logger.info(f"  Clio returned {len(research_output)} chars of research")
+            except Exception as e:
+                logger.warning(f"  Clio research failed: {e}")
+
+        # ─────────────────────────────────────────────
+        # STAGE 2: VERA — Fact-check the initial draft
+        # ─────────────────────────────────────────────
+        logger.info("\n[STAGE 2/7] VERA — Fact-checking initial draft...")
+        vera_issues = []
+
+        if vera_report:
+            try:
+                report = vera_report(current_draft, query)
+                current_draft = report.verified_draft
+                vera_issues = report.issues + report.warnings
+                if report.corrections_made:
+                    logger.info(f"  Vera corrections: {report.corrections_made}")
+                if vera_issues:
+                    logger.info(f"  Vera issues: {vera_issues}")
+                else:
+                    logger.info(f"  Vera: passed (confidence {report.confidence:.2f})")
+            except Exception as e:
+                logger.warning(f"  Vera fact-check failed: {e}")
+
+        # ─────────────────────────────────────────────
+        # STAGE 3: RELEVANCE — Does the draft answer the question?
+        # ─────────────────────────────────────────────
+        logger.info("\n[STAGE 3/7] RELEVANCE — Checking if draft answers the actual question...")
+        needs_rewrite = False
+
+        if openai_client:
+            try:
+                relevance_check = openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": (
+                            "You evaluate whether a response answers the question asked. "
+                            'Reply ONLY with JSON: {"answers_question": true/false, "reason": "brief explanation"}'
+                        )},
+                        {"role": "user", "content": (
+                            f"QUESTION:\n{query[:1500]}\n\nRESPONSE:\n{current_draft[:1500]}"
+                        )},
+                    ],
+                    temperature=0.0,
+                    max_tokens=150,
+                )
+                check_text = relevance_check.choices[0].message.content.strip()
+                try:
+                    check_data = json.loads(check_text)
+                    if not check_data.get("answers_question", True):
+                        needs_rewrite = True
+                        reason = check_data.get("reason", "Draft does not answer the question")
+                        logger.info(f"  RELEVANCE FAIL: {reason}")
+                except (json.JSONDecodeError, AttributeError):
+                    if '"answers_question": false' in check_text.lower():
+                        needs_rewrite = True
+                        logger.info(f"  RELEVANCE FAIL (parsed from text)")
+
+                if not needs_rewrite:
+                    logger.info("  Relevance check: PASSED")
+            except Exception as e:
+                logger.warning(f"  Relevance check failed: {e}")
+
+        if vera_issues:
+            needs_rewrite = True
+
+        # ─────────────────────────────────────────────
+        # STAGE 4: CALLIOPE — Rewrite with research if needed
+        # ─────────────────────────────────────────────
+        round_num = 0
+        while needs_rewrite and round_num < MAX_REFINEMENT_ROUNDS:
+            round_num += 1
+            logger.info(f"\n[STAGE 4/7] CALLIOPE — Rewrite round {round_num}/{MAX_REFINEMENT_ROUNDS}...")
+
+            if calliope_write:
+                try:
+                    rewritten = _run_async(calliope_write(
+                        query,
+                        context={
+                            "research_output": research_output,
+                            "channel": "email",
+                            "intent": "general",
+                            "user_id": from_email,
+                        }
+                    ))
+                    if rewritten and len(rewritten) > 30:
+                        current_draft = rewritten
+                        logger.info(f"  Calliope produced {len(current_draft)} chars")
+                except Exception as e:
+                    logger.warning(f"  Calliope rewrite failed: {e}")
+
+            # ─── STAGE 5: VERA — Re-verify the rewrite ───
+            logger.info(f"\n[STAGE 5/7] VERA — Re-verifying rewrite...")
+            if vera_report:
+                try:
+                    report = vera_report(current_draft, query)
+                    current_draft = report.verified_draft
+                    if report.issues:
+                        logger.info(f"  Vera still found issues: {report.issues}")
+                    else:
+                        logger.info(f"  Vera: rewrite passed (confidence {report.confidence:.2f})")
+                        needs_rewrite = False
+                except Exception as e:
+                    logger.warning(f"  Vera re-verify failed: {e}")
+                    needs_rewrite = False
+            else:
+                needs_rewrite = False
+
+            # Quick relevance re-check
+            if openai_client and needs_rewrite:
+                try:
+                    re_check = openai_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": 'Does this answer the question? Reply: {"passes": true/false}'},
+                            {"role": "user", "content": f"Q: {query[:500]}\nA: {current_draft[:1000]}"},
+                        ],
+                        temperature=0.0, max_tokens=50,
+                    )
+                    if '"passes": true' in re_check.choices[0].message.content.lower():
+                        needs_rewrite = False
+                        logger.info("  Relevance re-check: PASSED")
+                except Exception:
+                    needs_rewrite = False
+
+        logger.info(f"\n[STAGE 4-5] REFINE — {'No rewrite needed' if round_num == 0 else f'{round_num} round(s) completed'}")
+
+        # ─────────────────────────────────────────────
+        # STAGE 6: CALLIOPE — Final packaging
+        # ─────────────────────────────────────────────
+        logger.info("\n[STAGE 6/7] CALLIOPE — Final email packaging...")
+
+        if calliope_write:
+            try:
+                packaged = _run_async(calliope_write(
+                    f"Package this as a final email reply:\n\n{current_draft}",
+                    context={
+                        "research_output": current_draft,
+                        "channel": "email",
+                        "intent": "email",
+                        "user_id": from_email,
+                    }
+                ))
+                if packaged and len(packaged) > 30:
+                    current_draft = packaged
+                    logger.info(f"  Calliope packaged ({len(current_draft)} chars)")
+            except Exception as e:
+                logger.warning(f"  Calliope packaging failed: {e}")
+
+        # ─────────────────────────────────────────────
+        # STAGE 7: SOPHIA — Reflect and learn
+        # ─────────────────────────────────────────────
+        logger.info("\n[STAGE 7/7] SOPHIA — Reflecting on this interaction...")
+
+        if sophia_reflect:
+            try:
+                reflection = _run_async(sophia_reflect({
+                    "user_message": query,
+                    "response": current_draft,
+                    "intent": "email",
+                    "results": {
+                        "research_length": len(research_output),
+                        "refinement_rounds": round_num,
+                        "vera_issues": vera_issues,
+                    }
+                }))
+                if reflection.issues:
+                    logger.info(f"  Sophia flagged: {reflection.issues}")
+                if reflection.lessons:
+                    logger.info(f"  Sophia learned: {reflection.lessons}")
+                logger.info(f"  Quality score: {reflection.quality_score.overall:.2f}")
+            except Exception as e:
+                logger.warning(f"  Sophia reflection failed: {e}")
+
+        # ─── Ensure minimum response time ───
+        self._pad_to_min_time(start_time)
+
+        elapsed_total = time.time() - start_time
+        logger.info("\n" + "=" * 60)
+        logger.info(f"DELIBERATION COMPLETE — {elapsed_total:.0f}s total")
+        logger.info(f"  Agents used: Clio, Vera, Calliope, Sophia")
+        logger.info(f"  Refinement rounds: {round_num}")
+        logger.info(f"  Final response: {len(current_draft)} chars")
+        logger.info("=" * 60)
+
+        return current_draft
+
+    def _pad_to_min_time(self, start_time: float):
+        """Ensure minimum elapsed time so replies don't feel instant."""
+        elapsed = time.time() - start_time
+        remaining = MIN_RESPONSE_TIME - elapsed
+        if remaining > 0:
+            logger.info(f"  Padding {remaining:.0f}s to reach {MIN_RESPONSE_TIME}s minimum response time")
+            time.sleep(remaining)
     
+    def _format_thread_context(self, thread_history: List[Dict], current_body: str) -> str:
+        """Format thread history into context string for Ira."""
+        if not thread_history or len(thread_history) <= 1:
+            return current_body
+
+        parts = ["=== CONVERSATION THREAD (oldest first) ===\n"]
+        for i, msg in enumerate(thread_history[:-1]):
+            role_label = "IRA" if msg['role'] == 'assistant' else "CUSTOMER"
+            body_preview = msg.get('body', '')[:1000].strip()
+            if body_preview:
+                parts.append(f"[{role_label}]: {body_preview}\n")
+
+        parts.append("=== LATEST MESSAGE (respond to this) ===\n")
+        parts.append(current_body)
+        return "\n".join(parts)
+
     def process_single_email(self, email: Dict) -> bool:
         """Process a single email through IRA's full pipeline."""
         email_id = email['id']
         thread_id = email['thread_id']
-        
+        process_start = time.time()
+
         if email_id in self.processed_ids:
             return False
         
         from_email = email['from']
-        # Extract email address from "Name <email>" format
         if '<' in from_email:
             from_email = from_email.split('<')[1].rstrip('>')
         
@@ -852,7 +1208,15 @@ class EmailIraBridge:
         body = email['body'] or email['snippet']
         
         logger.info(f"Processing email from {from_email}: {subject[:50] if subject else 'No subject'}")
-        
+
+        # Fetch full thread history for conversation context
+        thread_history = self.gmail.get_thread_history(thread_id)
+        if len(thread_history) > 1:
+            logger.info(f"Thread context: {len(thread_history)} messages in conversation")
+            body_with_context = self._format_thread_context(thread_history, body)
+        else:
+            body_with_context = body
+
         # Check if this is feedback/correction
         is_feedback = self._is_feedback(body) and thread_id in self.conversation_history
         
@@ -861,17 +1225,12 @@ class EmailIraBridge:
             logger.info("FEEDBACK DETECTED - RUNNING FEEDBACK PIPELINE")
             logger.info("=" * 60)
             
-            # Get original response for context
             original_response = self.conversation_history.get(thread_id, {}).get('response', '')
-            
-            # Process through full feedback pipeline
             confirmation = self.ira.store_feedback(from_email, body, original_response)
             
             if confirmation:
-                # Send confirmation message as reply
-                response = confirmation
-                
-                # Store in conversation history
+                response = self._deep_think(body, confirmation, from_email, process_start)
+
                 self.conversation_history[thread_id] = {
                     'question': body,
                     'response': response,
@@ -880,6 +1239,7 @@ class EmailIraBridge:
                 
                 self.processed_ids.add(email_id)
                 message_id = email.get('message_id', '')
+
                 success = self.gmail.send_reply(
                     to=from_email,
                     subject=f"Re: {subject}" if subject else "Re: Your feedback",
@@ -891,17 +1251,20 @@ class EmailIraBridge:
                 logger.info(f"Sent feedback confirmation to {from_email}")
                 return success
             else:
-                # No specific corrections found - still process normally to answer any questions
                 logger.info("No specific corrections - processing as normal message")
         
-        # Process through IRA's FULL pipeline (Mem0, RAG, Brain, etc.)
+        # Process through IRA's FULL pipeline with thread context
         response = self.ira.process_email(
-            body=body,
+            body=body_with_context,
             from_email=from_email,
             subject=subject,
             thread_id=thread_id
         )
         
+        if response:
+            # Deep think: fact-check, cross-reference, refine, then pad to min think time
+            response = self._deep_think(body_with_context, response, from_email, process_start)
+
         # Store in conversation history for feedback detection
         self.conversation_history[thread_id] = {
             'question': body[:500],

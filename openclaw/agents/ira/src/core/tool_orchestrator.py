@@ -10,8 +10,7 @@ from typing import Any, Dict, List
 
 logger = logging.getLogger("ira.tool_orchestrator")
 
-# Max tool rounds to prevent infinite loops
-MAX_TOOL_ROUNDS = 5
+MAX_TOOL_ROUNDS = 10
 
 
 async def process_with_tools(
@@ -21,8 +20,9 @@ async def process_with_tools(
     context: Dict[str, Any] = None,
 ) -> str:
     """
-    Process a message using LLM + tool calls. The LLM decides when to call
-    research_skill, writing_skill, fact_checking_skill, or orchestrate_full_pipeline.
+    Agentic pipeline: Athena (LLM) decides which tools to call, in what order,
+    and how many rounds to take. She can research, search the web, look up
+    customers, query memory, draft responses, and verify facts -- all autonomously.
     """
     import openai
     import os
@@ -45,15 +45,38 @@ async def process_with_tools(
     context.setdefault("channel", channel)
     context.setdefault("user_id", user_id)
 
-    system = """You are Athena, IRA's orchestrator. You have access to tools (skills):
-- research_skill: Find information before answering
-- writing_skill: Draft a response (needs research_summary)
-- fact_checking_skill: Verify a draft before sending
-- orchestrate_full_pipeline: Run research->write->verify for complex queries
+    conversation_history = context.get("conversation_history", "")
+    is_internal = context.get("is_internal", False)
+    mem0_context = context.get("mem0_context", "")
 
-Use tools to answer the user. For simple factual questions, you may research then respond.
-For complex queries, use orchestrate_full_pipeline. Always verify before finalizing.
-Respond with your final answer when done."""
+    system = f"""You are Athena, the Chief of Staff for Ira (Intelligent Revenue Assistant) at Machinecraft Technologies.
+
+You are an AGENT, not a chatbot. You have tools and you MUST use them to find real data before answering.
+
+YOUR TOOLS:
+- research_skill: Search internal knowledge base (Qdrant, machine DB, documents)
+- web_search: Search the internet for company info, news, industry trends
+- customer_lookup: Look up customers in CRM/memory
+- memory_search: Search Ira's long-term memory (Mem0) for stored facts, orders, preferences
+- writing_skill: Draft a polished response (use AFTER gathering data)
+- fact_checking_skill: Verify facts before sending (use on every draft)
+- ask_user: Ask the user a clarifying question when you need more info
+
+CRITICAL RULES:
+1. ALWAYS use tools to find real data. NEVER fabricate company names, order data, or contacts.
+2. If you can't find data, say so honestly. Don't make up plausible-sounding answers.
+3. For complex tasks, use MULTIPLE tool calls in sequence. Take as many rounds as needed.
+4. When asked about customers/orders, search memory_search first, then customer_lookup.
+5. When asked about external companies, use web_search.
+6. Always fact-check before finalizing.
+7. If the user's request is unclear, use ask_user to clarify.
+
+{"INTERNAL USER: This is a Machinecraft team member. Be direct, share internal data freely." if is_internal else "EXTERNAL USER: Be helpful but protect sensitive internal information."}
+
+{f"CONVERSATION CONTEXT:{chr(10)}{conversation_history}" if conversation_history else ""}
+{f"MEMORY CONTEXT:{chr(10)}{mem0_context}" if mem0_context else ""}
+
+Think step by step. Use tools. Take your time. Get it right."""
 
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": system},
@@ -64,27 +87,34 @@ Respond with your final answer when done."""
     client = openai.OpenAI(api_key=api_key)
     for round_num in range(MAX_TOOL_ROUNDS):
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
             tools=tools,
             tool_choice="auto",
-            max_tokens=1024,
+            max_tokens=2048,
             temperature=0.3,
         )
         msg = response.choices[0].message
-        if not msg.tool_calls:
-            return (msg.content or "").strip()
 
+        if not msg.tool_calls:
+            final = (msg.content or "").strip()
+            if final.startswith("ASK_USER:"):
+                return final[9:]
+            return final
+
+        messages.append(msg)
         for tc in msg.tool_calls or []:
             fn = tc.function
             name = fn.name
             args = parse_tool_arguments(fn.arguments)
+            logger.info(f"[Athena] Round {round_num+1}: calling {name}({list(args.keys())})")
             result = await execute_tool_call(name, args, context)
-            messages.append(msg)
+            if result.startswith("ASK_USER:"):
+                return result[9:]
             messages.append({
                 "role": "tool",
                 "tool_call_id": tc.id,
                 "content": result[:8000],
             })
 
-    return "Reached max tool rounds. Please try again."
+    return "I've been working on this but need more time. Let me summarize what I found so far and continue later."

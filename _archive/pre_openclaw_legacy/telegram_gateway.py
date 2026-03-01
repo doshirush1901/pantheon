@@ -22,6 +22,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
@@ -3805,6 +3806,21 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 logger.error(f"Memory service error: {mem_err}")
                 full_context = None
             
+            # ===== PHASE 1.5: INTERNAL USER DETECTION =====
+            # Derive is_internal from chat_id and identity email domain
+            if full_context and not full_context.is_internal:
+                _authorized_chat = os.environ.get("TELEGRAM_CHAT_ID", "")
+                _is_internal = False
+                if chat_id and _authorized_chat and str(chat_id) == str(_authorized_chat):
+                    _is_internal = True
+                if not _is_internal and full_context.identity:
+                    _email = (full_context.identity.get("email") or "").lower()
+                    if _email and any(_email.endswith(d) for d in ["machinecraft.org", "machinecraft.com", "machinecraft.in"]):
+                        _is_internal = True
+                if _is_internal:
+                    full_context.is_internal = True
+                    logger.debug(f"Internal user detected for chat {str(chat_id)[:8]}")
+            
             # ===== PHASE 2: COREFERENCE RESOLUTION =====
             # Resolve pronouns like "it", "that machine" to specific entities
             actual_intent = text
@@ -4215,16 +4231,77 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 except Exception as conv_err:
                     logger.warning(f"Conversational enhancement error (non-fatal): {conv_err}")
             
-            # Generate response using UNIFIED pipeline (includes deep retrieval)
-            result = generate_answer(
-                intent=actual_intent,
-                context_pack=context_pack,
-                channel="telegram",
-                thread_id=chat_id or "",
-                use_deep_retrieval=True
-            )
+            # =====================================================================
+            # AGENTIC PIPELINE - Athena decides which tools to use
+            # Uses LLM tool-calling loop: research, web search, memory, write, verify
+            # Falls back to generate_answer if the agentic pipeline fails
+            # =====================================================================
+            _agent_used = False
+            result = None
+            try:
+                import asyncio
+                from openclaw.agents.ira.src.core.tool_orchestrator import process_with_tools
+
+                # Build conversation history string for the agent
+                _conv_history = ""
+                if context_pack.get("recent_messages"):
+                    for msg in context_pack["recent_messages"][-6:]:
+                        role = msg.get("role", "user").upper()
+                        content = msg.get("content", "")[:400]
+                        _conv_history += f"{role}: {content}\n"
+
+                _agent_context = {
+                    "channel": "telegram",
+                    "user_id": str(chat_id or "unknown"),
+                    "is_internal": full_context.is_internal if full_context else False,
+                    "conversation_history": _conv_history,
+                    "mem0_context": mem0_context,
+                    "identity": full_context.identity if full_context else None,
+                    "_progress_callback": getattr(self, '_current_progress_callback', None),
+                }
+
+                _loop = asyncio.new_event_loop()
+                try:
+                    _agent_response = _loop.run_until_complete(
+                        process_with_tools(
+                            message=actual_intent,
+                            channel="telegram",
+                            user_id=str(chat_id or "unknown"),
+                            context=_agent_context,
+                        )
+                    )
+                finally:
+                    _loop.close()
+
+                if _agent_response and len(_agent_response.strip()) > 10:
+                    _agent_used = True
+                    result = type('AgentResult', (), {
+                        'text': _agent_response,
+                        'mode': type('M', (), {'value': 'agent'})(),
+                        'confidence': type('C', (), {'value': 'HIGH'})(),
+                        'generation_path': "agentic_tool_orchestrator",
+                        'clarifying_questions': [],
+                        'citations': [],
+                        'debug_info': {"pipeline": "agentic"},
+                        'consolidated_knowledge_ids': [],
+                    })()
+                    logger.info(f"[AGENT] Response via agentic pipeline")
+            except Exception as _agent_err:
+                logger.warning(f"Agentic pipeline error (falling back to generate_answer): {_agent_err}")
+                import traceback
+                traceback.print_exc()
+
+            # Fallback: generate_answer (brain pipeline) if agent didn't produce a result
+            if not _agent_used:
+                result = generate_answer(
+                    intent=actual_intent,
+                    context_pack=context_pack,
+                    channel="telegram",
+                    thread_id=chat_id or "",
+                    use_deep_retrieval=True
+                )
             
-            logger.info(f"[UNIFIED_RESPONSE] mode={result.mode.value}, "
+            logger.info(f"[RESPONSE] mode={result.mode.value}, "
                   f"confidence={result.confidence.value}, path={result.generation_path}")
             
             # =====================================================================
@@ -4480,8 +4557,9 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 except Exception as conv_update_err:
                     logger.warning(f"Conversational enhancer update error (non-fatal): {conv_update_err}")
             
-            # Legacy save for backup
-            self._save_conversation_turn(chat_id, text, response_text)
+            # Legacy save disabled -- update_context_after_response already saves the turn.
+            # Duplicate saves were filling the 12-message window in 3 turns instead of 6.
+            # self._save_conversation_turn(chat_id, text, response_text)
             
             # Store last response for feedback learning
             self._last_response = response_text
@@ -5112,8 +5190,8 @@ Total: {len(draft_ids)}""",
         # DEEP THINKING COMMANDS
         # =====================================================================
         
-        # /research <query> - Full Manus-style research mode
-        research_match = re.match(r'^/research\s+(.+)$', text, re.IGNORECASE)
+        # /research or /deep <query> - Manus-style deep research mode
+        research_match = re.match(r'^/(?:research|deep)\s+(.+)$', text, re.IGNORECASE)
         if research_match:
             return self.handle_research_command(research_match.group(1).strip(), message.chat_id)
         
@@ -5204,12 +5282,10 @@ Total: {len(draft_ids)}""",
     
     def handle_research_command(self, query: str, chat_id: str) -> GatewayResponse:
         """
-        Handle /research <query> command - Full Manus-style research.
+        Handle /research <query> command - Manus-style deep research.
         
-        This shows the user exactly what's happening:
-        - What tools are being used
-        - What's being found
-        - How confidence builds
+        Multi-step iterative research across ALL knowledge sources:
+        Qdrant (4 collections), Mem0 (7 stores), Neo4j, Machine DB, knowledge files.
         
         Usage: /research What European customers have we had for PF1 machines?
         """
@@ -5217,79 +5293,66 @@ Total: {len(draft_ids)}""",
             return GatewayResponse(
                 text="Usage: `/research <your question>`\n\n"
                      "Example: `/research What European customers have bought PF1 machines?`\n\n"
-                     "This runs a full research process - you'll see:\n"
-                     "• What tools I'm using\n"
-                     "• What I'm finding\n"
-                     "• How my confidence builds\n\n"
-                     "Takes 1-3 minutes for thorough research.",
+                     "This runs a deep research process - you'll see:\n"
+                     "• Query decomposition into sub-questions\n"
+                     "• Searches across Qdrant, Mem0, Neo4j, Machine DB\n"
+                     "• Gap analysis and follow-up searches\n"
+                     "• Synthesized report with sources\n\n"
+                     "Takes 30-90 seconds.",
                 success=False
             )
         
         try:
-            import asyncio
-            from advanced_brain import research, AgentConfig
-            
-            # Send initial progress message
-            progress_msg_id = self.send_message(
-                f"🔍 *Starting research...*\n\nQuery: _{query[:100]}_\n\n"
-                "I'll show you my progress as I work.",
-                parse_mode="Markdown"
-            )
-            
-            # Configure for thorough, visible research
-            config = AgentConfig(
-                max_iterations=15,
-                max_time_seconds=180,
-                confidence_threshold=0.7,
-                enable_code_execution=True,
-                verbose_updates=True
-            )
+            from openclaw.agents.ira.src.brain.deep_research_engine import deep_research
             
             def send_update(msg: str):
-                self.send_message(msg, parse_mode="Markdown")
-            
-            # Run research in background
-            async def run_research():
                 try:
-                    result = await research(query, on_update=send_update, config=config)
-                    
-                    # Send final response
-                    response = result["final_response"]
-                    footer = (
-                        f"\n\n---\n"
-                        f"📊 _Research complete: {result['iterations']} iterations, "
-                        f"{result['elapsed_seconds']:.0f}s_\n"
-                        f"📁 _Sources: {result['customers_found']} customers, "
-                        f"{result['emails_found']} emails, {result['documents_found']} docs_\n"
-                        f"✅ _Confidence: {result['confidence']:.0%}_"
+                    self.send_message(msg, parse_mode="Markdown")
+                except Exception:
+                    self.send_message(msg)
+            
+            import threading
+            def run_research():
+                try:
+                    result = deep_research(
+                        query=query,
+                        on_progress=send_update,
+                        max_iterations=5,
+                        max_time_seconds=120,
                     )
                     
-                    max_length = 4000
-                    if len(response) + len(footer) > max_length:
-                        response = response[:max_length - len(footer) - 50] + "\n...(truncated)"
+                    report = result.report
+                    footer = (
+                        f"\n\n---\n"
+                        f"📊 _{result.total_findings} findings across {len(result.steps)} research steps "
+                        f"({result.total_duration_ms/1000:.1f}s)_\n"
+                        f"✅ _Confidence: {result.confidence}_"
+                    )
                     
-                    self.send_message(response + footer, parse_mode="Markdown")
+                    full_msg = report + footer
+                    if len(full_msg) > 4000:
+                        chunks = [full_msg[i:i+4000] for i in range(0, len(full_msg), 4000)]
+                        for chunk in chunks:
+                            try:
+                                self.send_message(chunk, parse_mode="Markdown")
+                            except Exception:
+                                self.send_message(chunk)
+                    else:
+                        try:
+                            self.send_message(full_msg, parse_mode="Markdown")
+                        except Exception:
+                            self.send_message(full_msg)
                     
                 except Exception as e:
-                    self.send_message(f"❌ Research failed: {str(e)[:100]}")
+                    logger.error(f"Deep research failed: {e}", exc_info=True)
+                    self.send_message(f"❌ Research failed: {str(e)[:200]}")
             
-            # Start research in background
-            loop = asyncio.new_event_loop()
-            asyncio.ensure_future(run_research(), loop=loop)
-            
-            # Don't wait - return immediately
-            import threading
-            def run_loop():
-                loop.run_until_complete(run_research())
-                loop.close()
-            
-            thread = threading.Thread(target=run_loop, daemon=True)
+            thread = threading.Thread(target=run_research, daemon=True)
             thread.start()
             
-            # Return empty response (updates will come async)
             return GatewayResponse(
                 text=None,
-                log_entry={"type": "research_command", "query": query[:100]}
+                log_entry={"type": "deep_research", "query": query[:100]}
             )
             
         except ImportError as e:
@@ -5603,30 +5666,130 @@ Total: {len(draft_ids)}""",
             logger.error(f"Deep thinking check failed: {e}")
             return None
     
+    _thinking_steps = []
+    
+    def _update_thinking_status(self, msg_id: int, stage: str, elapsed: float):
+        """Update the thinking indicator with current tool/agent activity."""
+        tool_labels = {
+            "memory":             "Recalling memories...",
+            "research":           "Clio searching knowledge base...",
+            "research_skill":     "Clio searching knowledge base...",
+            "iris":               "Iris gathering intelligence...",
+            "web_search":         "Iris searching the web...",
+            "customer_lookup":    "Looking up customer data...",
+            "memory_search":      "Searching long-term memory...",
+            "writing":            "Calliope composing response...",
+            "writing_skill":      "Calliope composing response...",
+            "verifying":          "Vera fact-checking...",
+            "fact_checking_skill":"Vera fact-checking...",
+            "polishing":          "Final polish...",
+            "ask_user":           "Preparing a question for you...",
+        }
+        label = tool_labels.get(stage, f"Working on: {stage}...")
+        
+        if stage not in [s for s, _ in self._thinking_steps]:
+            self._thinking_steps.append((stage, label))
+        
+        lines = ["🧠 *Thinking*\n"]
+        for i, (s, lbl) in enumerate(self._thinking_steps):
+            if s == stage:
+                lines.append(f"▸ {lbl}")
+            else:
+                lines.append(f"✓ {lbl.replace('...', '')}")
+        lines.append(f"\n_{elapsed:.0f}s_")
+        
+        text = "\n".join(lines)
+        try:
+            self.edit_message(msg_id, text, parse_mode="Markdown")
+        except Exception:
+            pass
+    
     def process_message(self, message: TelegramMessage) -> None:
-        """Process a single message and send response."""
+        """Process a single message and send response.
+        
+        Shows a live thinking indicator that updates as the pipeline progresses,
+        then replaces it with the final response.
+        """
         print(f"\n{'─'*40}")
         print(f"From: {message.from_user}")
         print(f"Text: {message.text[:80]}{'...' if len(message.text) > 80 else ''}")
         
-        # Show typing indicator for better UX
-        self.send_typing_action()
+        is_command = message.text.startswith("/")
+        start_time = time.time()
+        thinking_msg_id = None
+        self._thinking_steps = []
+        
+        if not is_command:
+            thinking_msg_id = self.send_message(
+                "🧠 *Thinking*\n\n▸ Analyzing your request...",
+                parse_mode="Markdown"
+            )
+        else:
+            self.send_typing_action()
+        
+        # Track tool calls from the agentic pipeline for live progress
+        _thinking_done = threading.Event()
+        _pending_tool_calls = []
+        
+        def _on_tool_call(tool_name):
+            _pending_tool_calls.append(tool_name)
+        
+        self._current_progress_callback = _on_tool_call
+        
+        def _animate_thinking():
+            if not thinking_msg_id:
+                return
+            last_count = 0
+            while not _thinking_done.is_set():
+                _thinking_done.wait(timeout=2.5)
+                if _thinking_done.is_set():
+                    break
+                elapsed = time.time() - start_time
+                if len(_pending_tool_calls) > last_count:
+                    for tool in _pending_tool_calls[last_count:]:
+                        self._update_thinking_status(thinking_msg_id, tool, elapsed)
+                    last_count = len(_pending_tool_calls)
+                self.send_typing_action()
+        
+        if thinking_msg_id:
+            _thinker = threading.Thread(target=_animate_thinking, daemon=True)
+            _thinker.start()
         
         response = self.route_message(message)
         
+        _thinking_done.set()
+        
         if response.text:
-            success = self.send_message(
-                response.text, 
-                parse_mode=response.parse_mode,
-                reply_markup=response.reply_markup
-            )
-            print(f"Response sent: {'✓' if success else '✗'}")
+            if thinking_msg_id:
+                success = self.edit_message(
+                    thinking_msg_id,
+                    response.text,
+                    parse_mode=response.parse_mode,
+                    reply_markup=response.reply_markup
+                )
+                if not success:
+                    self.send_message(
+                        response.text,
+                        parse_mode=response.parse_mode,
+                        reply_markup=response.reply_markup
+                    )
+            else:
+                self.send_message(
+                    response.text,
+                    parse_mode=response.parse_mode,
+                    reply_markup=response.reply_markup
+                )
+            elapsed = time.time() - start_time
+            print(f"Response sent ({elapsed:.1f}s)")
+        elif thinking_msg_id:
+            self.edit_message(thinking_msg_id, "Done.")
         
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "from_user": message.from_user,
             "message": message.text[:200],
             "success": response.success,
+            "response_time_s": round(time.time() - start_time, 1),
         }
         if response.log_entry:
             log_entry.update(response.log_entry)

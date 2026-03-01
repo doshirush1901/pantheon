@@ -793,12 +793,12 @@ EXTERNAL USER MODE:
         if style_guidance:
             base_prompt += f"\n\nSTYLE GUIDANCE: {style_guidance}"
     
-    # Add conversation context
+    # Add conversation context (last 8 messages, 600 chars each for continuity)
     if context_pack.recent_messages:
-        base_prompt += "\n\nCONVERSATION HISTORY:\n"
-        for msg in context_pack.recent_messages[-4:]:
+        base_prompt += "\n\nCONVERSATION HISTORY (use this to maintain continuity — reference prior messages when user says 'above', 'that', 'the ones you mentioned', etc.):\n"
+        for msg in context_pack.recent_messages[-8:]:
             role = msg.get("role", "user")
-            content = msg.get("content", "")[:200]
+            content = msg.get("content", "")[:600]
             base_prompt += f"{role.upper()}: {content}\n"
     
     # P1 Audit: conflict detection between Mem0 and RAG

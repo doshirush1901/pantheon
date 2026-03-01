@@ -1,6 +1,6 @@
 {
   "corrections_learned": [],
-  "last_full_check": "2026-03-01T12:32:42.035893",
+  "last_full_check": "2026-03-01T14:29:43.090319",
   "validation_issues": [
     {
       "timestamp": "2026-02-28T00:18:22.519382",
@@ -333,6 +333,22 @@
       "response_preview": "Hi! Happy to help.\n\nFor the RT-5A-1515 machine, here are the key specifications and pricing details:\n\n### Technical Specifications:\n- **Forming Area**: [Insert specific dimensions]\n- **Heater Power**:",
       "warnings": [
         "Business rule violation: Prices Must Be Specific - Never say 'contact for pricing' when we have price list"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T13:04:14.214683",
+      "query": "Hi\n\nGenerate a hot leads profile for me basis of what our customer base is and where our strengths lie\n\nwho are the companies I should email \n\nWhich regions will be hot for me next year",
+      "response_preview": "Hi! Happy to help.\n\nBased on our strengths in heavy-gauge thermoforming, here\u2019s a hot leads profile and potential targets:\n\n**Target Industries**:\n- Automotive (interiors, EV parts)\n- Bathroom (bathtu",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T13:06:02.888103",
+      "query": "Give me new clients , atleast 50\nAlso sohner does not do bathroom items\nBatelaan as mentioned is now sold and closed and they never made caravan parts \nMutual can be\nFVF is our agent in Japan",
+      "response_preview": "Hi! Happy to help.\n\nHere\u2019s a list of potential new clients across various sectors that align with our strengths in heavy-gauge thermoforming. These companies are not from the previously mentioned list",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
       ]
     }
   ]
