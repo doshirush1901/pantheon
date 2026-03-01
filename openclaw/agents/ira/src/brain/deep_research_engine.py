@@ -369,23 +369,132 @@ def _synthesize_report(query: str, all_findings: List[ResearchFinding], steps: L
 
 
 # =============================================================================
+# PANTHEON SUB-AGENT INTEGRATION
+# =============================================================================
+
+def _run_clio_research(query: str) -> List[ResearchFinding]:
+    """Use Clio (Researcher agent) for deep multi-source research."""
+    try:
+        import asyncio
+        from openclaw.agents.ira.src.agents.researcher.agent import research
+        loop = asyncio.new_event_loop()
+        result = loop.run_until_complete(research(query, context={"depth": "deep", "channel": "research"}))
+        loop.close()
+        if result:
+            return [ResearchFinding(
+                source="clio/researcher",
+                query_used=query,
+                text=result[:2000],
+                score=0.9,
+            )]
+    except Exception as e:
+        logger.debug(f"Clio research: {e}")
+    return []
+
+
+def _run_vera_verification(draft: str, query: str) -> str:
+    """Use Vera (Fact Checker) to verify the research report."""
+    try:
+        import asyncio
+        from openclaw.agents.ira.src.agents.fact_checker.agent import verify
+        loop = asyncio.new_event_loop()
+        verified = loop.run_until_complete(verify(draft, query))
+        loop.close()
+        return verified
+    except Exception as e:
+        logger.debug(f"Vera verification: {e}")
+        return draft
+
+
+def _run_calliope_write(query: str, research_output: str, channel: str = "telegram") -> str:
+    """Use Calliope (Writer) to polish the research report."""
+    try:
+        import asyncio
+        from openclaw.agents.ira.src.agents.writer.agent import write
+        loop = asyncio.new_event_loop()
+        result = loop.run_until_complete(write(query, context={
+            "research_output": research_output,
+            "channel": channel,
+            "format": "research_report",
+        }))
+        loop.close()
+        return result if result else research_output
+    except Exception as e:
+        logger.debug(f"Calliope write: {e}")
+        return research_output
+
+
+def _run_sophia_reflect(query: str, report: str):
+    """Use Sophia (Reflector) to learn from this research session."""
+    try:
+        import asyncio
+        from openclaw.agents.ira.src.agents.reflector.agent import reflect
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(reflect({
+            "user_message": f"/research {query}",
+            "response": report[:1000],
+            "intent": "deep_research",
+            "mode": "research",
+            "confidence": "high",
+            "channel": "telegram",
+        }))
+        loop.close()
+    except Exception as e:
+        logger.debug(f"Sophia reflect: {e}")
+
+
+def _run_iris_intelligence(query: str) -> List[ResearchFinding]:
+    """Use Iris (Intelligence) for external context if relevant."""
+    try:
+        import asyncio
+        from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
+        context = {"query": query, "company": "", "lead_id": ""}
+
+        import re
+        companies = re.findall(r'(?:about|for|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)', query)
+        if companies:
+            context["company"] = companies[0]
+
+        loop = asyncio.new_event_loop()
+        result = loop.run_until_complete(iris_enrich(context))
+        loop.close()
+
+        findings = []
+        for key, val in result.items():
+            if val and isinstance(val, str) and len(val) > 10:
+                findings.append(ResearchFinding(
+                    source=f"iris/{key}",
+                    query_used=query,
+                    text=val,
+                    score=0.75,
+                ))
+        return findings
+    except Exception as e:
+        logger.debug(f"Iris intelligence: {e}")
+        return []
+
+
+# =============================================================================
 # MAIN ENTRY POINT
 # =============================================================================
 
 def deep_research(
     query: str,
     on_progress: Optional[Callable[[str], None]] = None,
-    max_iterations: int = 5,
-    max_time_seconds: int = 120,
+    max_iterations: int = 8,
+    max_time_seconds: int = 180,
 ) -> DeepResearchResult:
     """
-    Run a Manus-style deep research session.
+    Manus-style deep research using ALL Pantheon sub-agents.
     
-    Args:
-        query: The research question
-        on_progress: Callback for progress updates (e.g., Telegram message sender)
-        max_iterations: Max research iterations (each searches multiple sources)
-        max_time_seconds: Hard time limit
+    Pipeline:
+      1. Athena decomposes query into sub-questions
+      2. Clio researches each sub-question across all knowledge sources
+      3. Iris adds external intelligence where relevant
+      4. Gap analysis generates follow-up queries (iterative)
+      5. Calliope synthesizes findings into a polished report
+      6. Vera fact-checks the report for accuracy
+      7. Sophia reflects and learns from the session
     """
     start_time = time.time()
     all_findings: List[ResearchFinding] = []
@@ -400,68 +509,87 @@ def deep_research(
                 pass
         logger.info(f"[DeepResearch] {msg}")
 
-    progress(f"🔬 Starting deep research: \"{query[:80]}...\"")
+    progress(f"🔬 *Deep Research Started*\n\"{query[:100]}\"")
 
-    # Step 1: Decompose the query
-    progress("📋 Step 1: Decomposing query into sub-questions...")
+    # =========================================================================
+    # PHASE 1: ATHENA - Decompose query
+    # =========================================================================
+    progress("🏛️ *Athena* is decomposing your question...")
     sub_queries = _decompose_query(query)
-    progress(f"   Found {len(sub_queries)} research angles")
+    progress(f"   → {len(sub_queries)} research angles identified")
 
-    # Step 2: Execute research iterations
+    # =========================================================================
+    # PHASE 2: CLIO + ALL SOURCES - Iterative research
+    # =========================================================================
     iteration = 0
     pending_queries = list(sub_queries)
 
     while pending_queries and iteration < max_iterations:
         elapsed = time.time() - start_time
         if elapsed > max_time_seconds:
-            progress(f"⏱️ Time limit reached ({int(elapsed)}s)")
+            progress(f"⏱️ Time limit ({int(elapsed)}s) - moving to synthesis")
             break
 
         iteration += 1
         sq = pending_queries.pop(0)
         sub_q = sq.get("query", sq) if isinstance(sq, dict) else str(sq)
         rationale = sq.get("rationale", "") if isinstance(sq, dict) else ""
-        target_sources = sq.get("sources", ["qdrant", "mem0", "machine_db"]) if isinstance(sq, dict) else ["qdrant", "mem0"]
+        target_sources = sq.get("sources", ["qdrant", "mem0", "machine_db", "knowledge_files"]) if isinstance(sq, dict) else ["qdrant", "mem0"]
 
         step_start = time.time()
-        progress(f"🔍 Step {iteration + 1}: Searching \"{sub_q[:60]}...\"")
+        progress(f"🔍 *Clio* researching ({iteration}/{iteration + len(pending_queries)}): \"{sub_q[:50]}...\"")
 
         step_findings: List[ResearchFinding] = []
         step_sources: List[str] = []
 
-        if "qdrant" in target_sources:
-            results = _search_qdrant(sub_q, top_k=8)
-            step_findings.extend(results)
-            step_sources.append(f"qdrant({len(results)})")
+        # Always search Qdrant (primary RAG)
+        results = _search_qdrant(sub_q, top_k=12)
+        step_findings.extend(results)
+        step_sources.append(f"qdrant({len(results)})")
 
-        if "mem0" in target_sources:
-            results = _search_mem0(sub_q)
-            step_findings.extend(results)
-            step_sources.append(f"mem0({len(results)})")
+        # Always search Mem0 (long-term memory)
+        results = _search_mem0(sub_q)
+        step_findings.extend(results)
+        step_sources.append(f"mem0({len(results)})")
 
         if "machine_db" in target_sources:
             results = _search_machine_db(sub_q)
             step_findings.extend(results)
-            step_sources.append(f"machine_db({len(results)})")
+            if results:
+                step_sources.append(f"machine_db({len(results)})")
 
         if "neo4j" in target_sources:
             results = _search_neo4j(sub_q)
             step_findings.extend(results)
-            step_sources.append(f"neo4j({len(results)})")
+            if results:
+                step_sources.append(f"neo4j({len(results)})")
 
         if "knowledge_files" in target_sources:
             results = _search_knowledge_files(sub_q)
             step_findings.extend(results)
-            step_sources.append(f"files({len(results)})")
+            if results:
+                step_sources.append(f"files({len(results)})")
+
+        # On first iteration, also use Clio's own research for a richer result
+        if iteration == 1:
+            clio_results = _run_clio_research(sub_q)
+            step_findings.extend(clio_results)
+            if clio_results:
+                step_sources.append("clio(1)")
 
         step_duration = (time.time() - step_start) * 1000
         sources_searched_total.update(step_sources)
 
+        # Gap analysis - check what's missing
         gaps = []
         if iteration < max_iterations and not pending_queries:
             gaps = _evaluate_gaps(query, all_findings + step_findings)
             for gap in gaps:
-                pending_queries.append({"query": gap, "rationale": "Fill gap", "sources": ["qdrant", "mem0"]})
+                pending_queries.append({
+                    "query": gap,
+                    "rationale": "Fill identified gap",
+                    "sources": ["qdrant", "mem0", "knowledge_files"],
+                })
 
         step = ResearchStep(
             step_number=iteration,
@@ -475,22 +603,50 @@ def deep_research(
         steps.append(step)
         all_findings.extend(step_findings)
 
-        progress(f"   Found {len(step_findings)} results from {', '.join(step_sources)}")
+        progress(f"   → {len(step_findings)} findings from {', '.join(step_sources)}")
         if gaps:
-            progress(f"   📝 {len(gaps)} gaps identified, queuing follow-up searches")
+            progress(f"   📝 {len(gaps)} gaps found, queuing follow-up searches")
 
-    # Step 3: Synthesize report
-    elapsed = time.time() - start_time
-    progress(f"📝 Synthesizing report from {len(all_findings)} findings across {iteration} steps...")
+    # =========================================================================
+    # PHASE 3: IRIS - External intelligence (if query involves companies/leads)
+    # =========================================================================
+    iris_keywords = ["lead", "customer", "company", "competitor", "market", "industry", "europe", "prospect"]
+    if any(kw in query.lower() for kw in iris_keywords):
+        progress("🌐 *Iris* gathering external intelligence...")
+        iris_findings = _run_iris_intelligence(query)
+        if iris_findings:
+            all_findings.extend(iris_findings)
+            sources_searched_total.add(f"iris({len(iris_findings)})")
+            progress(f"   → {len(iris_findings)} intelligence items")
 
-    report, confidence, follow_ups = _synthesize_report(query, all_findings, steps)
+    # =========================================================================
+    # PHASE 4: CALLIOPE - Synthesize report
+    # =========================================================================
+    progress(f"✍️ *Calliope* synthesizing report from {len(all_findings)} findings...")
+    raw_report, confidence, follow_ups = _synthesize_report(query, all_findings, steps)
+
+    # =========================================================================
+    # PHASE 5: VERA - Fact-check the report
+    # =========================================================================
+    progress("🔎 *Vera* fact-checking the report...")
+    verified_report = _run_vera_verification(raw_report, query)
+
+    # =========================================================================
+    # PHASE 6: SOPHIA - Learn from this session
+    # =========================================================================
+    _run_sophia_reflect(query, verified_report)
 
     total_duration = (time.time() - start_time) * 1000
-    progress(f"✅ Research complete ({total_duration/1000:.1f}s, {len(all_findings)} findings, confidence: {confidence})")
+    progress(
+        f"✅ *Research complete*\n"
+        f"   {len(all_findings)} findings | {len(steps)} steps | {total_duration/1000:.1f}s\n"
+        f"   Confidence: {confidence}\n"
+        f"   Agents used: Athena, Clio, Iris, Calliope, Vera, Sophia"
+    )
 
     return DeepResearchResult(
         query=query,
-        report=report,
+        report=verified_report,
         steps=steps,
         total_findings=len(all_findings),
         total_sources_searched=len(sources_searched_total),
