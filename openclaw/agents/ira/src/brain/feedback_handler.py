@@ -132,7 +132,61 @@ def handle_positive_feedback(
             logger.info(f"[FEEDBACK] Boosted {agent_name}: {old:.2f} -> {scores[agent_name]['score']:.2f}")
     _save_agent_scores(scores)
 
-    return "Glad that helped! I'll keep doing more of this."
+    # Store confirmed facts from the approved response in Mem0
+    _store_confirmed_facts(previous_response)
+
+    return "Glad that helped! I've reinforced this in my memory."
+
+
+def _store_confirmed_facts(response: str):
+    """When the user confirms a response is good, store key facts from it
+    in Mem0 as verified/confirmed data."""
+    if not response or len(response) < 50:
+        return
+    try:
+        import openai
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            return
+        
+        client = openai.OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "Extract key facts from this response that was confirmed as correct by the user. "
+                    "Output each fact as a standalone declarative statement, one per line. "
+                    "Focus on: customer names + machines, prices, dates, relationships. "
+                    "Prefix each with 'CONFIRMED: '. Max 5 facts. "
+                    "If no specific facts worth storing, output: NOTHING_TO_STORE"
+                )},
+                {"role": "user", "content": response[:1000]},
+            ],
+            max_tokens=300,
+            temperature=0.1,
+        )
+        result = resp.choices[0].message.content.strip()
+        if "NOTHING_TO_STORE" in result:
+            return
+        
+        facts = [l.strip() for l in result.split("\n") if l.strip().startswith("CONFIRMED:")]
+        if not facts:
+            return
+        
+        from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+        mem0 = get_mem0_service()
+        for fact in facts[:5]:
+            try:
+                mem0.add(
+                    messages=fact,
+                    user_id="machinecraft_customers",
+                    metadata={"source": "rushabh_confirmed", "timestamp": datetime.now().isoformat()},
+                )
+                logger.info(f"[FEEDBACK] Stored confirmed fact: {fact[:80]}")
+            except Exception:
+                pass
+    except Exception as e:
+        logger.debug(f"[FEEDBACK] Confirmed fact storage failed: {e}")
 
 
 def handle_negative_feedback(
@@ -141,9 +195,12 @@ def handle_negative_feedback(
     generation_path: str,
     chat_id: str = "",
 ) -> str:
-    """Handle negative feedback: log mistake, get coach analysis, queue for dream learning.
+    """Handle negative feedback: extract corrections, store in Mem0 IMMEDIATELY,
+    log mistake, ask coach for analysis, and queue for dream learning.
     
-    Returns an acknowledgment with what Ira learned.
+    The key difference from before: corrections are applied RIGHT NOW in Mem0,
+    not deferred to dream mode. This means the very next question will use
+    the corrected data.
     """
     logger.info(f"[FEEDBACK] Negative feedback detected: {user_message[:50]}")
 
@@ -156,28 +213,31 @@ def handle_negative_feedback(
         "chat_id": chat_id,
     }
 
-    # Get coach analysis
+    # STEP 1: Extract specific corrections and store in Mem0 IMMEDIATELY
+    corrections_stored = _extract_and_store_corrections(user_message, previous_response)
+
+    # STEP 2: Get coach analysis
     coach_analysis = _get_coach_analysis(user_message, previous_response)
     if coach_analysis:
         feedback_entry["coach_analysis"] = coach_analysis
 
     _append_jsonl(FEEDBACK_LOG, feedback_entry)
 
-    # Queue for dream-mode learning
+    # STEP 3: Queue for dream-mode deeper learning
     dream_entry = {
         "timestamp": datetime.now().isoformat(),
         "source": "telegram_negative_feedback",
         "user_feedback": user_message[:1000],
         "ira_response": previous_response[:1000],
         "coach_analysis": coach_analysis or "",
+        "corrections_stored": corrections_stored,
         "status": "pending",
     }
     _append_jsonl(DREAM_BACKLOG, dream_entry)
 
-    # Log to mistake log for brain_rewire
     _log_mistake(user_message, previous_response, coach_analysis)
 
-    # Reduce agent scores
+    # STEP 4: Reduce agent scores
     scores = _load_agent_scores()
     agents_used = _identify_agents_used(generation_path)
     for agent_name in agents_used:
@@ -185,14 +245,96 @@ def handle_negative_feedback(
             old = scores[agent_name]["score"]
             scores[agent_name]["failures"] += 1
             scores[agent_name]["score"] = max(old - 0.03, 0.1)
-            logger.info(f"[FEEDBACK] Reduced {agent_name}: {old:.2f} -> {scores[agent_name]['score']:.2f}")
     _save_agent_scores(scores)
 
-    ack = "I hear you. I've logged this and will learn from it."
+    # Build acknowledgment showing what was learned RIGHT NOW
+    ack = "Got it. I've updated my memory immediately with your corrections."
+    if corrections_stored:
+        ack += "\n\nStored right now:"
+        for c in corrections_stored[:5]:
+            ack += f"\n  - {c}"
     if coach_analysis:
-        ack += f"\n\nMy coach says: {coach_analysis[:200]}"
-    ack += "\n\nI'll work on this during my next dream cycle."
+        ack += f"\n\nCoach analysis: {coach_analysis[:200]}"
+    ack += "\n\nThese corrections are live — ask me again and I'll use the updated data."
     return ack
+
+
+def _extract_and_store_corrections(user_message: str, previous_response: str) -> List[str]:
+    """Extract specific factual corrections from the user's message and store them
+    in Mem0 immediately so they're available for the next query.
+    
+    Returns list of corrections that were stored.
+    """
+    stored = []
+    
+    try:
+        import openai
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            return stored
+        
+        client = openai.OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "Extract specific factual corrections from the user's feedback. "
+                    "Output each correction as a standalone fact that can be stored in memory.\n\n"
+                    "Format: one fact per line, written as a declarative statement.\n"
+                    "Example input: 'Batelaan is shut, they are not a customer anymore. Dezet has PF1-X-1310'\n"
+                    "Example output:\n"
+                    "Batelaan Kunststoffen is permanently closed and no longer operational\n"
+                    "Batelaan is NOT a current Machinecraft customer\n"
+                    "Dezet (Netherlands) has machine PF1-X-1310\n"
+                    "Dezet is a confirmed Machinecraft customer\n\n"
+                    "If the message is just general displeasure with no specific facts, output: NO_SPECIFIC_CORRECTIONS\n"
+                    "Be precise. Include company names, machine models, dates, and relationships."
+                )},
+                {"role": "user", "content": (
+                    f"USER'S CORRECTION:\n{user_message}\n\n"
+                    f"IRA'S PREVIOUS RESPONSE (what was wrong):\n{previous_response[:800]}"
+                )},
+            ],
+            max_tokens=500,
+            temperature=0.1,
+        )
+        
+        result = resp.choices[0].message.content.strip()
+        
+        if "NO_SPECIFIC_CORRECTIONS" in result:
+            return stored
+        
+        facts = [line.strip() for line in result.split("\n") if line.strip() and len(line.strip()) > 5]
+        
+        if not facts:
+            return stored
+        
+        # Store each fact in Mem0 immediately
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            mem0 = get_mem0_service()
+            
+            for fact in facts[:10]:
+                try:
+                    mem0.add(
+                        messages=fact,
+                        user_id="machinecraft_customers",
+                        metadata={"source": "rushabh_correction", "timestamp": datetime.now().isoformat()},
+                    )
+                    stored.append(fact)
+                    logger.info(f"[FEEDBACK] Stored correction in Mem0: {fact[:80]}")
+                except Exception as e:
+                    logger.warning(f"[FEEDBACK] Failed to store correction: {e}")
+                    
+        except ImportError:
+            logger.warning("[FEEDBACK] Mem0 not available for immediate correction storage")
+        except Exception as e:
+            logger.warning(f"[FEEDBACK] Mem0 storage error: {e}")
+    
+    except Exception as e:
+        logger.warning(f"[FEEDBACK] Correction extraction failed: {e}")
+    
+    return stored
 
 
 def _identify_agents_used(generation_path: str) -> List[str]:
