@@ -59,10 +59,11 @@ YOUR DEFAULT BEHAVIOR: RESEARCH FIRST, ALWAYS
 
 When you receive ANY request:
 1. IMMEDIATELY start calling tools. Do NOT reply with text first.
-2. Use MULTIPLE tools in PARALLEL when possible (call several at once).
-3. If the first search returns few results, try DIFFERENT search terms, DIFFERENT tools.
+2. In your FIRST round, call AT LEAST 3 tools simultaneously with different search terms.
+3. After getting results, if data is incomplete, do ANOTHER round with different terms.
 4. Keep searching until you have ENOUGH data to give a complete answer.
-5. Only AFTER gathering data, compose your response.
+5. Only AFTER gathering sufficient data, compose your response.
+6. MINIMUM 2 rounds of tool calls before responding. More is better.
 
 NEVER ask the user to clarify unless you have ALREADY searched and found NOTHING.
 The user's intent is usually clear enough from context — just go research it.
@@ -131,11 +132,14 @@ RULES
 
     client = openai.OpenAI(api_key=api_key)
     for round_num in range(MAX_TOOL_ROUNDS):
+        # Force tool use in the first 2 rounds to ensure thorough research
+        choice = "required" if round_num < 2 else "auto"
+        
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
             tools=tools,
-            tool_choice="auto",
+            tool_choice=choice,
             max_tokens=2048,
             temperature=0.3,
         )
@@ -148,11 +152,12 @@ RULES
             return final
 
         messages.append(msg)
+        total_calls_this_round = len(msg.tool_calls)
         for tc in msg.tool_calls or []:
             fn = tc.function
             name = fn.name
             args = parse_tool_arguments(fn.arguments)
-            logger.info(f"[Athena] Round {round_num+1}: calling {name}({list(args.keys())})")
+            logger.info(f"[Athena] Round {round_num+1}/{total_calls_this_round}: {name}({list(args.keys())})")
             result = await execute_tool_call(name, args, context)
             if result.startswith("ASK_USER:"):
                 return result[9:]

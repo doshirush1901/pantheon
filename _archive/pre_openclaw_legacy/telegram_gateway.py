@@ -5520,9 +5520,7 @@ Total: {len(draft_ids)}""",
     
     def handle_think_command(self, query: str, chat_id: str) -> GatewayResponse:
         """
-        Handle /think <query> command - Force deep thinking on any query.
-        
-        Usage: /think What European customers have we had for PF1 machines?
+        Handle /think <query> command - Force deep thinking via deep research engine.
         """
         if not query or len(query.strip()) < 5:
             return GatewayResponse(
@@ -5533,6 +5531,10 @@ Total: {len(draft_ids)}""",
                 success=False
             )
         
+        # Route to the same deep research engine as /research
+        return self.handle_research_command(query, chat_id)
+        
+        # Legacy code below kept for reference but unreachable
         try:
             from thinking_integration import handle_with_thinking_sync
             
@@ -5780,14 +5782,17 @@ Total: {len(draft_ids)}""",
         or None if should use standard processing.
         """
         try:
+            # Auto deep-thinking disabled -- all queries now go through the
+            # agentic tool orchestrator which handles depth automatically.
+            # Use /research or /deepdive for explicit deep research.
+            return None
+            
             from thinking_integration import handle_with_thinking_sync
             from thinking_jobs import should_use_deep_thinking
             
-            # Check if this query warrants deep thinking
             if not should_use_deep_thinking(text):
                 return None
             
-            # Check for explicit "quick" request
             if any(kw in text.lower() for kw in ['quick', 'fast', 'briefly', 'short']):
                 return None
             
@@ -5801,7 +5806,6 @@ Total: {len(draft_ids)}""",
             )
             
             if was_async:
-                # Deep thinking started, response will come later
                 logger.info(f"Deep thinking started for: {text[:50]}...")
                 return GatewayResponse(
                     text=None,  # Already sent acknowledgment
