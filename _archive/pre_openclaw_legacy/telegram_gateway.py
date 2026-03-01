@@ -4524,6 +4524,38 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 
                 end_trace(success=True, mode=result.mode.value)
             
+            # ===== CHAT LOG: Log for dream learning =====
+            try:
+                from openclaw.agents.ira.src.conversation.chat_log import log_interaction
+                log_interaction("telegram", chat_id, "user", text)
+                log_interaction("telegram", chat_id, "assistant", response_text, metadata={
+                    "mode": result.mode.value,
+                    "confidence": result.confidence.value,
+                    "duration_ms": round(request_duration_ms, 2),
+                })
+            except Exception as chat_log_err:
+                logger.debug(f"Chat log error (non-fatal): {chat_log_err}")
+            
+            # ===== REFLECTION: Sophia learns from this interaction =====
+            try:
+                import asyncio
+                from openclaw.agents.ira.src.agents.reflector.agent import reflect
+                interaction_data = {
+                    "user_message": text,
+                    "response": response_text,
+                    "intent": actual_intent,
+                    "mode": result.mode.value,
+                    "confidence": result.confidence.value,
+                    "channel": "telegram",
+                }
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.ensure_future(reflect(interaction_data))
+                else:
+                    loop.run_until_complete(reflect(interaction_data))
+            except Exception as reflect_err:
+                logger.debug(f"Reflection error (non-fatal): {reflect_err}")
+            
             return GatewayResponse(
                 text=response_text,
                 log_entry={

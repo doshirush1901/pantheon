@@ -1,1 +1,2 @@
 {"timestamp": "2026-03-01T11:48:12.274472", "component": "system", "error_type": "CriticalAlert", "message": "Startup validation failed: 1 critical issues", "context": {"issues": ["env:EXPECTED_CHAT_ID"]}, "stack_trace": null, "severity": "critical"}
+{"timestamp": "2026-03-01T12:18:27.070572", "component": "system", "error_type": "CriticalAlert", "message": "Startup validation failed: 1 critical issues", "context": {"issues": ["env:TELEGRAM_CHAT_ID"]}, "stack_trace": null, "severity": "critical"}

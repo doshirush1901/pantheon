@@ -45,7 +45,9 @@ if [ -f ".env" ]; then
 fi
 
 # Activate virtual environment if it exists
-if [ -f "venv/bin/activate" ]; then
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+elif [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
 fi
 
@@ -57,6 +59,94 @@ log "📋 PHASE 0: Rushabh Feedback (from chat log)..."
 log "----------------------------------------------"
 
 $PYTHON scripts/process_rushabh_feedback.py 2>&1 | tee -a "$DREAM_LOG"
+
+# ==============================================================================
+# PHASE 0.5: CONSUME FEEDBACK BACKLOG + ERROR LOGS
+# ==============================================================================
+log ""
+log "📝 PHASE 0.5: Processing feedback backlog and error logs..."
+log "----------------------------------------------"
+
+$PYTHON -c "
+import sys, json, os
+from pathlib import Path
+from datetime import datetime
+
+sys.path.insert(0, 'openclaw/agents/ira')
+sys.path.insert(0, 'openclaw/agents/ira/src/brain')
+sys.path.insert(0, 'openclaw/agents/ira/src/memory')
+
+# 1. Process feedback backlog into correction learner
+backlog = Path('data/chat_log/feedback_backlog.jsonl')
+corrections_applied = 0
+if backlog.exists():
+    try:
+        from correction_learner import CorrectionLearner
+        cl = CorrectionLearner()
+        for line in backlog.read_text().splitlines():
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            content = entry.get('content', '')
+            if content:
+                result = cl.detect_and_learn(content, '')
+                if result.get('learned'):
+                    corrections_applied += 1
+        print(f'Feedback backlog: {corrections_applied} corrections applied')
+    except Exception as e:
+        print(f'Feedback backlog processing error: {e}')
+else:
+    print('No feedback backlog found (will be created after Telegram chats)')
+
+# 2. Process error logs into knowledge gaps
+errors_dir = Path('data/logs')
+errors_today = 0
+if errors_dir.exists():
+    try:
+        gaps_file = Path('data/knowledge_gaps.json')
+        gaps = json.loads(gaps_file.read_text()) if gaps_file.exists() else []
+        existing_topics = {g.get('topic', '') for g in gaps}
+
+        for log_file in sorted(errors_dir.glob('errors_*.jsonl'))[-3:]:
+            for line in log_file.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    entry = json.loads(line)
+                    component = entry.get('component', '')
+                    error_msg = str(entry.get('error', ''))
+                    if 'retrieval' in component.lower() or 'knowledge' in error_msg.lower():
+                        topic = entry.get('context', {}).get('query', error_msg[:100])
+                        if topic and topic not in existing_topics:
+                            gaps.append({
+                                'topic': topic,
+                                'source': 'error_log',
+                                'detected': datetime.now().isoformat(),
+                                'priority': 'medium',
+                            })
+                            existing_topics.add(topic)
+                            errors_today += 1
+                except json.JSONDecodeError:
+                    pass
+
+        gaps_file.parent.mkdir(parents=True, exist_ok=True)
+        gaps_file.write_text(json.dumps(gaps, indent=2))
+        print(f'Error logs: {errors_today} new knowledge gaps identified')
+    except Exception as e:
+        print(f'Error log processing error: {e}')
+
+# 3. Process reflector lessons into dream context
+lessons_file = Path('openclaw/agents/ira/data/lessons.md')
+lesson_count = 0
+if lessons_file.exists():
+    content = lessons_file.read_text()
+    lesson_count = content.count('- ')
+    print(f'Reflector lessons available: {lesson_count} entries')
+else:
+    print('No reflector lessons file found yet')
+
+print(f'Dream inputs ready: {corrections_applied} corrections, {errors_today} gaps, {lesson_count} lessons')
+" 2>&1 | tee -a "$DREAM_LOG"
 
 # ==============================================================================
 # PHASE 1: DREAM MODE (Document Learning + Interaction Learning)

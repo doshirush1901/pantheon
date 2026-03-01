@@ -33,7 +33,9 @@ echo -e "${NC}"
 # -----------------------------------------------------------------------------
 
 check_postgres() {
-    pg_isready -q 2>/dev/null && return 0 || return 1
+    pg_isready -h 127.0.0.1 -p 5432 -q 2>/dev/null && return 0
+    docker exec ira-postgres pg_isready -q 2>/dev/null && return 0
+    return 1
 }
 
 check_qdrant() {
@@ -120,6 +122,7 @@ if [ "$1" = "stop" ]; then
     pkill -f "email_openclaw_bridge" 2>/dev/null && echo "  Stopped Email Handler" || echo "  Email Handler not running"
     
     # Stop Qdrant (if running in Docker)
+    docker stop ira-qdrant 2>/dev/null && echo "  Stopped Qdrant" || \
     docker stop qdrant 2>/dev/null && echo "  Stopped Qdrant" || echo "  Qdrant container not running"
     
     echo -e "\n${GREEN}Done!${NC}"
@@ -135,21 +138,18 @@ mkdir -p logs
 
 echo -e "${YELLOW}Starting services...${NC}\n"
 
-# 1. PostgreSQL
+# 1. PostgreSQL (via Docker container ira-postgres)
 echo -n "  [1/5] PostgreSQL: "
 if check_postgres; then
     echo -e "${GREEN}Already running${NC}"
 else
-    # Try to start via brew
-    if command -v brew &> /dev/null; then
-        brew services start postgresql@14 2>/dev/null || brew services start postgresql 2>/dev/null || true
-        sleep 2
-    fi
+    docker start ira-postgres 2>/dev/null || true
+    sleep 3
     
     if check_postgres; then
-        echo -e "${GREEN}Started${NC}"
+        echo -e "${GREEN}Started (Docker)${NC}"
     else
-        echo -e "${RED}Not running - please start Postgres.app or run: brew services start postgresql${NC}"
+        echo -e "${RED}Not running - start Docker container ira-postgres${NC}"
     fi
 fi
 
@@ -158,9 +158,10 @@ echo -n "  [2/5] Qdrant: "
 if check_qdrant; then
     echo -e "${GREEN}Already running${NC}"
 else
-    # Start Qdrant in Docker
-    docker run -d --name qdrant -p 6333:6333 -v ~/qdrant_data:/qdrant/storage qdrant/qdrant 2>/dev/null || \
-    docker start qdrant 2>/dev/null || true
+    # Start Qdrant in Docker (try ira-qdrant first, then generic qdrant)
+    docker start ira-qdrant 2>/dev/null || \
+    docker start qdrant 2>/dev/null || \
+    docker run -d --name ira-qdrant -p 6333:6333 -p 6334:6334 -v ~/qdrant_data:/qdrant/storage qdrant/qdrant 2>/dev/null || true
     
     sleep 3
     
