@@ -145,8 +145,25 @@ async def execute_tool_call(
 
     if tool_name == "research_skill":
         query = arguments.get("query", "")
+        results_parts = []
+        
+        # Primary search
         result = await invoke_research(query, context)
-        return result or "(No results found in knowledge base)"
+        if result:
+            results_parts.append(f"[primary] {result}")
+        
+        # If primary search returned little, try Qdrant directly with the raw query
+        if not result or len(result) < 100:
+            try:
+                from openclaw.agents.ira.src.brain.qdrant_retriever import retrieve as qdrant_retrieve
+                rag = qdrant_retrieve(query, top_k=8)
+                if hasattr(rag, 'citations') and rag.citations:
+                    for c in rag.citations[:5]:
+                        results_parts.append(f"[qdrant:{c.filename}] {c.text[:400]}")
+            except Exception:
+                pass
+        
+        return "\n\n".join(results_parts) if results_parts else "(No results found in knowledge base)"
 
     elif tool_name == "web_search":
         query = arguments.get("query", "")

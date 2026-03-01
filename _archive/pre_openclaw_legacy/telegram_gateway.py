@@ -5244,9 +5244,16 @@ Total: {len(draft_ids)}""",
         if think_match:
             return self.handle_think_command(think_match.group(1).strip(), message.chat_id)
         
-        # /thinking or /research status - Show job status
+        # /thinking or /research status - Show usage help
         if text.lower() in ['/thinking', '/think', '/research']:
-            return self.handle_thinking_status()
+            return GatewayResponse(
+                text="🔍 *Research Commands*\n\n"
+                     "`/research <query>` — Deep research on a topic\n"
+                     "`/deepdive <topic>` — Conversational multi-topic research\n\n"
+                     "Example: `/research PlastIndia 2025 leads`\n"
+                     "Example: `/deepdive European market strategy 2026`",
+                parse_mode="Markdown",
+            )
         
         # /cancel_thinking - Cancel active thinking jobs
         if text.lower() == '/cancel_thinking':
@@ -5520,7 +5527,9 @@ Total: {len(draft_ids)}""",
     
     def handle_think_command(self, query: str, chat_id: str) -> GatewayResponse:
         """
-        Handle /think <query> command - Force deep thinking via deep research engine.
+        Handle /think <query> command - Force deep thinking on any query.
+        
+        Usage: /think What European customers have we had for PF1 machines?
         """
         if not query or len(query.strip()) < 5:
             return GatewayResponse(
@@ -5531,10 +5540,6 @@ Total: {len(draft_ids)}""",
                 success=False
             )
         
-        # Route to the same deep research engine as /research
-        return self.handle_research_command(query, chat_id)
-        
-        # Legacy code below kept for reference but unreachable
         try:
             from thinking_integration import handle_with_thinking_sync
             
@@ -5776,17 +5781,14 @@ Total: {len(draft_ids)}""",
     
     def _try_deep_thinking(self, text: str, chat_id: str) -> Optional[GatewayResponse]:
         """
-        Check if query should use deep thinking and start it if so.
-        
-        Returns GatewayResponse if deep thinking started (async),
-        or None if should use standard processing.
+        Legacy deep thinking auto-detection. Disabled -- the agentic pipeline
+        (tool_orchestrator) now handles all queries with multi-step reasoning.
+        Use /research or /deepdive for explicit deep research mode.
         """
+        return None
+        
+        # Legacy code below kept for reference but never reached
         try:
-            # Auto deep-thinking disabled -- all queries now go through the
-            # agentic tool orchestrator which handles depth automatically.
-            # Use /research or /deepdive for explicit deep research.
-            return None
-            
             from thinking_integration import handle_with_thinking_sync
             from thinking_jobs import should_use_deep_thinking
             
@@ -5808,7 +5810,7 @@ Total: {len(draft_ids)}""",
             if was_async:
                 logger.info(f"Deep thinking started for: {text[:50]}...")
                 return GatewayResponse(
-                    text=None,  # Already sent acknowledgment
+                    text=None,
                     log_entry={"type": "deep_thinking_auto", "query": text[:100]}
                 )
             elif response:
