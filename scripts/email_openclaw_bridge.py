@@ -106,6 +106,7 @@ POLL_INTERVAL = int(os.getenv("EMAIL_POLL_INTERVAL", "60"))  # seconds
 IRA_EMAIL = os.getenv("IRA_EMAIL", "ira@machinecraft.org")
 MAX_REFINEMENT_ROUNDS = int(os.getenv("IRA_MAX_REFINEMENT_ROUNDS", "3"))
 MIN_RESPONSE_TIME = int(os.getenv("IRA_MIN_RESPONSE_TIME", "180"))  # minimum 3 minutes before replying
+RUSHABH_EMAIL = os.getenv("RUSHABH_EMAIL", "rushabh@machinecraft.org")
 
 
 class GmailClient:
@@ -232,6 +233,28 @@ class GmailClient:
         except Exception as e:
             logger.warning(f"Could not fetch thread {thread_id}: {e}")
             return []
+
+    def send_new_email(self, to: str, subject: str, body: str) -> Optional[str]:
+        """Send a new email (not a reply). Returns the thread_id of the new message."""
+        try:
+            message = MIMEText(body)
+            message['to'] = to
+            message['from'] = IRA_EMAIL
+            message['subject'] = subject
+
+            raw = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+
+            result = self.service.users().messages().send(
+                userId='me',
+                body={'raw': raw}
+            ).execute()
+
+            thread_id = result.get('threadId', '')
+            logger.info(f"New email sent to {to} (thread: {thread_id})")
+            return thread_id
+        except Exception as e:
+            logger.error(f"Error sending new email: {e}")
+            return None
 
     def send_reply(self, to: str, subject: str, body: str, thread_id: str, message_id: str) -> bool:
         """Send a reply email."""
@@ -1046,24 +1069,71 @@ class EmailIraBridge:
         if vera_issues:
             needs_rewrite = True
 
+        # Always synthesize from Clio's research when available — her research
+        # is deeper than the initial RAG (more sources, more chunks, graph data).
+        # Even if the initial draft "passed" relevance, Clio's version will be richer.
+        if research_output and openai_client:
+            needs_rewrite = True
+            logger.info("  Forcing synthesis from Clio's research (always richer than initial draft)")
+
         # ─────────────────────────────────────────────
-        # STAGE 4: CALLIOPE — Rewrite with research if needed
+        # STAGE 4: REWRITE — Synthesize answer from Clio's research
         # ─────────────────────────────────────────────
         round_num = 0
         while needs_rewrite and round_num < MAX_REFINEMENT_ROUNDS:
             round_num += 1
-            logger.info(f"\n[STAGE 4/7] CALLIOPE — Rewrite round {round_num}/{MAX_REFINEMENT_ROUNDS}...")
+            logger.info(f"\n[STAGE 4/7] REWRITE — Round {round_num}/{MAX_REFINEMENT_ROUNDS} (LLM synthesis from research)...")
 
-            if calliope_write:
+            if openai_client and research_output:
+                try:
+                    rewrite_result = openai_client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": (
+                                "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies. "
+                                "You have been given research findings from your knowledge base. "
+                                "Write a response that DIRECTLY answers the question using SPECIFIC data "
+                                "from the research — names, numbers, companies, models, prices.\n\n"
+                                "Rules:\n"
+                                "- Answer the EXACT question. If they ask for leads, give lead names.\n"
+                                "- If they ask for data, give data with numbers.\n"
+                                "- If the sender is Rushabh (internal), this is a strategy request — be direct.\n"
+                                "- Use bullet points or structured format for lists.\n"
+                                "- Be concise but thorough. No filler, no deflecting with questions.\n"
+                                "- If the research doesn't contain the answer, say what you found and what's missing.\n"
+                                "- AM series is ALWAYS ≤1.5mm only.\n"
+                                "- All prices subject to configuration and current pricing."
+                            )},
+                            {"role": "user", "content": (
+                                f"QUESTION:\n{query}\n\n"
+                                f"RESEARCH FINDINGS:\n{research_output[:8000]}\n\n"
+                                "Write a response that directly answers the question using the research above."
+                            )},
+                        ],
+                        temperature=0.3,
+                        max_tokens=2000,
+                    )
+                    rewritten = rewrite_result.choices[0].message.content.strip()
+                    if rewritten and len(rewritten) > 30:
+                        current_draft = rewritten
+                        logger.info(f"  LLM synthesis produced {len(current_draft)} chars")
+                except Exception as e:
+                    logger.warning(f"  LLM synthesis failed, falling back to Calliope: {e}")
+                    if calliope_write:
+                        try:
+                            rewritten = _run_async(calliope_write(
+                                query,
+                                context={"research_output": research_output, "channel": "email", "intent": "general"}
+                            ))
+                            if rewritten and len(rewritten) > 30:
+                                current_draft = rewritten
+                        except Exception:
+                            pass
+            elif calliope_write:
                 try:
                     rewritten = _run_async(calliope_write(
                         query,
-                        context={
-                            "research_output": research_output,
-                            "channel": "email",
-                            "intent": "general",
-                            "user_id": from_email,
-                        }
+                        context={"research_output": research_output, "channel": "email", "intent": "general"}
                     ))
                     if rewritten and len(rewritten) > 30:
                         current_draft = rewritten
@@ -1108,26 +1178,37 @@ class EmailIraBridge:
         logger.info(f"\n[STAGE 4-5] REFINE — {'No rewrite needed' if round_num == 0 else f'{round_num} round(s) completed'}")
 
         # ─────────────────────────────────────────────
-        # STAGE 6: CALLIOPE — Final packaging
+        # STAGE 6: PACKAGE — Clean plain-text email
         # ─────────────────────────────────────────────
-        logger.info("\n[STAGE 6/7] CALLIOPE — Final email packaging...")
+        logger.info("\n[STAGE 6/7] PACKAGE — Final email formatting...")
 
-        if calliope_write:
+        if openai_client:
             try:
-                packaged = _run_async(calliope_write(
-                    f"Package this as a final email reply:\n\n{current_draft}",
-                    context={
-                        "research_output": current_draft,
-                        "channel": "email",
-                        "intent": "email",
-                        "user_id": from_email,
-                    }
-                ))
+                package_result = openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": (
+                            "Convert this draft into a clean PLAIN TEXT email. Rules:\n"
+                            "- NO markdown (no **, no ##, no bullet symbols like •)\n"
+                            "- Use plain dashes (-) for lists\n"
+                            "- Start with 'Hi Rushabh,' if internal, or 'Hi [Name],' if customer\n"
+                            "- DO NOT add qualification questions (What size? What material? etc.)\n"
+                            "- DO NOT add information not in the draft\n"
+                            "- Keep all specific data (names, numbers, companies, prices)\n"
+                            "- End with: Cheers,\\nIra\\n\\nMachinecraft Technologies\\nira@machinecraft.org\n"
+                            "- Keep it concise but complete"
+                        )},
+                        {"role": "user", "content": current_draft},
+                    ],
+                    temperature=0.2,
+                    max_tokens=2000,
+                )
+                packaged = package_result.choices[0].message.content.strip()
                 if packaged and len(packaged) > 30:
                     current_draft = packaged
-                    logger.info(f"  Calliope packaged ({len(current_draft)} chars)")
+                    logger.info(f"  Packaged as plain text ({len(current_draft)} chars)")
             except Exception as e:
-                logger.warning(f"  Calliope packaging failed: {e}")
+                logger.warning(f"  Packaging failed: {e}")
 
         # ─────────────────────────────────────────────
         # STAGE 7: SOPHIA — Reflect and learn
@@ -1262,8 +1343,12 @@ class EmailIraBridge:
         )
         
         if response:
-            # Deep think: fact-check, cross-reference, refine, then pad to min think time
-            response = self._deep_think(body_with_context, response, from_email, process_start)
+            # Deep think uses the RAW question for research (not the thread blob),
+            # but passes thread context for the LLM to understand conversation flow
+            research_query = body.strip()
+            if subject and not subject.lower().startswith("re:"):
+                research_query = f"{subject}: {research_query}"
+            response = self._deep_think(research_query, response, from_email, process_start)
 
         # Store in conversation history for feedback detection
         self.conversation_history[thread_id] = {
@@ -1294,7 +1379,7 @@ class EmailIraBridge:
                         logger.debug("Chat log: %s", _e)
                 
                 # CRM Integration: Handle post-reply actions
-                self._handle_post_reply_crm(
+                self.ira._handle_post_reply_crm(
                     from_email=from_email,
                     subject=subject,
                     body=body,
@@ -1330,16 +1415,93 @@ class EmailIraBridge:
                 import traceback
                 logger.error(traceback.format_exc())
     
+    def send_proactive_checkin(self):
+        """Send a proactive check-in email to Rushabh on startup."""
+        logger.info("Sending proactive check-in to Rushabh...")
+
+        try:
+            from openclaw.agents.ira.src.agents.researcher.agent import research
+            import asyncio
+
+            def _run(coro):
+                try:
+                    return asyncio.run(coro)
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    try:
+                        return loop.run_until_complete(coro)
+                    finally:
+                        loop.close()
+
+            # Clio: quick research on what's pending
+            research_output = ""
+            try:
+                research_output = _run(research(
+                    "What are the most important pending leads, recent customer inquiries, "
+                    "and any follow-ups needed for Machinecraft this week?",
+                    context={"user_id": RUSHABH_EMAIL, "channel": "email"}
+                ))
+            except Exception as e:
+                logger.warning(f"Research for check-in failed: {e}")
+
+            # Build the check-in email
+            from openai import OpenAI
+            client = OpenAI()
+
+            prompt_parts = [
+                "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies.",
+                "Write a brief, warm check-in email to Rushabh (your boss).",
+                "Include:",
+                "1. A warm greeting",
+                "2. Confirm you're online and all systems are running",
+                "3. If you found any pending items from research, mention the top 2-3 briefly",
+                "4. Ask if there's anything specific he'd like you to work on today",
+                "5. Keep it short (5-8 sentences max)",
+                "Sign off as: Cheers,\nIra",
+            ]
+            if research_output:
+                prompt_parts.append(f"\nContext from your research:\n{research_output[:2000]}")
+
+            result = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "\n".join(prompt_parts)},
+                    {"role": "user", "content": "Write the check-in email now."},
+                ],
+                temperature=0.5,
+                max_tokens=500,
+            )
+            email_body = result.choices[0].message.content.strip()
+
+            thread_id = self.gmail.send_new_email(
+                to=RUSHABH_EMAIL,
+                subject=f"Ira Check-in — {datetime.now().strftime('%b %d')}",
+                body=email_body,
+            )
+
+            if thread_id:
+                logger.info(f"Check-in email sent to {RUSHABH_EMAIL} (thread: {thread_id})")
+            else:
+                logger.warning("Failed to send check-in email")
+
+        except Exception as e:
+            logger.error(f"Proactive check-in failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
     def run_loop(self):
         """Continuously poll for new emails."""
         logger.info(f"Starting email polling loop (interval: {POLL_INTERVAL}s)")
-        logger.info("Using IRA Agent FULL PIPELINE (Mem0, RAG, Brain, Machine Recommender)")
-        
+        logger.info("Using FULL DELIBERATION PIPELINE (Clio, Vera, Calliope, Sophia)")
+
         # Log agent status
         status = self.ira.agent.get_status()
         logger.info(f"Agent: {status['agent']['name']} v{status['agent']['version']}")
         logger.info(f"Modules: {json.dumps(status['modules'], indent=2)}")
-        
+
+        # Send proactive check-in on startup
+        self.send_proactive_checkin()
+
         while True:
             try:
                 self.run_once()
@@ -1347,7 +1509,7 @@ class EmailIraBridge:
                 logger.error(f"Loop error: {e}")
                 import traceback
                 logger.error(traceback.format_exc())
-            
+
             logger.info(f"Sleeping for {POLL_INTERVAL}s...")
             time.sleep(POLL_INTERVAL)
 
