@@ -5423,8 +5423,8 @@ Total: {len(draft_ids)}""",
                 for fact in facts:
                     uid = category_to_user_id.get(fact["category"], "machinecraft_general")
                     try:
-                        mem0.add(
-                            messages=f"TAUGHT BY RUSHABH: {fact['text']}",
+                        mem0.add_memory(
+                            text=f"TAUGHT BY RUSHABH: {fact['text']}",
                             user_id=uid,
                             metadata={
                                 "source": "telegram_teach",

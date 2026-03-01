@@ -177,8 +177,8 @@ def _store_confirmed_facts(response: str):
         mem0 = get_mem0_service()
         for fact in facts[:5]:
             try:
-                mem0.add(
-                    messages=fact,
+                mem0.add_memory(
+                    text=fact,
                     user_id="machinecraft_customers",
                     metadata={"source": "rushabh_confirmed", "timestamp": datetime.now().isoformat()},
                 )
@@ -316,8 +316,8 @@ def _extract_and_store_corrections(user_message: str, previous_response: str) ->
             
             for fact in facts[:10]:
                 try:
-                    mem0.add(
-                        messages=fact,
+                    mem0.add_memory(
+                        text=fact,
                         user_id="machinecraft_customers",
                         metadata={"source": "rushabh_correction", "timestamp": datetime.now().isoformat()},
                     )
