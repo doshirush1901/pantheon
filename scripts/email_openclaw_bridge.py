@@ -63,6 +63,24 @@ except ImportError as e:
     IRA_AGENT_AVAILABLE = False
     logger.error(f"IRA Agent not available: {e}")
 
+# Telegram Gateway engine - reuse its rich processing pipeline for email
+GATEWAY_ENGINE_AVAILABLE = False
+_gateway_engine = None
+try:
+    sys.path.insert(0, str(PROJECT_ROOT / "_archive" / "pre_openclaw_legacy"))
+    from telegram_gateway import TelegramGateway
+    GATEWAY_ENGINE_AVAILABLE = True
+    logger.info("Telegram Gateway engine loaded (shared processing pipeline)")
+except ImportError as e:
+    logger.warning(f"Gateway engine not available, email will use IraAgent fallback: {e}")
+
+def get_gateway_engine():
+    """Lazy-init the gateway engine (reuses Telegram's full pipeline for email)."""
+    global _gateway_engine
+    if _gateway_engine is None and GATEWAY_ENGINE_AVAILABLE:
+        _gateway_engine = TelegramGateway()
+    return _gateway_engine
+
 try:
     from openclaw.agents.ira.src.conversation.chat_log import log_interaction
     CHAT_LOG_AVAILABLE = True
@@ -1094,13 +1112,21 @@ class EmailIraBridge:
                                 "You have been given research findings from your knowledge base. "
                                 "Write a response that DIRECTLY answers the question using SPECIFIC data "
                                 "from the research — names, numbers, companies, models, prices.\n\n"
-                                "Rules:\n"
+                                "CRITICAL ANTI-HALLUCINATION RULES:\n"
+                                "- ONLY state facts that are EXPLICITLY written in the research findings below.\n"
+                                "- NEVER infer or fabricate connections between entities from different documents.\n"
+                                "  For example, if Company A appears in one document and Event B in another,\n"
+                                "  do NOT say 'Company A attended Event B' unless the research explicitly says so.\n"
+                                "- If the research does not contain information about what was asked, say:\n"
+                                "  'I don't have [specific thing] in my knowledge base. Here's what I do have: ...'\n"
+                                "- Each fact you state must be traceable to a specific [Source] in the research.\n"
+                                "- When listing leads/customers, include the source document for each.\n\n"
+                                "OTHER RULES:\n"
                                 "- Answer the EXACT question. If they ask for leads, give lead names.\n"
                                 "- If they ask for data, give data with numbers.\n"
                                 "- If the sender is Rushabh (internal), this is a strategy request — be direct.\n"
-                                "- Use bullet points or structured format for lists.\n"
+                                "- Use plain text lists (dashes, not bullets or markdown).\n"
                                 "- Be concise but thorough. No filler, no deflecting with questions.\n"
-                                "- If the research doesn't contain the answer, say what you found and what's missing.\n"
                                 "- AM series is ALWAYS ≤1.5mm only.\n"
                                 "- All prices subject to configuration and current pricing."
                             )},
@@ -1194,6 +1220,8 @@ class EmailIraBridge:
                             "- Start with 'Hi Rushabh,' if internal, or 'Hi [Name],' if customer\n"
                             "- DO NOT add qualification questions (What size? What material? etc.)\n"
                             "- DO NOT add information not in the draft\n"
+                            "- DO NOT invent connections between companies and events/exhibitions\n"
+                            "- If the draft says 'I don't have X', keep that honest admission\n"
                             "- Keep all specific data (names, numbers, companies, prices)\n"
                             "- End with: Cheers,\\nIra\\n\\nMachinecraft Technologies\\nira@machinecraft.org\n"
                             "- Keep it concise but complete"
@@ -1334,21 +1362,74 @@ class EmailIraBridge:
             else:
                 logger.info("No specific corrections - processing as normal message")
         
-        # Process through IRA's FULL pipeline with thread context
-        response = self.ira.process_email(
-            body=body_with_context,
-            from_email=from_email,
-            subject=subject,
-            thread_id=thread_id
-        )
-        
+        # Build the query: include subject for better retrieval
+        query_for_processing = body.strip()
+        if subject and not subject.lower().startswith("re:"):
+            query_for_processing = f"{subject}: {query_for_processing}"
+
+        # PRIMARY PATH: Use Telegram Gateway engine (same rich pipeline)
+        # This gives email the same 15-phase processing as Telegram:
+        # memory, coreference, RAG (top_k=10), brain orchestrator, Mem0,
+        # cross-channel context, conversational enhancement, agentic tool loop,
+        # adaptive retrieval, and generate_answer with full context pack.
+        response = None
+        gateway = get_gateway_engine()
+        if gateway:
+            try:
+                logger.info("Using Gateway Engine (shared Telegram pipeline) for email processing")
+
+                # Save thread history as conversation turns so the gateway has context
+                if thread_history and len(thread_history) > 1:
+                    for msg in thread_history[:-1]:
+                        try:
+                            gateway._save_conversation_turn(
+                                chat_id=from_email,
+                                user_message=msg['body'][:500] if msg['role'] == 'user' else '',
+                                assistant_response=msg['body'][:500] if msg['role'] == 'assistant' else '',
+                            )
+                        except Exception:
+                            pass
+
+                gateway_result = gateway.handle_free_text(
+                    text=query_for_processing,
+                    chat_id=from_email,
+                )
+
+                if gateway_result and gateway_result.text and len(gateway_result.text.strip()) > 20:
+                    response = gateway_result.text
+                    logger.info(f"Gateway Engine produced {len(response)} chars")
+
+                    # Save this turn for future context
+                    try:
+                        gateway._save_conversation_turn(
+                            chat_id=from_email,
+                            user_message=query_for_processing[:500],
+                            assistant_response=response[:1000],
+                        )
+                    except Exception:
+                        pass
+                else:
+                    logger.warning("Gateway Engine returned empty, falling back to IraAgent")
+            except Exception as e:
+                logger.warning(f"Gateway Engine failed, falling back to IraAgent: {e}")
+                import traceback
+                logger.debug(traceback.format_exc())
+
+        # FALLBACK: Use IraAgent if gateway engine unavailable or failed
+        if not response:
+            logger.info("Using IraAgent fallback for email processing")
+            agent_response = self.ira.process_email(
+                body=body_with_context,
+                from_email=from_email,
+                subject=subject,
+                thread_id=thread_id
+            )
+            if agent_response:
+                response = agent_response if isinstance(agent_response, str) else getattr(agent_response, 'message', str(agent_response))
+
         if response:
-            # Deep think uses the RAW question for research (not the thread blob),
-            # but passes thread context for the LLM to understand conversation flow
-            research_query = body.strip()
-            if subject and not subject.lower().startswith("re:"):
-                research_query = f"{subject}: {research_query}"
-            response = self._deep_think(research_query, response, from_email, process_start)
+            # Deep think: deliberation pipeline with all agents
+            response = self._deep_think(query_for_processing, response, from_email, process_start)
 
         # Store in conversation history for feedback detection
         self.conversation_history[thread_id] = {

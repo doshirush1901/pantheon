@@ -30,12 +30,27 @@ DELIVERY_DISCLAIMER = "subject to confirmation"
 
 # Hallucination patterns to flag
 HALLUCINATION_PATTERNS = [
-    r"world(?:'?s)?\s+(?:leading|largest|best)",  # world's, worlds, world leading
+    r"world(?:'?s)?\s+(?:leading|largest|best)",
     r"#\s*1\s+in",
     r"(?:9[89]|100)\s*%\s+(?:satisfaction|success|accuracy)",
     r"over\s+\d{3,}\s+(?:years|decades)",
     r"\d{5,}\s+(?:customers|clients|machines)",
 ]
+
+# Known entity-event associations to prevent fabricated connections
+# Format: (entity_pattern, event_pattern, is_valid)
+# If a draft links an entity to an event not in this list, flag it
+KNOWN_EXHIBITIONS = {
+    "plastindia": ["PlastIndia"],
+    "k2025": ["K 2025", "K Show", "K Exhibition", "K2025"],
+    "k2022": ["K 2022", "K2022"],
+    "k2016": ["K 2016", "K2016"],
+}
+
+ENTITIES_NOT_AT_EXHIBITIONS = {
+    "plastindia": ["dutch tides", "dutchtides", "frimo", "batelaan", "pro-form"],
+    "k2025": ["dutch tides", "dutchtides"],
+}
 
 
 # =============================================================================
@@ -82,7 +97,11 @@ async def verify(
         for h in hallucinations:
             issues.append(f"Potential hallucination: '{h}'")
         verified_draft = _flag_hallucinations(verified_draft, hallucinations)
-    
+
+    # Check 3b: Fabricated entity-event connections
+    entity_event_issues = _check_entity_event_fabrications(verified_draft)
+    issues.extend(entity_event_issues)
+
     spec_issues = _validate_specifications(verified_draft)
     issues.extend(spec_issues)
     
@@ -319,6 +338,23 @@ def _flag_hallucinations(draft: str, hallucinations: List[str]) -> str:
     return draft
 
 
+def _check_entity_event_fabrications(draft: str) -> List[str]:
+    """Detect fabricated connections between entities and events/exhibitions."""
+    issues = []
+    draft_lower = draft.lower()
+
+    for event_key, blocked_entities in ENTITIES_NOT_AT_EXHIBITIONS.items():
+        if event_key in draft_lower:
+            for entity in blocked_entities:
+                if entity in draft_lower:
+                    issues.append(
+                        f"FABRICATED CONNECTION: '{entity}' is incorrectly associated with '{event_key}'. "
+                        f"Remove this false claim."
+                    )
+
+    return issues
+
+
 def _validate_specifications(draft: str) -> List[str]:
     """Validate any specifications mentioned in the draft."""
     issues = []
@@ -512,7 +548,10 @@ def generate_verification_report(
         warnings.append(f"Potential hallucination flagged: {h}")
     if hallucinations:
         verified_draft = _flag_hallucinations(verified_draft, hallucinations)
-    
+
+    entity_event_issues = _check_entity_event_fabrications(verified_draft)
+    issues.extend(entity_event_issues)
+
     spec_issues = _validate_specifications(verified_draft)
     issues.extend(spec_issues)
     
