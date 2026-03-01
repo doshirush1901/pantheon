@@ -1555,6 +1555,11 @@ QUICK COMMANDS (with confirmation):
   pause → Pause campaign
   resume → Resume campaign
 
+TEACH IRA (Natural Language):
+  /teach <facts> → Teach Ira new facts in plain English
+  Example: /teach FRIMO is no longer our active agent in Europe
+  Example: /teach Dezet ordered PF1-X-1310 in 2025, Netherlands
+
 BRAIN TRAINING MODE:
   /train start → Load training questions
   /train next [N] → Show next N questions
@@ -5205,6 +5210,11 @@ Total: {len(draft_ids)}""",
         if send_batch_match:
             return self.handle_send_batch(int(send_batch_match.group(1)))
         
+        # Natural language teaching: /teach <facts>
+        teach_match = re.match(r'^/teach\s+(.+)$', text, re.IGNORECASE | re.DOTALL)
+        if teach_match:
+            return self._handle_teach(teach_match.group(1).strip(), message.chat_id)
+        
         # Brain Training Mode commands
         train_match = re.match(r'^/train(?:\s+(.*))?$', text, re.IGNORECASE)
         if train_match:
@@ -5326,6 +5336,151 @@ Total: {len(draft_ids)}""",
             logger.error(f"NL training error: {e}")
         
         return None
+    
+    # =========================================================================
+    # TEACH MODE - Natural language fact ingestion
+    # =========================================================================
+    
+    def _handle_teach(self, facts_text: str, chat_id: str) -> GatewayResponse:
+        """Ingest natural language facts into Ira's knowledge.
+        
+        Extracts structured facts, stores in Mem0, and optionally updates
+        hard rules or truth hints if the fact is a rule change.
+        
+        Usage: /teach FRIMO is no longer actively selling Machinecraft machines in Europe.
+               They were our agent but the partnership has cooled off.
+        """
+        if len(facts_text.strip()) < 10:
+            return GatewayResponse(
+                text="Usage: `/teach <facts in natural language>`\n\n"
+                     "Examples:\n"
+                     "• `/teach FRIMO partnership is no longer active for European sales`\n"
+                     "• `/teach Dezet in Netherlands ordered PF1-X-1310 in 2025`\n"
+                     "• `/teach Our standard lead time is now 14-18 weeks`\n\n"
+                     "I'll extract the facts, store them in memory, and use them immediately.",
+                parse_mode="Markdown",
+            )
+        
+        try:
+            import openai
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            client = openai.OpenAI(api_key=api_key)
+            
+            # Step 1: Extract structured facts
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": (
+                        "Extract specific facts from the user's teaching input. "
+                        "Output each fact as a standalone declarative statement, one per line.\n\n"
+                        "For each fact, also output a CATEGORY on the same line after a | separator.\n"
+                        "Categories: CUSTOMER, PARTNER, PRODUCT, PRICING, PROCESS, RULE, GENERAL\n\n"
+                        "Example input: 'FRIMO is no longer selling our machines in Europe. "
+                        "They were our agent but partnership cooled off.'\n"
+                        "Example output:\n"
+                        "FRIMO is no longer actively selling Machinecraft machines in Europe | PARTNER\n"
+                        "FRIMO partnership with Machinecraft has cooled off | PARTNER\n"
+                        "FRIMO should not be referred to as an active sales agent | RULE\n\n"
+                        "Be precise. Preserve names, numbers, dates exactly as given."
+                    )},
+                    {"role": "user", "content": facts_text},
+                ],
+                max_tokens=500,
+                temperature=0.1,
+            )
+            
+            extracted = resp.choices[0].message.content.strip()
+            facts = []
+            for line in extracted.split("\n"):
+                line = line.strip()
+                if not line or len(line) < 5:
+                    continue
+                parts = line.rsplit("|", 1)
+                fact_text = parts[0].strip()
+                category = parts[1].strip().upper() if len(parts) > 1 else "GENERAL"
+                facts.append({"text": fact_text, "category": category})
+            
+            if not facts:
+                return GatewayResponse(text="I couldn't extract specific facts from that. Could you rephrase?")
+            
+            # Step 2: Store in Mem0
+            stored_count = 0
+            from datetime import datetime
+            try:
+                from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+                mem0 = get_mem0_service()
+                
+                category_to_user_id = {
+                    "CUSTOMER": "machinecraft_customers",
+                    "PARTNER": "machinecraft_customers",
+                    "PRODUCT": "machinecraft_knowledge",
+                    "PRICING": "machinecraft_pricing",
+                    "PROCESS": "machinecraft_processes",
+                    "RULE": "machinecraft_knowledge",
+                    "GENERAL": "machinecraft_general",
+                }
+                
+                for fact in facts:
+                    uid = category_to_user_id.get(fact["category"], "machinecraft_general")
+                    try:
+                        mem0.add(
+                            messages=f"TAUGHT BY RUSHABH: {fact['text']}",
+                            user_id=uid,
+                            metadata={
+                                "source": "telegram_teach",
+                                "category": fact["category"],
+                                "timestamp": datetime.now().isoformat(),
+                                "taught_by": "rushabh",
+                            },
+                        )
+                        stored_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to store fact in Mem0: {e}")
+            except ImportError:
+                return GatewayResponse(text="Mem0 not available. Facts could not be stored.")
+            
+            # Step 3: Check if any facts are rule changes that should update hard_rules.txt
+            rule_facts = [f for f in facts if f["category"] == "RULE"]
+            rules_updated = False
+            if rule_facts:
+                try:
+                    hard_rules_path = PROJECT_ROOT / "data" / "brain" / "hard_rules.txt"
+                    if hard_rules_path.exists():
+                        current_rules = hard_rules_path.read_text()
+                        new_rules = "\n".join(f"  {f['text']}" for f in rule_facts)
+                        addition = (
+                            f"\n\nRULE (TAUGHT {datetime.now().strftime('%Y-%m-%d')}):\n"
+                            f"──────────────────────────\n{new_rules}\n"
+                        )
+                        # Insert before the closing line
+                        if "======" in current_rules:
+                            parts = current_rules.rsplit("=" * 10, 1)
+                            updated = parts[0] + addition + "=" * 70 + "\n"
+                            hard_rules_path.write_text(updated)
+                            rules_updated = True
+                except Exception as e:
+                    logger.warning(f"Failed to update hard rules: {e}")
+            
+            # Build response
+            response = f"Learned {stored_count} fact{'s' if stored_count != 1 else ''}:\n\n"
+            for fact in facts:
+                response += f"  [{fact['category']}] {fact['text']}\n"
+            
+            if rules_updated:
+                response += f"\nAlso updated hard rules with {len(rule_facts)} rule change{'s' if len(rule_facts) != 1 else ''}."
+            
+            response += "\n\nThese are live now — I'll use them in my next response."
+            
+            logger.info(f"[TEACH] Stored {stored_count} facts from Rushabh")
+            
+            return GatewayResponse(
+                text=response,
+                log_entry={"type": "teach", "facts_count": stored_count},
+            )
+            
+        except Exception as e:
+            logger.error(f"Teach mode error: {e}")
+            return GatewayResponse(text=f"Teaching failed: {e}")
     
     # =========================================================================
     # DEEP DIVE HANDLERS (Conversational multi-topic research)
