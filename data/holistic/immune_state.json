@@ -50,6 +50,22 @@
         "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1",
         "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
       ]
+    },
+    "other:Business rule violation: Lead Time Must Be 12-16 W": {
+      "issue_key": "other:Business rule violation: Lead Time Must Be 12-16 W",
+      "category": "general",
+      "first_seen": "2026-03-03T01:33:12.575288",
+      "last_seen": "2026-03-03T01:33:12.575894",
+      "occurrence_count": 2,
+      "remediation_attempts": 0,
+      "resolved": false,
+      "resolution_note": "",
+      "sample_queries": [
+        "What machine for 4mm ABS at 2000x1500mm?"
+      ],
+      "sample_warnings": [
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
     }
   },
   "total_remediations": 2,

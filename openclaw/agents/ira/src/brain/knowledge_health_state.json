@@ -1,16 +1,7 @@
 {
   "corrections_learned": [],
-  "last_full_check": "2026-03-03T01:18:18.216572",
+  "last_full_check": "2026-03-03T01:37:56.213703",
   "validation_issues": [
-    {
-      "timestamp": "2026-02-28T22:22:55.139745",
-      "query": "Hi Machinecraft Team,\r\n\r\nI'm Mike Chen, the founder of a budding startup focused on sustainable\r\npackaging solutions. We're venturing into the exciting world of\r\nthermoforming and are eager to learn m",
-      "response_preview": "Hi Mike! Happy to help with your inquiry.\n\nFor your budget of around USD 60,000 and a forming area of 600 x 900 mm, the **UNO-0806** is an excellent choice. Here are the key details:\n\n- **Forming Area",
-      "warnings": [
-        "Possible hallucination detected: approximately|around|roughly|about",
-        "Possible hallucination detected: typically|usually|generally"
-      ]
-    },
     {
       "timestamp": "2026-02-28T22:24:06.137342",
       "query": "Hi Machinecraft Team,\r\n\r\nI hope this message finds you well! My name is Mike Chen, and I'm the\r\nfounder of a small startup eager to dive into the world of\r\nthermoforming. We're passionate about sustai",
@@ -828,6 +819,14 @@
       "response_preview": "Here's a comprehensive overview of Formpack based on the available data:\n\n### 1. Full Company Overview\n- **Team & Facility**: Formpack operates as a sister company to Machinecraft, located near Mumbai",
       "warnings": [
         "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1",
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T01:33:12.566669",
+      "query": "What machine for 4mm ABS at 2000x1500mm?",
+      "response_preview": "To recommend the right machine for forming 4mm ABS sheets with a maximum sheet size of 2000x1500mm, we need to consider the following:\n\n1. **Material Thickness**: 4mm ABS is considered heavy gauge.\n2.",
+      "warnings": [
         "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
       ]
     }

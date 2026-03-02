@@ -81,3 +81,4 @@
 {"timestamp": "2026-03-03T00:29:37.935876", "issue_key": "vague_pricing", "occurrence_count": 2, "escalation_level": 2, "blocked": false, "remediation": "", "alert_sent": false}
 {"timestamp": "2026-03-03T00:44:05.121588", "issue_key": "am_thickness", "occurrence_count": 2, "escalation_level": 2, "blocked": false, "remediation": "", "alert_sent": false}
 {"timestamp": "2026-03-03T00:47:31.544808", "issue_key": "pf1_recommendation", "occurrence_count": 2, "escalation_level": 2, "blocked": false, "remediation": "", "alert_sent": false}
+{"timestamp": "2026-03-03T01:33:12.575919", "issue_key": "other:Business rule violation: Lead Time Must Be 12-16 W", "occurrence_count": 2, "escalation_level": 2, "blocked": false, "remediation": "", "alert_sent": false}
