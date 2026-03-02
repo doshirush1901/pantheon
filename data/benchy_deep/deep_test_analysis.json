@@ -1,8 +1,104 @@
 {
-  "timestamp": "2026-03-03T00:29:51.056448",
-  "total_scenarios": 0,
-  "avg_score": 0.0,
-  "dimension_summary": {},
-  "all_bugs": [],
-  "pass_rate": 0.0
+  "timestamp": "2026-03-03T02:13:21.826802",
+  "total_scenarios": 9,
+  "avg_score": 8.777777777777779,
+  "dimension_summary": {
+    "sales": {
+      "scores": [
+        10
+      ],
+      "errors": 2,
+      "bugs": [],
+      "avg_score": 10.0,
+      "scenario_count": 1
+    },
+    "crm": {
+      "scores": [
+        9
+      ],
+      "errors": 0,
+      "bugs": [],
+      "avg_score": 9.0,
+      "scenario_count": 1
+    },
+    "finance": {
+      "scores": [
+        8
+      ],
+      "errors": 0,
+      "bugs": [],
+      "avg_score": 8.0,
+      "scenario_count": 1
+    },
+    "memory": {
+      "scores": [
+        9
+      ],
+      "errors": 0,
+      "bugs": [],
+      "avg_score": 9.0,
+      "scenario_count": 1
+    },
+    "discovery": {
+      "scores": [
+        7
+      ],
+      "errors": 0,
+      "bugs": [],
+      "avg_score": 7.0,
+      "scenario_count": 1
+    },
+    "cross_cutting": {
+      "scores": [
+        10
+      ],
+      "errors": 1,
+      "bugs": [],
+      "avg_score": 10.0,
+      "scenario_count": 1
+    },
+    "adversarial": {
+      "scores": [
+        10
+      ],
+      "errors": 0,
+      "bugs": [],
+      "avg_score": 10.0,
+      "scenario_count": 1
+    },
+    "edge_case": {
+      "scores": [
+        9
+      ],
+      "errors": 0,
+      "bugs": [],
+      "avg_score": 9.0,
+      "scenario_count": 1
+    },
+    "real_sales": {
+      "scores": [
+        7
+      ],
+      "errors": 2,
+      "bugs": [
+        {
+          "severity": "high",
+          "description": "Lead time was not mentioned in the negotiation.",
+          "component": "response",
+          "suggested_fix": "Include lead time of 12-16 weeks in future responses."
+        }
+      ],
+      "avg_score": 7.0,
+      "scenario_count": 1
+    }
+  },
+  "all_bugs": [
+    {
+      "severity": "high",
+      "description": "Lead time was not mentioned in the negotiation.",
+      "component": "response",
+      "suggested_fix": "Include lead time of 12-16 weeks in future responses."
+    }
+  ],
+  "pass_rate": 1.0
 }

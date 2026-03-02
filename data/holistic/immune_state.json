@@ -1,74 +1,25 @@
 {
   "chronic_issues": {
-    "vague_pricing": {
-      "issue_key": "vague_pricing",
-      "category": "quality",
-      "first_seen": "2026-03-03T00:29:37.934986",
-      "last_seen": "2026-03-03T00:29:37.935814",
-      "occurrence_count": 2,
-      "remediation_attempts": 0,
-      "resolved": false,
-      "resolution_note": "",
-      "sample_queries": [
-        "Thanks, Ira, for the quote summary. The INR 7,50,000 price for the AM-5060 is within our initial budget, but I'm concerned about any additional configurations that might drive up the cost. Could you c",
-        "Thanks, Ira, for the quote summary. The INR 7,50,000 price for the AM-5060 is within our initial budget, but I'm concerned about any additional configurations that might drive up the cost. Could you c"
-      ],
-      "sample_warnings": [
-        "Possible hallucination detected: approximately|around|roughly|about"
-      ]
-    },
     "am_thickness": {
       "issue_key": "am_thickness",
       "category": "rule_violation",
-      "first_seen": "2026-03-03T00:44:05.120563",
-      "last_seen": "2026-03-03T00:44:05.121528",
+      "first_seen": "2026-03-03T02:13:03.981740",
+      "last_seen": "2026-03-03T02:13:03.982306",
       "occurrence_count": 2,
       "remediation_attempts": 0,
       "resolved": false,
       "resolution_note": "",
       "sample_queries": [
-        "Give me full technical specifications, pricing, options, and all details for PF1-C-3020"
+        "Thank you for the detailed cycle time information, Ira. With a cycle time of approximately 152 seconds, it seems comparable to our current setup, though we would need to test it with our 4mm ABS sheet",
+        "Thank you for the detailed cycle time information, Ira. With a cycle time of approximately 152 seconds, it seems comparable to our current setup, though we would need to test it with our 4mm ABS sheet"
       ],
       "sample_warnings": [
+        "Possible hallucination detected: typically|usually|generally",
         "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
-      ]
-    },
-    "pf1_recommendation": {
-      "issue_key": "pf1_recommendation",
-      "category": "general",
-      "first_seen": "2026-03-03T00:47:31.543591",
-      "last_seen": "2026-03-03T00:47:31.544725",
-      "occurrence_count": 2,
-      "remediation_attempts": 0,
-      "resolved": false,
-      "resolution_note": "",
-      "sample_queries": [
-        "Give me EVERYTHING you know about Formpack from the knowledge base. I need:\n1. Full company overview (team, facility, machines, capacity)\n2. Current industries and clients served\n3. Sales process and ",
-        "Give me EVERYTHING you know about Formpack from the knowledge base. I need:\n1. Full company overview (team, facility, machines, capacity)\n2. Current industries and clients served\n3. Sales process and "
-      ],
-      "sample_warnings": [
-        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1",
-        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
-      ]
-    },
-    "other:Business rule violation: Lead Time Must Be 12-16 W": {
-      "issue_key": "other:Business rule violation: Lead Time Must Be 12-16 W",
-      "category": "general",
-      "first_seen": "2026-03-03T01:33:12.575288",
-      "last_seen": "2026-03-03T01:33:12.575894",
-      "occurrence_count": 2,
-      "remediation_attempts": 0,
-      "resolved": false,
-      "resolution_note": "",
-      "sample_queries": [
-        "What machine for 4mm ABS at 2000x1500mm?"
-      ],
-      "sample_warnings": [
-        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
       ]
     }
   },
-  "total_remediations": 2,
+  "total_remediations": 4,
   "total_blocks": 0,
   "last_sweep": null
 }

@@ -2,10 +2,13 @@
 Tool-Orchestrator Gateway (P2 Remediation)
 
 LLM-driven pipeline: Athena (LLM) chooses which skills to call via tool use.
-Alternative to the fixed research->write->verify sequence in UnifiedGateway.
+After Athena's tool loop, the response flows through the Pantheon sub-agents:
+  1. Athena (GPT-4o) — research + tool loop
+  2. Vera (fact-checker) — verify accuracy, model numbers, business rules
+  3. Sophia (reflector) — learn from the interaction (fire-and-forget)
 
 Proposal Checkpoint (added 2026-03-02):
-After 3 tool rounds on a sales inquiry, Athena is nudged to stop researching
+After tool rounds on a sales inquiry, Athena is nudged to stop researching
 and commit to a concrete proposal: machine model + price + lead time.
 """
 
@@ -136,6 +139,62 @@ def _get_user_memories(context: Dict) -> str:
         return ""
 
 
+async def _run_pantheon_post_pipeline(
+    raw_response: str,
+    message: str,
+    context: Dict[str, Any],
+    tool_call_log: List[str],
+) -> str:
+    """
+    Guaranteed sub-agent chain after Athena's tool loop.
+
+    Runs Vera (fact-check) and Sophia (reflect) on every substantive response,
+    regardless of whether GPT-4o chose to call them during the tool loop.
+    This restores the Research -> Verify -> Reflect pipeline that was removed
+    during the v3 remediation.
+    """
+    progress_fn = context.get("_progress_callback")
+
+    # Skip Vera if Athena already called fact_checking_skill in this request
+    already_verified = "fact_checking_skill" in tool_call_log
+
+    if not already_verified and len(raw_response) > 80:
+        if progress_fn:
+            try:
+                progress_fn("vera_verify")
+            except Exception:
+                pass
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_verify
+            verified = await invoke_verify(raw_response, message, context)
+            if verified and len(verified) > 30:
+                logger.info("[Pantheon] Vera verified response (%d -> %d chars)",
+                            len(raw_response), len(verified))
+                raw_response = verified
+        except Exception as e:
+            logger.warning("[Pantheon] Vera verification failed (non-fatal): %s", e)
+
+    # Sophia: reflect and learn (fire-and-forget)
+    if progress_fn:
+        try:
+            progress_fn("sophia_reflect")
+        except Exception:
+            pass
+    try:
+        from openclaw.agents.ira.src.skills.invocation import invoke_reflect
+        await invoke_reflect({
+            "user_message": message,
+            "response": raw_response,
+            "tools_used": tool_call_log,
+            "channel": context.get("channel", "api"),
+        })
+        logger.info("[Pantheon] Sophia reflection complete")
+    except Exception as e:
+        logger.debug("[Pantheon] Sophia reflection skipped: %s", e)
+
+    return raw_response
+
+
 async def process_with_tools(
     message: str,
     channel: str = "api",
@@ -146,6 +205,9 @@ async def process_with_tools(
     Agentic pipeline: Athena (LLM) decides which tools to call, in what order,
     and how many rounds to take. She can research, search the web, look up
     customers, query memory, draft responses, and verify facts -- all autonomously.
+
+    After the tool loop, the response flows through the Pantheon sub-agent chain:
+      Vera (fact-check) -> knowledge_health -> immune system -> voice -> Sophia (reflect)
     """
     import openai
     import os
@@ -227,30 +289,48 @@ Example: User says "Which leads should we follow up with this week?"
   Round 3: Present ranked list with specific next actions per lead
 
 ═══════════════════════════════════════════════════
-YOUR TOOLS
+YOUR TOOLS (The Pantheon)
 ═══════════════════════════════════════════════════
+RESEARCH & KNOWLEDGE:
+- research_skill (Clio): Search Qdrant knowledge base (documents, specs, emails, ingested data).
 - memory_search: Search Mem0 long-term memory. Try MULTIPLE user_ids: "machinecraft_customers", "machinecraft_knowledge", "machinecraft_general". Try DIFFERENT search terms.
-- customer_lookup: Search CRM/memory for customer data.
-- research_skill: Search Qdrant knowledge base (documents, specs, emails).
-- web_search: Search the internet (Tavily AI + Google via Serper) for external company info, news, market data, trends.
-- read_spreadsheet: Read data from Google Sheets (order books, pricing, lead lists). Need the spreadsheet_id from the URL.
+- web_search (Iris): Search the internet (Tavily AI + Google via Serper) for external company info, news, market data, trends.
+- lead_intelligence (Iris): Get deep company intelligence for a specific company — news, industry trends, geopolitical context, website analysis. Use before outreach or when researching a prospect.
+
+CRM & CUSTOMERS (Mnemosyne):
+- customer_lookup: Search CRM for a specific customer, lead, or company by name/email.
+- crm_list_customers: List ALL confirmed customers who bought machines. Reads from order history, Excel files, Mem0. USE THIS for any "customer list", "how many customers", "customers in [region]" query.
+- crm_pipeline: Full sales pipeline overview — leads by stage, priority, reply rates.
+- crm_drip_candidates: Which leads are ready for the next drip email.
+
+FINANCE (Plutus):
+- finance_overview: Ask Plutus any financial question. Returns a pre-formatted CFO report.
+- order_book_status: Current order book with per-project breakdown.
+- cashflow_forecast: Week-by-week cashflow projections from payment schedule.
+- revenue_history: Historical revenue by year, export breakdown.
+
+GOOGLE WORKSPACE:
+- read_spreadsheet: Read data from Google Sheets. Need the spreadsheet_id from the URL.
 - search_drive: Find files in Google Drive by name or content.
 - check_calendar: See upcoming meetings, events, and scheduled follow-ups.
 - search_contacts: Look up people in Google Contacts by name, company, or email.
-- read_inbox: Read Rushabh's Gmail inbox (unread or recent emails). Returns sender, subject, date, preview.
+
+EMAIL (Gmail):
+- read_inbox: Read Rushabh's Gmail inbox (unread or recent emails).
 - search_email: Search Gmail with full Gmail syntax (from:, subject:, after:, has:attachment, etc.).
-- read_email_message: Read the full body of a specific email by message ID (from read_inbox/search_email).
+- read_email_message: Read the full body of a specific email by message ID.
 - read_email_thread: Read a full email conversation thread by thread ID.
 - send_email: Send an email from Rushabh's Gmail. ALWAYS confirm with Rushabh before sending.
 - draft_email: Draft an email using Ira's voice. Returns draft for review, does NOT send.
-- finance_overview: Ask Plutus (CFO) any financial question. Returns a formatted report.
-- order_book_status: Get current order book with totals, payments, receivables.
-- cashflow_forecast: Get week-by-week cashflow projections from payment schedule.
-- revenue_history: Get historical revenue by year, export breakdown.
-- writing_skill: Draft a polished response AFTER you have gathered data.
-- fact_checking_skill: Verify facts before sending.
-- run_analysis: Ask Hephaestus (the program builder) to forge and execute code. Two modes: (1) describe the TASK in plain English and he writes the code, or (2) pass pre-written CODE directly. Pass data from earlier tools via 'data'. He auto-retries on failure. 60s timeout. INTERNAL ONLY (Rushabh).
-- ask_user: Ask the user a clarifying question. Use when you genuinely need info that tools can't provide (e.g. their budget, specific application details, or choosing between options). Frame questions naturally and specifically — not generic.
+
+COMPOSITION & VERIFICATION:
+- writing_skill (Calliope): Draft a polished response AFTER you have gathered data.
+- fact_checking_skill (Vera): Verify facts before sending. NOTE: Vera also runs automatically after your response — but calling her explicitly during research gives better results.
+
+COMPUTATION & DISCOVERY:
+- run_analysis (Hephaestus): Forge and execute Python code. Two modes: TASK (describe in English) or CODE (pass Python). Pass data from earlier tools via 'data'. INTERNAL ONLY.
+- discovery_scan (Prometheus): Scan emerging industries for vacuum forming opportunities.
+- ask_user: Ask the user a clarifying question when tools can't provide the info.
 
 IMPORTANT — PLUTUS FINANCE REPORTS:
 When finance_overview, order_book_status, cashflow_forecast, or revenue_history returns data,
@@ -259,17 +339,39 @@ Plutus produces pre-formatted CFO dashboards with visual bars, timelines, risk r
 recommendations — pass them through exactly as returned. You may add a brief intro line before it.
 
 ═══════════════════════════════════════════════════
+PARALLEL EXECUTION — ALWAYS DO THIS
+═══════════════════════════════════════════════════
+You are a PARALLEL agent. In EVERY round, call MULTIPLE tools simultaneously.
+A single tool call per round is LAZY. Aim for 4-9 parallel calls in your first round.
+
+ROUND 1 TEMPLATE (adapt to the query):
+  For customer/data queries → call ALL of these in parallel:
+    memory_search("...") + customer_lookup("...") + crm_list_customers + research_skill("...") + memory_search("...", user_id="machinecraft_knowledge")
+  For company research → call ALL in parallel:
+    web_search(query, company) + lead_intelligence(company) + customer_lookup(company) + memory_search(company) + search_email("from:company OR to:company")
+  For financial queries → call ALL in parallel:
+    finance_overview(query) + order_book_status + memory_search("orders revenue") + research_skill("financial data")
+
+IF ROUND 1 RESULTS ARE SPARSE — DO NOT GIVE UP:
+  Round 2: Try DIFFERENT search terms (synonyms, individual countries instead of "Europe", specific company names)
+  Round 2: Try DIFFERENT tools (search_drive to find source files, read_spreadsheet if you find a sheet)
+  Round 2: Try crm_list_customers (reads Excel files directly — often has data that memory/Qdrant missed)
+  Round 3: If still sparse, use run_analysis to cross-reference what you found
+
+═══════════════════════════════════════════════════
 SEARCH STRATEGY (follow this order)
 ═══════════════════════════════════════════════════
 For internal data (customers, orders, history):
   1. memory_search with user_id="machinecraft_customers" 
   2. memory_search with user_id="machinecraft_knowledge"
   3. customer_lookup
-  4. research_skill
+  4. crm_list_customers (ALWAYS use this for customer list queries — it reads Excel files directly)
+  5. research_skill
   → If results are sparse, try DIFFERENT search terms (synonyms, regions, industries)
+  → If you need a specific file, use search_drive to find it, then read_spreadsheet to read it
 
 For external data (companies, market, competitors):
-  1. web_search
+  1. web_search + lead_intelligence (in parallel)
   2. research_skill
   3. memory_search with user_id="machinecraft_general"
 
@@ -628,6 +730,16 @@ or option from your previous response. Resolve the reference and act on it.
             if final.startswith("ASK_USER:"):
                 return final[9:]
 
+            logger.info("[Athena] Tool loop complete after %d rounds. Tools: %s",
+                        round_num + 1, tool_call_log)
+
+            # --- Pantheon Post-Pipeline ---
+            # Vera: fact-check before validation
+            final = await _run_pantheon_post_pipeline(
+                final, message, context, tool_call_log,
+            )
+
+            # knowledge_health: validate model numbers, business rules
             try:
                 from openclaw.agents.ira.src.brain.knowledge_health import validate_response
                 is_safe, warnings = validate_response(message, final)
@@ -644,6 +756,7 @@ or option from your previous response. Resolve the reference and act on it.
             except Exception:
                 pass
 
+            # Voice: reshape for channel tone
             try:
                 from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
                 final = get_voice_system().reshape(
@@ -676,6 +789,7 @@ or option from your previous response. Resolve the reference and act on it.
 
     # Max rounds reached — ask the LLM to summarize what it found so far
     logger.warning(f"[Athena] Hit max rounds ({MAX_TOOL_ROUNDS}). Tools used: {tool_call_log}")
+    final = None
     try:
         messages.append({
             "role": "system",
@@ -694,8 +808,20 @@ or option from your previous response. Resolve the reference and act on it.
             temperature=0.3,
         )
         if summary_resp.choices:
-            return (summary_resp.choices[0].message.content or "").strip()
+            final = (summary_resp.choices[0].message.content or "").strip()
     except Exception as e:
         logger.error(f"[Athena] Failed to generate summary at max rounds: {e}")
 
-    return "I've done extensive research but couldn't fully answer your question. Let me know if you'd like me to try a different approach."
+    if not final:
+        final = "I've done extensive research but couldn't fully answer your question. Let me know if you'd like me to try a different approach."
+
+    # Run Pantheon post-pipeline on max-rounds response too
+    final = await _run_pantheon_post_pipeline(final, message, context, tool_call_log)
+
+    try:
+        from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
+        final = get_voice_system().reshape(final, channel=channel, message=message)
+    except Exception:
+        pass
+
+    return final

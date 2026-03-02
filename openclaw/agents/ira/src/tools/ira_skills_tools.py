@@ -340,6 +340,21 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "lead_intelligence",
+            "description": "Ask Iris (intelligence agent) to gather deep company intelligence: recent news, expansions, acquisitions, industry trends, geopolitical context, and website analysis. Use when researching a specific company before outreach, or when you need real-time external context about a prospect or customer. Returns structured intelligence hooks for sales conversations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string", "description": "Company name to research (e.g. 'TSN', 'Parat Halvorsen', 'VDL Roden')"},
+                    "context": {"type": "string", "description": "Additional context about why you're researching this company (e.g. 'preparing outreach for PF1-X quote', 'follow-up on trade show meeting')"},
+                },
+                "required": ["company"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "discovery_scan",
             "description": "Ask Prometheus (the market discovery agent) to find new products and industries where vacuum forming can be applied. Scans emerging sectors like battery storage, EV, drones, renewable energy, medical devices, modular construction. Can scan a specific industry, evaluate a product idea, or run a full sweep across all tracked industries.",
             "parameters": {
@@ -423,6 +438,11 @@ async def execute_tool_call(
         "writing_skill": "calliope",
         "fact_checking_skill": "vera",
         "web_search": "iris",
+        "lead_intelligence": "iris",
+        "customer_lookup": "mnemosyne",
+        "crm_list_customers": "mnemosyne",
+        "crm_pipeline": "mnemosyne",
+        "crm_drip_candidates": "mnemosyne",
         "discovery_scan": "prometheus",
         "finance_overview": "plutus",
         "order_book_status": "plutus",
@@ -574,6 +594,62 @@ async def execute_tool_call(
         
         return "\n\n".join(results_parts) if results_parts else "(No web results found)"
 
+    elif tool_name == "lead_intelligence":
+        company = arguments.get("company", "")
+        extra_context = arguments.get("context", "")
+        results_parts = []
+
+        # Iris enrichment (primary)
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_iris_enrich
+            iris_ctx = {"company": company, "query": extra_context or company}
+            iris_result = await invoke_iris_enrich(iris_ctx)
+            if iris_result:
+                for k, v in iris_result.items():
+                    if v and len(str(v)) > 10:
+                        results_parts.append(f"[iris:{k}] {v}")
+        except Exception as e:
+            logger.debug(f"Iris enrichment failed: {e}")
+
+        # Web search for latest news
+        if not results_parts or len(results_parts) < 3:
+            tavily_key = os.environ.get("TAVILY_API_KEY", "")
+            if tavily_key:
+                try:
+                    import httpx
+                    resp = httpx.post(
+                        "https://api.tavily.com/search",
+                        json={
+                            "api_key": tavily_key,
+                            "query": f"{company} latest news expansion manufacturing",
+                            "search_depth": "advanced",
+                            "max_results": 5,
+                            "include_answer": True,
+                        },
+                        timeout=20,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("answer"):
+                            results_parts.append(f"[news_summary] {data['answer']}")
+                        for r in data.get("results", [])[:3]:
+                            content = r.get("content", "")[:300]
+                            if content:
+                                results_parts.append(f"[news] {r.get('title', '')}: {content}")
+                except Exception:
+                    pass
+
+        # CRM history for this company
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_crm_lookup
+            crm_result = await invoke_crm_lookup(company, context)
+            if crm_result and "don't have anyone" not in crm_result:
+                results_parts.append(f"[crm_history] {crm_result}")
+        except Exception:
+            pass
+
+        return "\n\n".join(results_parts) if results_parts else f"(No intelligence found for '{company}')"
+
     elif tool_name == "customer_lookup":
         query = arguments.get("query", "")
         results_parts = []
@@ -596,6 +672,7 @@ async def execute_tool_call(
                 should=[
                     FieldCondition(key="company", match=MatchText(text=query)),
                     FieldCondition(key="name", match=MatchText(text=query)),
+                    FieldCondition(key="country", match=MatchText(text=query)),
                 ]
             )
             hits, _ = qdrant.scroll(
@@ -886,6 +963,7 @@ _TOOL_SCHEMAS: Dict[str, Dict[str, type]] = {
     "search_email": {"query": str, "max_results": int},
     "customer_lookup": {"query": str},
     "search_contacts": {"query": str},
+    "lead_intelligence": {"company": str, "context": str},
 }
 
 _MAX_ARG_LENGTH = 16000
