@@ -6,6 +6,8 @@ Pantheon gives you a production-ready AI sales assistant that researches, writes
 
 Built by [Machinecraft Technologies](https://machinecraft.org) and battle-tested on real B2B sales conversations.
 
+> **New here?** Read [WHY.md](WHY.md) for the full story — why most AI sales solutions are goldfish in suits, and how Pantheon is different.
+
 ---
 
 ## What You Get
@@ -34,7 +36,7 @@ Plus:
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/machinecraft/pantheon.git
+git clone https://github.com/doshirush1901/pantheon.git
 cd pantheon
 pip install -r requirements.txt
 ```
