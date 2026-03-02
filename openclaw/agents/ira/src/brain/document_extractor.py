@@ -364,6 +364,101 @@ def _extract_pptx(path: Path) -> ExtractionResult:
 
 
 # =============================================================================
+# HTML / URL EXTRACTION
+# =============================================================================
+
+def _extract_html(path: Path) -> ExtractionResult:
+    """Extract main content from HTML files, stripping boilerplate."""
+    try:
+        raw = path.read_text(encoding="utf-8", errors="ignore")
+        text = _html_to_text(raw)
+        return ExtractionResult(
+            text=text, page_count=1, source=str(path), extractor_used="html"
+        )
+    except Exception as e:
+        return ExtractionResult(
+            text="", page_count=0, source=str(path),
+            extractor_used="html", error=str(e)
+        )
+
+
+def _html_to_text(html: str) -> str:
+    """Convert HTML to clean text. Tries trafilatura first, falls back to
+    regex stripping."""
+    try:
+        import trafilatura
+        text = trafilatura.extract(html, include_comments=False, include_tables=True)
+        if text and len(text.strip()) > 50:
+            return text
+    except ImportError:
+        pass
+
+    try:
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+            tag.decompose()
+        text = soup.get_text(separator="\n", strip=True)
+        if text:
+            return text
+    except ImportError:
+        pass
+
+    import re
+    text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def extract_url(url: str, timeout: int = 30) -> ExtractionResult:
+    """Fetch a URL and extract its main text content."""
+    import requests as _req
+
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/120.0.0.0 Safari/537.36",
+        }
+        resp = _req.get(url, timeout=timeout, headers=headers, allow_redirects=True)
+        resp.raise_for_status()
+
+        content_type = resp.headers.get("Content-Type", "")
+
+        if "application/pdf" in content_type:
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                tmp.write(resp.content)
+                tmp_path = Path(tmp.name)
+            result = _extract_pdf_fallback(tmp_path)
+            tmp_path.unlink(missing_ok=True)
+            result.source = url
+            return result
+
+        text = _html_to_text(resp.text)
+        if not text or len(text.strip()) < 20:
+            return ExtractionResult(
+                text="", page_count=0, source=url,
+                extractor_used="url", error="No meaningful content extracted"
+            )
+
+        return ExtractionResult(
+            text=text,
+            page_count=1,
+            source=url,
+            extractor_used="url/trafilatura" if "trafilatura" in str(type(text)) else "url/html",
+            metadata={"url": url, "content_type": content_type},
+        )
+    except Exception as e:
+        return ExtractionResult(
+            text="", page_count=0, source=url,
+            extractor_used="url", error=str(e)
+        )
+
+
+# =============================================================================
 # UNIFIED EXTRACTOR CLASS
 # =============================================================================
 
@@ -397,6 +492,8 @@ class DocumentExtractor:
         ".md": _extract_text,
         ".csv": _extract_csv,
         ".json": _extract_text,
+        ".html": _extract_html,
+        ".htm": _extract_html,
     }
     
     def __init__(self, cache_size: int = 100):

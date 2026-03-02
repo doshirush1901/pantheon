@@ -142,6 +142,44 @@ class KnowledgeItem:
             errors.append("Confidence must be 0-1")
         return errors
 
+    def quality_score(self) -> float:
+        """Score content quality 0.0-1.0. Used by the excretion filter to
+        discard noise before it enters the knowledge base."""
+        text = self.text.strip()
+        if not text:
+            return 0.0
+
+        score = 0.5  # baseline
+
+        word_count = len(text.split())
+        if word_count < 5:
+            return 0.1
+        if word_count >= 20:
+            score += 0.1
+        if word_count >= 50:
+            score += 0.1
+
+        alpha_chars = sum(1 for c in text if c.isalpha())
+        alpha_ratio = alpha_chars / max(len(text), 1)
+        if alpha_ratio < 0.3:
+            score -= 0.3  # mostly numbers/symbols/garbage
+        elif alpha_ratio > 0.6:
+            score += 0.1
+
+        unique_words = set(text.lower().split())
+        vocab_ratio = len(unique_words) / max(word_count, 1)
+        if vocab_ratio < 0.2:
+            score -= 0.2  # highly repetitive
+        elif vocab_ratio > 0.4:
+            score += 0.1
+
+        if self.entity:
+            score += 0.1
+        if self.summary and self.summary != self.text[:200] + "...":
+            score += 0.05
+
+        return max(0.0, min(1.0, score))
+
 
 @dataclass 
 class IngestionResult:
@@ -156,6 +194,7 @@ class IngestionResult:
     neo4j: bool = False
     
     items_skipped: int = 0
+    items_excreted: int = 0
     items_chunked: int = 0
     items_filtered: int = 0  # EXCRETION: low-quality chunks discarded
     validation_errors: List[str] = field(default_factory=list)
@@ -355,6 +394,103 @@ class KnowledgeIngestor:
         
         return chunks
     
+    # =========================================================================
+    # STOMACH: Keyword & Entity Enrichment
+    # =========================================================================
+
+    @staticmethod
+    def _extract_keywords(text: str, top_n: int = 8) -> List[str]:
+        """Extract top keywords using simple TF heuristic. No external deps."""
+        import re as _re
+        words = _re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+        stop = {
+            "the", "and", "for", "that", "this", "with", "from", "have", "has",
+            "are", "was", "were", "been", "will", "can", "could", "would",
+            "should", "about", "into", "over", "after", "before", "which",
+            "what", "how", "does", "not", "but", "also", "more", "than",
+            "other", "some", "any", "all", "each", "every", "most", "such",
+            "only", "very", "just", "being", "their", "they", "them", "these",
+            "those", "its", "our", "your", "his", "her", "who", "when", "where",
+        }
+        filtered = [w for w in words if w not in stop]
+        freq: Dict[str, int] = {}
+        for w in filtered:
+            freq[w] = freq.get(w, 0) + 1
+        ranked = sorted(freq.items(), key=lambda x: -x[1])
+        return [w for w, _ in ranked[:top_n]]
+
+    @staticmethod
+    def _extract_named_entities(text: str) -> List[Dict[str, str]]:
+        """Extract named entities. Uses spaCy if available, falls back to regex."""
+        entities = []
+
+        try:
+            import spacy
+            try:
+                nlp = spacy.load("en_core_web_sm")
+            except OSError:
+                nlp = None
+            if nlp:
+                doc = nlp(text[:50000])
+                seen = set()
+                for ent in doc.ents:
+                    if ent.label_ in ("PERSON", "ORG", "GPE", "PRODUCT", "MONEY",
+                                      "DATE", "EVENT", "FAC", "LOC"):
+                        key = (ent.text.strip(), ent.label_)
+                        if key not in seen and len(ent.text.strip()) > 1:
+                            seen.add(key)
+                            entities.append({"text": ent.text.strip(), "label": ent.label_})
+                return entities[:30]
+        except ImportError:
+            pass
+
+        import re as _re
+        # Fallback: capitalized phrases (likely proper nouns)
+        for match in _re.finditer(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b', text[:10000]):
+            entities.append({"text": match.group(0), "label": "ENTITY"})
+        # Machine models
+        for match in _re.finditer(
+            r'(PF[12][-\s]?[A-Z]?[-\s]?\d[\d\-]*|AM[-\s]?\d[\w\-]*|IMG[-\s]?\d[\w\-]*)',
+            text, _re.IGNORECASE
+        ):
+            entities.append({"text": match.group(0).upper(), "label": "PRODUCT"})
+
+        seen = set()
+        deduped = []
+        for e in entities:
+            key = e["text"].lower()
+            if key not in seen:
+                seen.add(key)
+                deduped.append(e)
+        return deduped[:30]
+
+    def _enrich_with_keywords_and_entities(self, items: List['KnowledgeItem']):
+        """STOMACH: Enrich items with extracted keywords and named entities."""
+        enriched = 0
+        for item in items:
+            if item.metadata.get("keywords"):
+                continue
+
+            keywords = self._extract_keywords(item.text)
+            ner_entities = self._extract_named_entities(item.text)
+
+            item.metadata["keywords"] = keywords
+            item.metadata["ner_entities"] = [e["text"] for e in ner_entities]
+            item.metadata["ner_labels"] = {e["text"]: e["label"] for e in ner_entities}
+
+            if not item.entity and ner_entities:
+                product_ents = [e for e in ner_entities if e["label"] == "PRODUCT"]
+                org_ents = [e for e in ner_entities if e["label"] in ("ORG", "ENTITY")]
+                if product_ents:
+                    item.entity = product_ents[0]["text"]
+                elif org_ents:
+                    item.entity = org_ents[0]["text"]
+
+            enriched += 1
+
+        if enriched:
+            self._log(f"  🔬 Stomach: enriched {enriched} items with keywords + entities")
+
     def _get_source_fingerprint(self, file_path: Path) -> str:
         """Get hash of source file for change detection using chunked reads."""
         try:
@@ -465,7 +601,28 @@ class KnowledgeIngestor:
             pass
         except Exception as e:
             logger.debug(f"Stomach enrichment not available: {e}")
-        
+
+        # EXCRETION: Discard low-quality content before it enters the knowledge base
+        MIN_QUALITY = 0.3
+        quality_items = []
+        for item in validated_items:
+            qs = item.quality_score()
+            if qs < MIN_QUALITY:
+                result.items_filtered += 1
+                self._audit_log("excreted", {
+                    "source_file": item.source_file,
+                    "entity": item.entity,
+                    "quality_score": round(qs, 2),
+                    "text_preview": item.text[:100],
+                    "reason": "below_quality_threshold",
+                })
+            else:
+                item.metadata["quality_score"] = round(qs, 2)
+                quality_items.append(item)
+        validated_items = quality_items
+        if result.items_filtered:
+            self._log(f"  Filtered {result.items_filtered} low-quality items (score < {MIN_QUALITY})")
+
         final_items = []
         for item in validated_items:
             if len(item.text) > MAX_CHUNK_SIZE:
@@ -516,7 +673,10 @@ class KnowledgeIngestor:
         if not final_items:
             result.errors.append("No valid items after validation/deduplication")
             return result
-        
+
+        # STOMACH: Extract keywords + named entities and attach as metadata
+        self._enrich_with_keywords_and_entities(final_items)
+
         graph = self._get_graph()
         if graph and len(final_items) >= 2:
             self._log("Organizing with knowledge graph...")

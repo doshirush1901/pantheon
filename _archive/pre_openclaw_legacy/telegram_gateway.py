@@ -841,6 +841,98 @@ class TelegramGateway:
             logger.error(f"[OCR] Image extraction failed: {e}")
             return None
 
+    def handle_url_ingest(self, url: str, context: Optional[str] = None) -> GatewayResponse:
+        """Fetch a URL, extract content, and ingest into Ira's knowledge base."""
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from document_extractor import extract_url
+            from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
+
+            extraction = extract_url(url, timeout=30)
+            if not extraction.success:
+                return GatewayResponse(
+                    text=f"❌ Could not extract content from URL:\n`{url}`\n\nError: {extraction.error}",
+                    success=False,
+                )
+
+            text_content = extraction.text
+            if context:
+                text_content = f"[Context: {context}]\n\n{text_content}"
+
+            knowledge_type = self._detect_knowledge_type(url, context)
+            entities = self._extract_entities_from_caption(context, url)
+            primary_entity = entities[0] if entities else ""
+
+            items = [KnowledgeItem(
+                text=text_content,
+                knowledge_type=knowledge_type,
+                source_file=url,
+                entity=primary_entity,
+                summary=context or f"Web page: {url}",
+                metadata={
+                    "source": "url_ingest",
+                    "url": url,
+                    "caption": context,
+                    "entities": entities,
+                },
+            )]
+
+            if context and len(context) > 10:
+                items.append(KnowledgeItem(
+                    text=f"URL ingest note for {url}:\n{context}",
+                    knowledge_type=knowledge_type,
+                    source_file=url,
+                    entity=primary_entity,
+                    summary=f"URL context: {context}",
+                    metadata={"source": "url_ingest_note", "url": url, "is_file_description": True},
+                ))
+
+            ingestor = KnowledgeIngestor()
+            result = ingestor.ingest_batch(items)
+
+            # Store in file manifest for NN research
+            if context:
+                try:
+                    from nn_research import get_file_manifest
+                    get_file_manifest().add_file(
+                        filename=url, description=context, original_name=url, file_path=url,
+                    )
+                except Exception:
+                    pass
+
+            preview = extraction.text[:300] + "..." if len(extraction.text) > 300 else extraction.text
+            status = "✅" if result.success else "⚠️"
+            stores = []
+            if result.qdrant_main or result.qdrant_discovered:
+                stores.append("Qdrant")
+            if result.mem0:
+                stores.append("Mem0")
+            if result.neo4j:
+                stores.append("Neo4j")
+            store_str = ", ".join(stores) if stores else "stored"
+
+            response_text = (
+                f"🌐 **URL ingested: {url}**\n\n"
+                f"{status} {result.items_ingested} items → {store_str}"
+            )
+            if result.items_excreted:
+                response_text += f" (🚽 {result.items_excreted} low-quality chunks filtered)"
+            response_text += f"\n📊 Type: {knowledge_type}"
+            if context:
+                response_text += f"\n📝 Context: _{context}_"
+            response_text += f"\n\n**Preview:**\n{preview}"
+
+            return GatewayResponse(
+                text=response_text,
+                log_entry={
+                    "type": "url_ingested", "url": url, "knowledge_type": knowledge_type,
+                    "items": result.items_ingested, "success": result.success,
+                },
+            )
+        except Exception as e:
+            logger.error(f"[URL_INGEST] Error: {e}")
+            return GatewayResponse(text=f"❌ URL ingest failed: {str(e)[:200]}", success=False)
+
     def handle_document_upload(self, message: TelegramMessage) -> GatewayResponse:
         """Handle a document or photo uploaded via Telegram — download, save, and ingest."""
         self.TELEGRAM_DOCS_DIR.mkdir(parents=True, exist_ok=True)
@@ -2329,11 +2421,14 @@ MEMORY ANALYTICS:
 
 DOCUMENT INGESTION:
   📎 Upload any file → Auto-download, save & train Ira
+  🌐 Paste a URL → Fetch page & ingest content
   /ingest <path> → Scan local document and store in memory
   /docs → List all uploaded documents
-  Supports: PDF, XLSX, XLS, DOCX, DOC, PPTX, CSV, TXT, MD, JSON
+  /deep_ingest [file] → GPT-4o deep re-extraction
+  Supports: PDF, XLSX, XLS, DOCX, DOC, PPTX, CSV, TXT, MD, JSON, HTML
   /url <link> or send a URL → Ingest web page content
   Images: PNG, JPG, GIF, WEBP (OCR via GPT-4o Vision)
+  URLs: Any https:// link (auto-fetches and extracts main content)
 
 CONFLICT RESOLUTION:
   /conflicts → Show pending memory conflicts
