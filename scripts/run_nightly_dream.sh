@@ -421,10 +421,52 @@ except Exception as e:
 " 2>&1 | tee -a "$DREAM_LOG"
 
 # ==============================================================================
-# PHASE 8: WAKE-UP HEALTH DIAGNOSTIC (Send to Telegram)
+# PHASE 8: DRIP CAMPAIGN DREAM REFLECTION (Sales Self-Improvement)
 # ==============================================================================
 log ""
-log "🏥 PHASE 8: Wake-up Health Diagnostic..."
+log "📧 PHASE 8: Drip Campaign Dream Reflection..."
+log "----------------------------------------------"
+log "  Ira reviews her drip performance, scores herself, and generates new ideas"
+
+$PYTHON -c "
+import sys
+sys.path.insert(0, 'openclaw/agents/ira/src/sales')
+
+try:
+    from drip_dream_reflection import run_drip_dream
+
+    results = run_drip_dream(verbose=True)
+
+    print()
+    print('Drip Dream Summary:')
+    print(f'  Phases completed: {len(results.get(\"phases_completed\", []))}')
+    print(f'  Ideas generated: {results.get(\"ideas_generated\", 0)}')
+    print(f'  Strategy updated: {results.get(\"strategy_updated\", False)}')
+
+    eval_data = results.get('self_evaluation', {})
+    if eval_data:
+        print(f'  Self-score: {eval_data.get(\"score\", 0)}/100')
+        print(f'  Reply rate: {eval_data.get(\"reply_rate\", 0):.1%}')
+
+    if results.get('journal_entry'):
+        print()
+        print('Dream journal:')
+        for line in results['journal_entry'].split(chr(10))[:5]:
+            print(f'  {line}')
+
+except ImportError as e:
+    print(f'Drip dream reflection not available: {e}')
+except Exception as e:
+    print(f'Drip dream reflection error: {e}')
+    import traceback
+    traceback.print_exc()
+" 2>&1 | tee -a "$DREAM_LOG"
+
+# ==============================================================================
+# PHASE 9: WAKE-UP HEALTH DIAGNOSTIC (Send to Telegram)
+# ==============================================================================
+log ""
+log "🏥 PHASE 9: Wake-up Health Diagnostic..."
 log "----------------------------------------------"
 
 $PYTHON -c "

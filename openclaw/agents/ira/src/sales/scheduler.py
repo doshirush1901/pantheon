@@ -201,12 +201,36 @@ def run_vital_signs() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+def run_autonomous_drip() -> Dict[str, Any]:
+    """Run Ira's autonomous drip engine."""
+    try:
+        from autonomous_drip_engine import get_engine
+        engine = get_engine()
+        engine.check_replies()
+        batch = engine.run_daily_batch()
+        eval_result = engine.self_evaluate()
+        result = {
+            "emails_sent": batch.emails_sent,
+            "self_score": eval_result.get("self_score", 0),
+        }
+        log_task("autonomous_drip", {
+            "summary": f"Sent {batch.emails_sent}, score {eval_result.get('self_score', 0)}/100",
+            **result,
+        })
+        return result
+    except Exception as e:
+        log_task("autonomous_drip", {"error": str(e)}, success=False)
+        return {"error": str(e)}
+
+
 def run_all_daily_tasks():
     """Run all daily tasks."""
     print(f"\n{'='*50}")
     print(f"Running daily sales tasks - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print(f"{'='*50}\n")
     
+    run_autonomous_drip()
+    time.sleep(2)
     run_proactive_outreach()
     time.sleep(2)
     run_follow_up_check()
@@ -228,6 +252,7 @@ def run_daemon():
     print(f"Log file: {LOG_DIR / 'scheduler.log'}")
     
     schedule.every().day.at("07:30").do(run_vital_signs)
+    schedule.every().day.at("08:30").do(run_autonomous_drip)
     schedule.every().day.at("09:00").do(run_proactive_outreach)
     schedule.every().day.at("09:30").do(run_european_drip)
     schedule.every().day.at("10:00").do(run_follow_up_check)
@@ -235,8 +260,9 @@ def run_daemon():
     
     print("\nScheduled tasks:")
     print("  - Vital signs: Daily at 07:30")
+    print("  - Autonomous drip: Daily at 08:30 (Ira sends her own emails)")
     print("  - Proactive outreach: Daily at 09:00")
-    print("  - European drip: Daily at 09:30")
+    print("  - European drip: Daily at 09:30 (legacy manual review)")
     print("  - Follow-up check: Daily at 10:00")
     print("  - Pipeline summary: Monday at 08:00")
     print("\nPress Ctrl+C to stop.\n")
@@ -252,7 +278,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sales Scheduler")
     parser.add_argument("--daemon", action="store_true", help="Run as daemon")
     parser.add_argument("--once", action="store_true", help="Run all tasks once")
-    parser.add_argument("--task", choices=["outreach", "followup", "pipeline", "drip", "vitals"], help="Run specific task")
+    parser.add_argument("--task", choices=["outreach", "followup", "pipeline", "drip", "vitals", "auto_drip"], help="Run specific task")
     args = parser.parse_args()
     
     if args.daemon:
@@ -270,5 +296,7 @@ if __name__ == "__main__":
             run_european_drip()
         elif args.task == "vitals":
             run_vital_signs()
+        elif args.task == "auto_drip":
+            run_autonomous_drip()
     else:
         parser.print_help()

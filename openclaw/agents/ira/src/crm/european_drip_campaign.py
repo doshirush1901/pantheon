@@ -293,6 +293,11 @@ class CampaignLead:
     replied: bool = False
     unsubscribed: bool = False
     notes: str = ""
+    # Autonomous drip tracking fields
+    reply_quality: str = ""  # "engaged", "polite_decline", "auto_reply", "bounce"
+    reply_at: Optional[datetime] = None
+    thread_id: str = ""
+    last_batch_id: str = ""
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -306,7 +311,11 @@ class CampaignLead:
             "opened": self.opened,
             "replied": self.replied,
             "unsubscribed": self.unsubscribed,
-            "notes": self.notes
+            "notes": self.notes,
+            "reply_quality": self.reply_quality,
+            "reply_at": self.reply_at.isoformat() if self.reply_at else None,
+            "thread_id": self.thread_id,
+            "last_batch_id": self.last_batch_id,
         }
 
 
@@ -1135,7 +1144,15 @@ class EuropeanDripCampaign:
         self._save_state()
         return True
     
-    def record_reply(self, lead_id: str, notes: str = ""):
+    def get_next_email(self, lead_id: str) -> Optional[Dict[str, str]]:
+        """Get the next email to send for a lead (convenience wrapper)."""
+        campaign_lead = self.campaign_state.get(lead_id)
+        if not campaign_lead:
+            return None
+        next_stage = campaign_lead.current_stage + 1
+        return self.generate_email(lead_id, stage=next_stage, use_luxury_polish=False)
+
+    def record_reply(self, lead_id: str, notes: str = "", quality: str = ""):
         """Record that a lead replied (stops drip sequence)."""
         if lead_id not in self.campaign_state:
             return False
@@ -1144,6 +1161,9 @@ class EuropeanDripCampaign:
         lead.replied = True
         if notes:
             lead.notes = notes
+        if quality:
+            lead.reply_quality = quality
+            lead.reply_at = datetime.now()
         
         self._save_state()
         return True
