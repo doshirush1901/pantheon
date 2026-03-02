@@ -24,7 +24,7 @@ RULE 1: SERIES IDENTITY (CRITICAL — memorize this)
         NEVER say PF2 has: customization, advanced controls, automation, material features.
         NEVER say PF2 is for: positive forming, automotive, packaging, or general manufacturing.
 
-  AM = THIN GAUGE ONLY. Roll-fed. Max thickness 1.5mm MAXIMUM.
+  AM = THIN GAUGE ONLY. Roll-fed. Max thickness 1.5mm MAXIMUM. Cannot handle materials thicker than 1.5mm. Not suitable for 3mm HDPE. If customer needs >1.5mm thickness, recommend PF1 instead.
        For: Food trays, blister packs, clamshells, packaging.
        NEVER recommend AM for materials thicker than 1.5mm.
        If customer needs >1.5mm thickness, recommend PF1 instead.
