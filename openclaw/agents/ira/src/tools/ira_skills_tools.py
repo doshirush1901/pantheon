@@ -354,6 +354,21 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "run_analysis",
+            "description": "Execute Python code to analyze data. Use when you need to compute, aggregate, count, rank, filter, or transform data from previous tool calls. Write the code as a string — it runs in a sandboxed subprocess with a 60s timeout. Pass data from previous tool calls via the 'data' parameter (JSON string). The script has access to: json, collections, re, math, datetime. Print results with print().",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string", "description": "Python code to execute. Use print() to output results."},
+                    "data": {"type": "string", "description": "Optional JSON string of data to make available as the variable DATA in the script"},
+                },
+                "required": ["code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "ask_user",
             "description": "Ask the user a clarifying question when you need more information to complete a task. Use this instead of guessing.",
             "parameters": {
@@ -413,6 +428,7 @@ async def execute_tool_call(
         "read_email_thread": "hermes",
         "send_email": "hermes",
         "draft_email": "hermes",
+        "run_analysis": "athena",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -827,6 +843,22 @@ async def execute_tool_call(
             return await invoke_discovery_scan(query, context)
         except Exception as e:
             return f"(Discovery scan error: {e})"
+
+    elif tool_name == "run_analysis":
+        code = arguments.get("code", "")
+        data = arguments.get("data", "")
+        if not code:
+            return "(Error: code is required)"
+        is_internal = context.get("is_internal", False)
+        if not is_internal:
+            return "(Analysis tool is only available for internal users.)"
+        try:
+            from openclaw.agents.ira.src.tools.analysis_tools import run_analysis
+            return run_analysis(code=code, data=data)
+        except ImportError:
+            return "(Analysis tool not available.)"
+        except Exception as e:
+            return f"(Analysis error: {e})"
 
     elif tool_name == "ask_user":
         question = arguments.get("question", "")

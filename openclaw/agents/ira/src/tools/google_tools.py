@@ -21,6 +21,7 @@ logger = logging.getLogger("ira.google_tools")
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
 CREDENTIALS_FILE = PROJECT_ROOT / "credentials.json"
 TOKEN_FILE = PROJECT_ROOT / "token.json"
+TOKEN_RUSHABH_FILE = PROJECT_ROOT / "token_rushabh.json"
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
@@ -32,7 +33,13 @@ SCOPES = [
 
 
 def _get_oauth_creds():
-    """Get OAuth credentials, refreshing if needed."""
+    """Get OAuth credentials, refreshing if needed.
+
+    Loads the token without enforcing scopes so it works regardless of
+    which scopes the token was originally granted (gmail-only, full suite, etc.).
+    The full SCOPES list is only used when creating a brand-new token via the
+    interactive OAuth flow.
+    """
     try:
         from google.oauth2.credentials import Credentials
         from google.auth.transport.requests import Request
@@ -40,18 +47,19 @@ def _get_oauth_creds():
 
         creds = None
         if TOKEN_FILE.exists():
-            creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+            creds = Credentials.from_authorized_user_file(str(TOKEN_FILE))
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
+                TOKEN_FILE.write_text(creds.to_json())
             else:
                 if not CREDENTIALS_FILE.exists():
                     logger.error("credentials.json not found")
                     return None
                 flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
                 creds = flow.run_local_server(port=0)
-            TOKEN_FILE.write_text(creds.to_json())
+                TOKEN_FILE.write_text(creds.to_json())
 
         return creds
     except Exception as e:
@@ -316,9 +324,53 @@ def contacts_search(query: str) -> str:
 # GMAIL (Read / Search / Thread)
 # =============================================================================
 
-def _get_gmail_service():
-    """Build a Gmail API service using shared OAuth credentials."""
-    creds = _get_oauth_creds()
+def _get_gmail_creds(account: str = "rushabh"):
+    """Get Gmail OAuth credentials for a specific account.
+
+    Prefers token_rushabh.json for Rushabh's mailbox (where sales data lives).
+    Falls back to the default token.json (Ira's mailbox).
+    """
+    try:
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+
+        token_map = {
+            "rushabh": TOKEN_RUSHABH_FILE,
+            "ira": TOKEN_FILE,
+        }
+        token_path = token_map.get(account, TOKEN_RUSHABH_FILE)
+
+        if not token_path.exists():
+            logger.warning(f"Token file {token_path.name} not found, falling back to token.json")
+            token_path = TOKEN_FILE
+
+        if not token_path.exists():
+            logger.error("No Gmail token file found")
+            return None
+
+        creds = Credentials.from_authorized_user_file(str(token_path))
+
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                token_path.write_text(creds.to_json())
+            else:
+                logger.error(f"Token {token_path.name} expired and cannot refresh. Re-run setup_gmail.py.")
+                return None
+
+        return creds
+    except Exception as e:
+        logger.error(f"Gmail auth failed ({account}): {e}")
+        return None
+
+
+def _get_gmail_service(account: str = "rushabh"):
+    """Build a Gmail API service.
+
+    Args:
+        account: 'rushabh' for Rushabh's mailbox (default), 'ira' for Ira's.
+    """
+    creds = _get_gmail_creds(account)
     if not creds:
         return None
     try:
