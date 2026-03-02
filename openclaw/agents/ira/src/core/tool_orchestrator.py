@@ -22,9 +22,23 @@ _INJECTION_PATTERNS = re.compile(
     r"ignore.*(?:previous|all|above).*instructions|"
     r"you are now|forget.*(?:everything|instructions|rules)|"
     r"disregard.*(?:system|previous)|"
-    r"new persona|act as (?!a customer)",
+    r"new persona|act as (?!a customer)|"
+    r"override.*(?:system|instructions|rules|prompt)|"
+    r"switch.*(?:mode|persona|role)|"
+    r"jailbreak|do anything now|DAN\b|"
+    r"pretend.*(?:you are|to be)|"
+    r"system\s*prompt|reveal.*(?:instructions|system|prompt)|"
+    r"bypass.*(?:filter|safety|restriction)",
     re.IGNORECASE,
 )
+
+
+def _normalize_for_injection_check(text: str) -> str:
+    """Normalize unicode tricks before injection pattern matching."""
+    import unicodedata
+    text = unicodedata.normalize("NFKC", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    return text
 
 _SALES_SIGNALS = re.compile(
     r"(?:machine|thermoform|pf1|pf2|am-|img|fcs|atf|vacuum.?form|pressure.?form|"
@@ -159,7 +173,8 @@ async def process_with_tools(
     mem0_context = context.get("mem0_context", "")
     personality_context = context.get("personality_context", "")
 
-    if not is_internal and _INJECTION_PATTERNS.search(message):
+    _normalized_msg = _normalize_for_injection_check(message)
+    if not is_internal and _INJECTION_PATTERNS.search(_normalized_msg):
         logger.warning(f"[Athena] Prompt injection attempt detected, blocking")
         return ("I'm Ira, Machinecraft's Intelligent Revenue Assistant. "
                 "I can help with thermoforming machines, pricing, orders, and sales. "

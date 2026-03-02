@@ -28,7 +28,7 @@ try:
     from config import DATABASE_URL, MEM0_API_KEY, OPENAI_API_KEY
 except ImportError:
     import os
-    DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://ira:ira_password@localhost:5432/ira_db")
+    DATABASE_URL = os.environ.get("DATABASE_URL", "")
     MEM0_API_KEY = os.environ.get("MEM0_API_KEY", "")
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 

@@ -32,7 +32,7 @@ sys.path.insert(0, str(AGENT_DIR))
 try:
     from config import DATABASE_URL, OPENAI_API_KEY
 except ImportError:
-    DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://ira:ira_password@localhost:5432/ira_db')
+    DATABASE_URL = os.getenv('DATABASE_URL', '')
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 PROXYCURL_API_KEY = os.getenv('PROXYCURL_API_KEY', '')

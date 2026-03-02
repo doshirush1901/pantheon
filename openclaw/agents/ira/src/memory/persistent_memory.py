@@ -37,7 +37,7 @@ try:
     from config import DATABASE_URL, OPENAI_API_KEY, VOYAGE_API_KEY, QDRANT_URL, COLLECTIONS
 except ImportError:
     import os
-    DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://ira:ira_password@localhost:5432/ira_db")
+    DATABASE_URL = os.environ.get("DATABASE_URL", "")
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
     QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")

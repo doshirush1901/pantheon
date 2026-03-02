@@ -17,12 +17,39 @@ Usage:
     text, metadata = fetch_url_content("https://example.com/article")
 """
 
+import ipaddress
 import logging
 import re
+import socket
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
+
+
+def _is_safe_url(url: str) -> bool:
+    """Block URLs targeting private/internal networks (SSRF protection)."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+        if not hostname:
+            return False
+        if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            return False
+        if hostname.endswith(".local") or hostname.endswith(".internal"):
+            return False
+        try:
+            resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            for _, _, _, _, sockaddr in resolved:
+                ip = ipaddress.ip_address(sockaddr[0])
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    logger.warning(f"[SSRF] Blocked URL resolving to private IP: {hostname} -> {ip}")
+                    return False
+        except (socket.gaierror, ValueError):
+            return False
+        return True
+    except Exception:
+        return False
 
 # Match http(s) URLs
 URL_RE = re.compile(
@@ -72,6 +99,11 @@ def fetch_url_content(url: str, timeout: int = 25) -> Tuple[Optional[str], dict]
         - error: str (if failed)
     """
     metadata = {"url": url, "source": None, "title": "", "error": None}
+
+    if not _is_safe_url(url):
+        metadata["error"] = "URL blocked: targets private/internal network"
+        logger.warning(f"[SSRF] Blocked fetch for: {url}")
+        return None, metadata
 
     # 1. Try Jina Reader (handles JS, returns markdown)
     try:

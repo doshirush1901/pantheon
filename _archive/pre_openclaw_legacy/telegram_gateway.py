@@ -553,15 +553,38 @@ class GatewayResponse:
 
 class TelegramGateway:
     """Main Telegram gateway for Ira."""
+
+    INCOMING_RATE_LIMIT = 3.0  # min seconds between processing user messages
+    INCOMING_BURST_LIMIT = 10  # max messages in a 60-second window
     
     def __init__(self):
         self.bot_token, self.expected_chat_id = get_telegram_config()
         self._openai_client = None
         self._gmail_service = None
         self._last_request_time = 0
+        self._dream_running = False
+        self._dream_started_at: Optional[float] = None
+        self._incoming_timestamps: List[float] = []
+        self._last_incoming_time: float = 0
     
+    def _check_incoming_rate_limit(self) -> bool:
+        """Check if incoming message should be rate-limited.
+
+        Returns True if the message is allowed, False if it should be dropped.
+        """
+        now = time.time()
+        if now - self._last_incoming_time < self.INCOMING_RATE_LIMIT:
+            return False
+        cutoff = now - 60.0
+        self._incoming_timestamps = [t for t in self._incoming_timestamps if t > cutoff]
+        if len(self._incoming_timestamps) >= self.INCOMING_BURST_LIMIT:
+            return False
+        self._incoming_timestamps.append(now)
+        self._last_incoming_time = now
+        return True
+
     def _rate_limit(self):
-        """Enforce rate limiting between API calls."""
+        """Enforce rate limiting between outgoing API calls."""
         elapsed = time.time() - self._last_request_time
         if elapsed < RATE_LIMIT_SECONDS:
             time.sleep(RATE_LIMIT_SECONDS - elapsed)
@@ -1619,6 +1642,7 @@ class TelegramGateway:
             {"command": "memory_stats", "description": "Memory analytics"},
             {"command": "fail", "description": "Failure tracking & fix plans"},
             {"command": "price_conflicts", "description": "Show pricing conflicts"},
+            {"command": "dream", "description": "Dream mode — nap, learn & self-improve"},
         ]
         try:
             response = requests.post(url, json={"commands": commands}, timeout=10)
@@ -1730,6 +1754,11 @@ class TelegramGateway:
             age_seconds = (now - msg_timestamp).total_seconds()
             
             if age_seconds > MAX_MESSAGE_AGE_SECONDS:
+                save_last_update_id(update["update_id"])
+                continue
+
+            if not self._check_incoming_rate_limit():
+                logger.warning("[Gateway] Incoming rate limit hit — dropping message")
                 save_last_update_id(update["update_id"])
                 continue
             
@@ -2599,6 +2628,14 @@ PROACTIVE OUTREACH:
 PERSONALITY:
   /personality → View Ira's evolved personality traits
   /boost <trait> → Increase a trait (warmth, charm, humor, etc.)
+
+DREAM MODE (Nap & Self-Improve):
+  /dream → Show dream mode options
+  /dream quick → Quick nap (skip Benchy + heavy phases)
+  /dream full → Full dream cycle (all phases)
+  /dream benchy → Benchy self-improvement only
+  /dream 60 → Time-budgeted nap (60 minutes)
+  /dream status → Check if dream is running
 
 FREE TEXT:
   Any other message is treated as a query.
@@ -4397,7 +4434,95 @@ I'll use this in future conversations!""",
                 text=f"❌ Training error: {e}",
                 success=False
             )
-    
+
+    def handle_dream_command(self, args: str) -> GatewayResponse:
+        """Handle /dream command — trigger Ira's dream/nap mode from Telegram.
+
+        Subcommands:
+            /dream          — show usage help
+            /dream quick    — quick nap (skip Benchy + heavy phases)
+            /dream full     — full dream cycle
+            /dream benchy   — Benchy self-improvement only
+            /dream <N>      — time-budgeted nap (N minutes)
+            /dream status   — check if dream is running
+        """
+        args = args.strip().lower()
+
+        if not args:
+            return GatewayResponse(
+                text=(
+                    "🌙 *Dream Mode*\n\n"
+                    "`/dream quick` — Quick nap (skip Benchy + heavy phases)\n"
+                    "`/dream full` — Full dream cycle (all phases)\n"
+                    "`/dream benchy` — Benchy self-improvement only\n"
+                    "`/dream 60` — Time-budgeted nap (minutes)\n"
+                    "`/dream status` — Check dream status"
+                ),
+                parse_mode="Markdown",
+            )
+
+        if args == "status":
+            if self._dream_running:
+                elapsed = ""
+                if self._dream_started_at:
+                    mins = int((time.time() - self._dream_started_at) / 60)
+                    elapsed = f" (running for {mins}m)"
+                return GatewayResponse(text=f"🌙 Dream mode is *active*{elapsed}", parse_mode="Markdown")
+            return GatewayResponse(text="😴 No dream running. Use `/dream quick` or `/dream full` to start.", parse_mode="Markdown")
+
+        if self._dream_running:
+            return GatewayResponse(text="⚠️ Dream already in progress. Use `/dream status` to check.", parse_mode="Markdown")
+
+        nap_kwargs = {}
+        if args == "quick":
+            nap_kwargs = {"quick": True}
+            mode_label = "quick"
+        elif args == "full":
+            nap_kwargs = {}
+            mode_label = "full"
+        elif args == "benchy":
+            nap_kwargs = {"benchy_only": True}
+            mode_label = "benchy-only"
+        elif args.isdigit():
+            minutes = int(args)
+            if minutes < 1 or minutes > 480:
+                return GatewayResponse(text="⚠️ Time budget must be between 1 and 480 minutes.")
+            nap_kwargs = {"time_budget_min": minutes}
+            mode_label = f"{minutes}m"
+        else:
+            return GatewayResponse(
+                text=f"Unknown dream subcommand: `{args}`\n\nTry `/dream quick`, `/dream full`, `/dream benchy`, or `/dream 60`.",
+                parse_mode="Markdown",
+            )
+
+        self._dream_running = True
+        self._dream_started_at = time.time()
+
+        def _run_dream():
+            try:
+                import asyncio as _aio
+                sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+                from nap import nap as run_nap
+                _aio.run(run_nap(**nap_kwargs))
+            except Exception as e:
+                logger.error(f"Dream mode failed: {e}")
+                try:
+                    self.send_message(f"❌ Dream mode failed: {e}")
+                except Exception:
+                    pass
+            finally:
+                self._dream_running = False
+                self._dream_started_at = None
+
+        thread = threading.Thread(target=_run_dream, daemon=True)
+        thread.start()
+
+        return GatewayResponse(
+            text=f"🌙 Starting *{mode_label}* dream mode...\nI'll send updates as I dream.",
+            parse_mode="Markdown",
+            log_entry={"type": "dream", "mode": mode_label},
+        )
+
     def handle_brief(self, topic: str) -> GatewayResponse:
         """Generate topic briefing using Qdrant + legacy SQLite."""
         context_parts = []
@@ -6323,6 +6448,11 @@ Total: {len(draft_ids)}""",
         train_match = re.match(r'^/train(?:\s+(.*))?$', text, re.IGNORECASE)
         if train_match:
             return self.handle_train(text)
+
+        # /dream [subcommand]
+        dream_match = re.match(r'^/dream(?:\s+(.*))?$', text, re.IGNORECASE)
+        if dream_match:
+            return self.handle_dream_command(dream_match.group(1) or "")
 
         # /deepdive <topic>
         deepdive_match = re.match(r'^/deepdive\s+(.+)$', text, re.IGNORECASE)

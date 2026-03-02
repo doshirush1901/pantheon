@@ -45,7 +45,7 @@ except ImportError:
             if line.strip() and not line.startswith('#') and '=' in line:
                 key, _, value = line.partition('=')
                 os.environ.setdefault(key.strip(), value.strip().strip('"'))
-    DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://ira:ira_password@localhost:5432/ira_db")
+    DATABASE_URL = os.environ.get("DATABASE_URL", "")
     QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
     VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY")
     COLLECTIONS = {

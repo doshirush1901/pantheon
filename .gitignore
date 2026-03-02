@@ -68,6 +68,9 @@ secrets/
 # Database & Cache
 # =============================================================================
 *.db
+*.db-shm
+*.db-wal
+*.db-journal
 *.sqlite
 *.sqlite3
 crm/cache/
@@ -156,6 +159,18 @@ data/audit_logs/
 data/simulations/
 data/learning_sessions/
 data/training/
+
+# =============================================================================
+# Sensitive Runtime Data (PII, chat logs, memory state)
+# =============================================================================
+data/chat_log/
+data/european_lead_conversations.json
+data/quotes_knowledge.json
+openclaw/agents/ira/src/memory/state/
+openclaw/data/feedback_log.jsonl
+openclaw/data/feedback_backlog.jsonl
+crm/logs/requests.jsonl
+crm/logs/telegram_activity_log.json
 
 # =============================================================================
 # OpenClaw Workspace (runtime state)

@@ -8,7 +8,7 @@ Enables LLM-driven orchestration: Athena (LLM) chooses which skills to call and 
 import json
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("ira.tools.skills")
 
@@ -395,6 +395,11 @@ async def execute_tool_call(
     context: Dict[str, Any],
 ) -> str:
     """Execute an IRA skill by name. Called when LLM returns tool_calls."""
+    validation_err = _validate_tool_args(tool_name, arguments)
+    if validation_err:
+        logger.warning(f"[Security] Tool arg validation failed for {tool_name}: {validation_err}")
+        return f"(Error: {validation_err})"
+
     try:
         from openclaw.agents.ira.src.skills.invocation import (
             invoke_research,
@@ -871,6 +876,35 @@ async def execute_tool_call(
         return f"ASK_USER:{question}"
 
     return f"Error: Unknown tool '{tool_name}'"
+
+
+_TOOL_SCHEMAS: Dict[str, Dict[str, type]] = {
+    "send_email": {"to": str, "subject": str, "body": str, "thread_id": str},
+    "draft_email": {"to": str, "subject": str, "intent": str, "context": str},
+    "run_analysis": {"task": str, "code": str, "data": str},
+    "read_spreadsheet": {"spreadsheet_id": str, "range": str},
+    "search_email": {"query": str, "max_results": int},
+    "customer_lookup": {"query": str},
+    "search_contacts": {"query": str},
+}
+
+_MAX_ARG_LENGTH = 16000
+
+
+def _validate_tool_args(tool_name: str, args: Dict[str, Any]) -> Optional[str]:
+    """Validate tool arguments against schemas. Returns error string or None."""
+    schema = _TOOL_SCHEMAS.get(tool_name)
+    if not schema:
+        return None
+    for key, val in args.items():
+        if key not in schema:
+            continue
+        expected = schema[key]
+        if not isinstance(val, expected):
+            return f"Argument '{key}' must be {expected.__name__}, got {type(val).__name__}"
+        if isinstance(val, str) and len(val) > _MAX_ARG_LENGTH:
+            return f"Argument '{key}' exceeds max length ({len(val)} > {_MAX_ARG_LENGTH})"
+    return None
 
 
 def parse_tool_arguments(arguments: str) -> Dict[str, Any]:

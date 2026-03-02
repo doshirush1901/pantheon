@@ -1,20 +1,67 @@
 ---
-description: Security patterns for Ira — prompt injection defense, data protection, hallucination prevention
-globs: openclaw/agents/ira/src/core/**,openclaw/agents/ira/src/brain/**
+description: Security patterns for Ira — prompt injection defense, data protection, hallucination prevention, git hygiene
+globs: openclaw/agents/ira/src/core/**,openclaw/agents/ira/src/brain/**,openclaw/agents/ira/src/tools/**,.gitignore
 alwaysApply: false
 ---
 
 # Ira Security Patterns
 
+## NEVER Commit Sensitive Data
+
+These categories of data must NEVER be committed to git:
+
+1. **Customer PII**: Real names + email addresses + phone numbers together. Individual company names are OK, but personal contact details are not.
+2. **Internal financials**: Margins, net profit percentages, cost breakdowns, revenue targets. Selling prices are OK (they're public).
+3. **Credentials**: API keys, tokens, passwords — even as "defaults" in code. Use `os.environ.get("VAR", "")` with empty string default.
+4. **Chat logs / conversation history**: `data/chat_log/`, memory state files, feedback logs with user messages.
+5. **Database files**: `*.db`, `*.db-shm`, `*.db-wal`, `*.db-journal` — all gitignored.
+6. **OAuth tokens**: `token.json`, `credentials.json` — all gitignored.
+
+When creating new data files, check `.gitignore` FIRST. If the file contains any of the above, add it to `.gitignore` before committing.
+
+When writing new Python modules that need database access, ALWAYS use:
+```python
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+```
+NEVER use a real connection string as the default value.
+
 ## Prompt Injection Defense
 
-Two layers, both in `tool_orchestrator.py`:
+Three layers in `tool_orchestrator.py`:
 
-1. **Pre-LLM guard** (`_INJECTION_PATTERNS`): Regex catches "ignore instructions", "you are now", "forget everything" etc. Returns polite redirect before GPT-4o ever sees the message. Skipped for `is_internal=True` (Rushabh/benchy).
+1. **Unicode normalization** (`_normalize_for_injection_check`): NFKC normalize + strip non-ASCII before pattern matching. Prevents bypass via unicode homoglyphs or encoding tricks.
 
-2. **System prompt IDENTITY section**: Tells Athena to never comply with role overrides or off-topic requests.
+2. **Pre-LLM guard** (`_INJECTION_PATTERNS`): Regex catches "ignore instructions", "you are now", "forget everything", "override", "jailbreak", "reveal system prompt", etc. Returns polite redirect before GPT-4o ever sees the message. Skipped for `is_internal=True` (Rushabh/benchy).
+
+3. **System prompt IDENTITY section**: Tells Athena to never comply with role overrides or off-topic requests.
 
 When adding new injection patterns, add to `_INJECTION_PATTERNS` regex. Use `(?!...)` negative lookahead for legitimate phrases (e.g. "act as a customer" is OK).
+
+## Email Security
+
+`gmail_send()` in `google_tools.py` has a domain allowlist (`_is_email_allowed`):
+- Only sends to Machinecraft domains or previously-contacted addresses
+- Set `ALLOWED_EMAIL_DOMAINS=*` in .env to disable (not recommended)
+- New domains can be added via the `ALLOWED_EMAIL_DOMAINS` env var (comma-separated)
+
+## SSRF Protection
+
+`url_fetcher.py` has `_is_safe_url()` that blocks:
+- localhost, 127.0.0.1, ::1, 0.0.0.0
+- .local / .internal hostnames
+- Any URL that resolves to a private, loopback, link-local, or reserved IP
+
+## Tool Argument Validation
+
+`ira_skills_tools.py` validates tool arguments via `_TOOL_SCHEMAS` before execution:
+- Type checking (str, int, etc.)
+- Max length enforcement (16KB per argument)
+- When adding new sensitive tools, add their schema to `_TOOL_SCHEMAS`
+
+## Rate Limiting
+
+- **Outgoing** (Telegram API): `RATE_LIMIT_SECONDS` between API calls
+- **Incoming** (user messages): `INCOMING_RATE_LIMIT` (3s between messages) + `INCOMING_BURST_LIMIT` (10 messages per 60s window)
 
 ## Hallucination Prevention
 
@@ -24,7 +71,7 @@ Three layers:
 
 2. **`validate_response()` regex**: Catches model numbers in response text. Pattern: `PF\d-[A-Z]*-?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4}|ATF-\d{4}`. If you add a new series, update this regex.
 
-3. **`_get_valid_models()`**: Loads all 46 models from `machine_specs.json`. Any model in the response that's not in this set gets flagged. The function handles both dict and list formats.
+3. **`_get_valid_models()`**: Loads all 46 models from `machine_specs.json`. Any model in the response that's not in this set gets flagged.
 
 ## Data Protection
 

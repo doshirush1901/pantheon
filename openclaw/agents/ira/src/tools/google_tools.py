@@ -150,7 +150,8 @@ def drive_list(query: str = "", max_results: int = 10) -> str:
         from googleapiclient.discovery import build
         service = build("drive", "v3", credentials=creds)
 
-        q = f"name contains '{query}'" if query else ""
+        safe_query = query.replace("\\", "\\\\").replace("'", "\\'") if query else ""
+        q = f"name contains '{safe_query}'" if safe_query else ""
         results = service.files().list(
             q=q,
             pageSize=max_results,
@@ -595,6 +596,50 @@ def gmail_get_thread(thread_id: str, max_messages: int = 10) -> str:
         return f"(Gmail thread error: {e})"
 
 
+_ALLOWED_EMAIL_DOMAINS: set = set()
+
+def _load_allowed_email_domains() -> set:
+    """Load allowed email domains from env. Fallback to Machinecraft domains."""
+    global _ALLOWED_EMAIL_DOMAINS
+    if _ALLOWED_EMAIL_DOMAINS:
+        return _ALLOWED_EMAIL_DOMAINS
+    raw = os.environ.get("ALLOWED_EMAIL_DOMAINS", "")
+    if raw:
+        _ALLOWED_EMAIL_DOMAINS = {d.strip().lower() for d in raw.split(",") if d.strip()}
+    else:
+        _ALLOWED_EMAIL_DOMAINS = {"machinecraft.org", "machinecraft.com", "machinecraft.in"}
+    return _ALLOWED_EMAIL_DOMAINS
+
+def _is_email_allowed(address: str) -> bool:
+    """Check if an email address is allowed for sending.
+
+    Allows all addresses when ALLOWED_EMAIL_DOMAINS is set to '*',
+    otherwise restricts to the configured domain allowlist.
+    Addresses that previously received email from us (found in Gmail)
+    are also allowed.
+    """
+    if not address or "@" not in address:
+        return False
+    domains = _load_allowed_email_domains()
+    if "*" in domains:
+        return True
+    domain = address.rsplit("@", 1)[-1].lower()
+    if domain in domains:
+        return True
+    # Check if we've emailed this address before (established contact)
+    try:
+        svc = _get_gmail_service()
+        if svc:
+            results = svc.users().messages().list(
+                userId="me", q=f"to:{address}", maxResults=1
+            ).execute()
+            if results.get("messages"):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def gmail_send(to: str, subject: str, body: str, thread_id: str = "") -> str:
     """Send an email via Gmail API.
 
@@ -607,6 +652,14 @@ def gmail_send(to: str, subject: str, body: str, thread_id: str = "") -> str:
     Returns:
         Success/failure message.
     """
+    if not _is_email_allowed(to):
+        logger.warning(f"[Security] Blocked email send to unrecognized address: {to}")
+        return (
+            f"(BLOCKED: '{to}' is not a recognized recipient. "
+            "For security, emails can only be sent to known contacts or "
+            "Machinecraft domains. Ask Rushabh to approve this recipient.)"
+        )
+
     service = _get_gmail_service()
     if not service:
         return "(Gmail not available. Check OAuth token.)"

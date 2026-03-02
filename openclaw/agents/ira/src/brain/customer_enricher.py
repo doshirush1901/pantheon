@@ -48,7 +48,7 @@ except ImportError:
                 key, _, value = line.partition('=')
                 os.environ.setdefault(key.strip(), value.strip().strip('"'))
     
-    DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://ira:ira_password@localhost:5432/ira_db"
+    DATABASE_URL = os.environ.get("DATABASE_URL", "")
     QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
     COLLECTIONS = {"customers": "ira_customers"}

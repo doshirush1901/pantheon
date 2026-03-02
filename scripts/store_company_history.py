@@ -97,19 +97,11 @@ ENTITY_MEMORIES = [
     ("company", "Machinecraft Technologies",
      "FY2019: ~₹40Cr revenue, ~50 machines, ~18% EBITDA (baseline before Umargam)", "fact"),
     ("company", "Machinecraft Technologies",
-     "FY2020: ~₹30Cr revenue (-25%), 35-40 machines, ~0-2% EBITDA (COVID crash)", "fact"),
+     "FY2020: COVID impact, reduced output, V-shaped recovery followed", "fact"),
     ("company", "Machinecraft Technologies",
-     "FY2021: ~₹45Cr revenue (+50%), ~50 machines, ~10% EBITDA (V-shaped recovery)", "fact"),
+     "FY2021-2024: Steady growth trajectory, 50+ machines/year, strong export recovery", "fact"),
     ("company", "Machinecraft Technologies",
-     "FY2022: ~₹60Cr revenue (+33%), ~50 machines (higher avg price), ~15% EBITDA (record)", "fact"),
-    ("company", "Machinecraft Technologies",
-     "FY2023-24: ~₹55-60Cr revenue, ~50-55 machines, ~12% net margin (consolidated)", "fact"),
-    ("company", "Machinecraft Technologies",
-     "FY2025 TARGET: ₹70Cr revenue (+15-20%), ~60 machines, ~25% net margin target (₹18-20Cr profit)", "fact"),
-    ("company", "Machinecraft Technologies",
-     "5-year CAGR (2019-2024): ~8% revenue growth despite pandemic", "fact"),
-    ("company", "Machinecraft Technologies",
-     "Export share: ~50% in 2019, dropped to 30% in 2020, recovered to 55%+ by 2024", "fact"),
+     "Export share has grown significantly, now majority of revenue", "fact"),
     
     # ==========================================================================
     # GROUP STRUCTURE
@@ -153,7 +145,7 @@ ENTITY_MEMORIES = [
     ("company", "Machinecraft Technologies",
      "Value prop: European-quality machines at 1/3 the price - drove early global growth", "fact"),
     ("company", "Machinecraft Technologies",
-     "Competitive advantage: 50-60% lower cost than Kiefel/Geiss/CMS for comparable specs", "fact"),
+     "Competitive advantage: significantly lower cost than European competitors for comparable specs", "fact"),
     ("company", "Machinecraft Technologies",
      "Strategy: One-stop solution provider - machine + mold + downstream trimming", "fact"),
     
@@ -223,7 +215,7 @@ ENTITY_MEMORIES = [
     ("company", "Machinecraft Technologies",
      "Competitors: Illig, Kiefel, Geiss, CMS (EU) - Machinecraft positioned as value alternative", "fact"),
     ("company", "Machinecraft Technologies",
-     "Indian peer benchmark: Rajoo Engineers has ~10-15% net margin; MC targeting 25% (elite territory)", "fact"),
+     "Competitors: Illig, Kiefel, Geiss, CMS (EU) - Machinecraft positioned as strong value alternative in global market", "fact"),
 ]
 
 def store_memories():
