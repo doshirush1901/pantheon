@@ -159,6 +159,8 @@ Ira's data pipeline follows a biological metaphor — a complete metabolic cycle
 | **TEST** | Immune system | Health scoring, hallucination detection, spaced-repetition training | `brain_trainer.py` |
 | **SLEEP** | Dream cycle | 10-phase nightly consolidation at 2 AM | `dream_mode.py` |
 | **FORGET** | Memory decay | 30d decay → 90d archive → 180d prune; recall boosts importance | `persistent_memory.py` |
+| **SPEAK** | Voice / larynx | Adaptive tone, length, format shaping per channel and complexity | `voice_system.py` |
+| **GROW** | Growth hormone | Email-to-knowledge pipeline; one signal stimulates every body system | `growth_signal.py` |
 
 ### Technology stack
 
@@ -237,6 +239,34 @@ Ira's data pipeline follows a biological metaphor — a complete metabolic cycle
 
 - **Memory consolidation** — episodic memories distilled into durable semantic facts during the dream cycle.
 
+### Holistic body systems
+
+Ira has a complete set of biological body systems that maintain her health autonomously:
+
+- **Immune system** — auto-remediation of chronic knowledge issues; escalation ladder from log to flag to remediate to block.
+
+- **Respiratory system** — operational heartbeat, breath timing, HRV-like latency metrics, daily rhythm orchestration.
+
+- **Endocrine system** — agent scoring with dopamine/cortisol signals; rewards successful agents, penalizes failures.
+
+- **Musculoskeletal system** — action-to-learning feedback; every email sent, quote generated, or lead researched produces myokines that feed the dream cycle.
+
+- **Sensory system** — cross-channel perception integration; recognizes the same customer across Telegram, email, and API.
+
+- **Metabolic system** — active knowledge hygiene; periodic cleanup of contradictions, stale facts, and Qdrant waste.
+
+- **Voice system** — adaptive response shaping; trims verbose answers for quick lookups, expands for complex asks, matches channel tone.
+
+- **Growth signal** — the growth hormone; one call after each email digestion stimulates every body system simultaneously.
+
+### Email growth hormone
+
+- **Email nutrient extractor** — GPT-4o-mini structured extraction from emails: machines, prices, customers, objections, competitors, deal stage, communication style.
+
+- **Mailbox ingestion** — contact-driven bulk backfill; reads 641 customer/lead emails from spreadsheets, queries Gmail for each, extracts and ingests into the full 5-backend pipeline (Qdrant x2, Mem0, Neo4j, JSON).
+
+- **Real-time email digestion** — every email the bridge processes is automatically digested into permanent knowledge after reply.
+
 ## Project structure
 
 ```
@@ -246,6 +276,7 @@ ira/
 │   ├── config.py                # Centralized configuration
 │   └── src/
 │       ├── brain/               # RAG, retrieval, knowledge pipeline (40+ modules)
+│       ├── holistic/            # Body systems: immune, respiratory, endocrine, voice, growth
 │       ├── memory/              # Persistent memory system (20+ modules)
 │       ├── conversation/        # Conversation intelligence
 │       ├── identity/            # Cross-channel identity resolution
