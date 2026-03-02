@@ -1540,6 +1540,7 @@ class TelegramGateway:
             {"command": "research", "description": "Deep research on a topic"},
             {"command": "docs", "description": "List uploaded documents"},
             {"command": "help", "description": "Show all commands"},
+            {"command": "crm", "description": "Mnemosyne CRM - pipeline, leads, drip"},
         ]
         try:
             response = requests.post(url, json={"commands": commands}, timeout=10)
@@ -6032,6 +6033,23 @@ Total: {len(draft_ids)}""",
         if text.lower() == "/diag":
             return self.handle_diag()
         
+        # =====================================================================
+        # MNEMOSYNE CRM COMMANDS
+        # =====================================================================
+        if text.lower().startswith("/crm"):
+            try:
+                sys.path.insert(0, str(PROJECT_ROOT / "openclaw/agents/ira/src/crm"))
+                from crm_telegram_commands import handle_crm_command
+                result = handle_crm_command(text, str(message.chat_id))
+                if result:
+                    return GatewayResponse(text=result, log_entry={"type": "crm_command"})
+            except ImportError as e:
+                logger.warning(f"CRM commands not available: {e}")
+                return GatewayResponse(text="CRM module not available.")
+            except Exception as e:
+                logger.error(f"CRM command error: {e}")
+                return GatewayResponse(text=f"CRM error: {e}")
+
         # =====================================================================
         # PERSISTENT MEMORY COMMANDS
         # =====================================================================

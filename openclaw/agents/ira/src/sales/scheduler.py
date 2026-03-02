@@ -201,6 +201,22 @@ def run_vital_signs() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+def run_crm_gmail_sync() -> Dict[str, Any]:
+    """Sync Mnemosyne's CRM with Gmail — pick up new replies and conversations."""
+    try:
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+        from crm_gmail_sync import sync
+        result = sync(full=False, days=7)
+        log_task("crm_gmail_sync", {
+            "summary": f"Scanned {result.get('contacts_scanned', 0)}, {result.get('new_replies', 0)} new replies",
+            **result,
+        })
+        return result
+    except Exception as e:
+        log_task("crm_gmail_sync", {"error": str(e)}, success=False)
+        return {"error": str(e)}
+
+
 def run_autonomous_drip() -> Dict[str, Any]:
     """Run Ira's autonomous drip engine."""
     try:
@@ -229,6 +245,8 @@ def run_all_daily_tasks():
     print(f"Running daily sales tasks - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print(f"{'='*50}\n")
     
+    run_crm_gmail_sync()
+    time.sleep(2)
     run_autonomous_drip()
     time.sleep(2)
     run_proactive_outreach()
@@ -252,6 +270,7 @@ def run_daemon():
     print(f"Log file: {LOG_DIR / 'scheduler.log'}")
     
     schedule.every().day.at("07:30").do(run_vital_signs)
+    schedule.every(30).minutes.do(run_crm_gmail_sync)
     schedule.every().day.at("08:30").do(run_autonomous_drip)
     schedule.every().day.at("09:00").do(run_proactive_outreach)
     schedule.every().day.at("09:30").do(run_european_drip)
@@ -260,6 +279,7 @@ def run_daemon():
     
     print("\nScheduled tasks:")
     print("  - Vital signs: Daily at 07:30")
+    print("  - CRM Gmail sync: Every 30 minutes (Mnemosyne stays live)")
     print("  - Autonomous drip: Daily at 08:30 (Ira sends her own emails)")
     print("  - Proactive outreach: Daily at 09:00")
     print("  - European drip: Daily at 09:30 (legacy manual review)")
