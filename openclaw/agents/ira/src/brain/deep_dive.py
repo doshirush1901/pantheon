@@ -7,18 +7,24 @@ Three-phase flow:
   Phase 3: EXECUTION - Multiple research threads run, findings are cross-linked,
            and a long-form structured report is produced
 
+Sessions are persisted to disk so they survive gateway restarts.
+
 Triggered by: /deepdive <topic> on Telegram
 """
 
 import json
 import logging
 import os
+import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger("ira.deep_dive")
+
+_SESSIONS_DIR = Path(__file__).parent.parent.parent / "workspace" / "deep_dive_sessions"
 
 
 @dataclass
@@ -27,18 +33,38 @@ class DeepDiveSession:
     session_id: str
     original_query: str
     chat_id: str
-    phase: str = "conversation"  # conversation, planning, researching, complete
+    phase: str = "conversation"
     conversation: List[Dict[str, str]] = field(default_factory=list)
     research_plan: List[Dict[str, str]] = field(default_factory=list)
     findings: Dict[str, str] = field(default_factory=dict)
     final_report: str = ""
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
-_active_sessions: Dict[str, DeepDiveSession] = {}
+
+def _save_session(session: DeepDiveSession) -> None:
+    """Persist session to disk."""
+    _SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    path = _SESSIONS_DIR / f"{session.chat_id}.json"
+    path.write_text(json.dumps(asdict(session), indent=2))
+
+
+def _delete_session_file(chat_id: str) -> None:
+    path = _SESSIONS_DIR / f"{chat_id}.json"
+    if path.exists():
+        path.unlink()
 
 
 def get_session(chat_id: str) -> Optional[DeepDiveSession]:
-    return _active_sessions.get(chat_id)
+    """Load session from disk."""
+    path = _SESSIONS_DIR / f"{chat_id}.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+        return DeepDiveSession(**data)
+    except Exception as e:
+        logger.warning(f"Failed to load deep dive session {chat_id}: {e}")
+        return None
 
 
 def start_session(chat_id: str, query: str) -> str:
@@ -49,17 +75,17 @@ def start_session(chat_id: str, query: str) -> str:
         chat_id=chat_id,
         conversation=[{"role": "user", "content": query}],
     )
-    _active_sessions[chat_id] = session
 
     questions = _generate_expansion_questions(query)
     session.conversation.append({"role": "assistant", "content": questions})
+    _save_session(session)
 
     return questions
 
 
 def continue_conversation(chat_id: str, user_reply: str) -> Optional[str]:
     """Continue Phase 1 conversation, or transition to Phase 2 if ready."""
-    session = _active_sessions.get(chat_id)
+    session = get_session(chat_id)
     if not session or session.phase != "conversation":
         return None
 
@@ -68,26 +94,30 @@ def continue_conversation(chat_id: str, user_reply: str) -> Optional[str]:
     go_keywords = ["go", "start", "do it", "yes", "let's go", "proceed", "research", "that's all", "enough", "ok go"]
     if any(kw in user_reply.lower().strip() for kw in go_keywords):
         session.phase = "planning"
-        return None  # Signal to caller to start planning
+        _save_session(session)
+        return None
 
     if len(session.conversation) >= 8:
         session.phase = "planning"
+        _save_session(session)
         return None
 
     follow_up = _generate_follow_up(session)
     session.conversation.append({"role": "assistant", "content": follow_up})
+    _save_session(session)
     return follow_up
 
 
 def plan_research(chat_id: str) -> List[Dict[str, str]]:
     """Phase 2: Break the expanded request into parallel research tasks."""
-    session = _active_sessions.get(chat_id)
+    session = get_session(chat_id)
     if not session:
         return []
 
     session.phase = "planning"
     plan = _generate_research_plan(session)
     session.research_plan = plan
+    _save_session(session)
     return plan
 
 
@@ -96,11 +126,12 @@ def execute_research(
     on_progress: Optional[Callable[[str], None]] = None,
 ) -> str:
     """Phase 3: Execute all research tasks and produce a long-form report."""
-    session = _active_sessions.get(chat_id)
+    session = get_session(chat_id)
     if not session:
         return "No active deep dive session."
 
     session.phase = "researching"
+    _save_session(session)
 
     try:
         from openclaw.agents.ira.src.brain.deep_research_engine import deep_research
@@ -136,21 +167,57 @@ def execute_research(
     report = _synthesize_report(session)
     session.final_report = report
     session.phase = "complete"
-
-    del _active_sessions[chat_id]
+    _delete_session_file(chat_id)
 
     return report
 
 
 def cancel_session(chat_id: str) -> bool:
-    if chat_id in _active_sessions:
-        del _active_sessions[chat_id]
-        return True
-    return False
+    _delete_session_file(chat_id)
+    return True
+
+
+# =============================================================================
+# LLM HELPERS
+# =============================================================================
+
+def _extract_json_from_llm(text: str) -> Optional[list]:
+    """Robustly extract a JSON array from LLM output.
+    
+    Handles: raw JSON, markdown code fences, preamble/trailing text.
+    """
+    text = text.strip()
+
+    try:
+        result = json.loads(text)
+        if isinstance(result, list):
+            return result
+    except json.JSONDecodeError:
+        pass
+
+    fence_match = re.search(r'```(?:json)?\s*\n?(.*?)```', text, re.DOTALL)
+    if fence_match:
+        try:
+            result = json.loads(fence_match.group(1).strip())
+            if isinstance(result, list):
+                return result
+        except json.JSONDecodeError:
+            pass
+
+    start = text.find('[')
+    end = text.rfind(']')
+    if start != -1 and end != -1 and end > start:
+        try:
+            result = json.loads(text[start:end + 1])
+            if isinstance(result, list):
+                return result
+        except json.JSONDecodeError:
+            pass
+
+    return None
 
 
 def _generate_expansion_questions(query: str) -> str:
-    """Generate smart questions to expand the scope of the research."""
     try:
         import openai
         client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
@@ -188,7 +255,6 @@ def _generate_expansion_questions(query: str) -> str:
 
 
 def _generate_follow_up(session: DeepDiveSession) -> str:
-    """Generate a follow-up question based on the conversation so far."""
     try:
         import openai
         client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
@@ -215,7 +281,7 @@ def _generate_follow_up(session: DeepDiveSession) -> str:
 
 
 def _generate_research_plan(session: DeepDiveSession) -> List[Dict[str, str]]:
-    """Break the conversation into parallel research tasks."""
+    """Break the conversation into parallel research tasks with robust JSON parsing."""
     try:
         import openai
         client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
@@ -242,14 +308,8 @@ def _generate_research_plan(session: DeepDiveSession) -> List[Dict[str, str]]:
         )
 
         text = resp.choices[0].message.content.strip()
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-            text = text.strip()
-
-        plan = json.loads(text)
-        if isinstance(plan, list):
+        plan = _extract_json_from_llm(text)
+        if plan:
             return plan[:6]
     except Exception as e:
         logger.warning(f"Research plan generation failed: {e}")
@@ -260,7 +320,6 @@ def _generate_research_plan(session: DeepDiveSession) -> List[Dict[str, str]]:
 
 
 def _synthesize_report(session: DeepDiveSession) -> str:
-    """Synthesize all findings into a long-form structured report."""
     try:
         import openai
         client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))

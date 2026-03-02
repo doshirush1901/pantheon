@@ -1,8 +1,12 @@
 """
-IRA Skills as OpenAI-Compatible Tools (P2 Remediation)
+IRA Skills as OpenAI-Compatible Tools
 
-Exposes research_skill, writing_skill, fact_checking_skill as function-calling tools.
-Enables LLM-driven orchestration: Athena (LLM) chooses which skills to call and in what order.
+Exposes research_skill, writing_skill, fact_checking_skill, lead_intelligence
+as function-calling tools. Enables LLM-driven orchestration: Athena (LLM)
+chooses which skills to call and in what order.
+
+All external service calls (Mem0, Qdrant) go through service_health tracking
+so failures are visible instead of silently swallowed.
 """
 
 import json
@@ -28,7 +32,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "web_search",
-            "description": "Search the web for external information. Use for company research, industry news, competitor analysis, market trends, or any information not in our internal knowledge base.",
+            "description": "Search the web for general external information: industry news, competitor analysis, market trends, or any information not in our internal knowledge base.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -36,6 +40,22 @@ IRA_TOOLS_SCHEMA = [
                     "company": {"type": "string", "description": "Company name if researching a specific company"},
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "lead_intelligence",
+            "description": "Get intelligence on a company or lead: recent news, expansions, industry trends, website analysis. Use when preparing for outreach, researching a prospect, or drafting a personalized email.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "company": {"type": "string", "description": "Company name to research"},
+                    "country": {"type": "string", "description": "Country (optional, helps narrow results)"},
+                    "industry": {"type": "string", "description": "Industry sector (optional)"},
+                },
+                "required": ["company"],
             },
         },
     },
@@ -115,9 +135,37 @@ IRA_TOOLS_SCHEMA = [
 ]
 
 
+TOOL_TO_AGENT = {
+    "research_skill": "clio",
+    "web_search": "iris",
+    "lead_intelligence": "iris",
+    "customer_lookup": "clio",
+    "memory_search": "clio",
+    "writing_skill": "calliope",
+    "fact_checking_skill": "vera",
+    "ask_user": "athena",
+}
+
+
 def get_ira_tools_schema() -> List[Dict[str, Any]]:
     """Return OpenAI-compatible tools list for chat.completions.create(tools=...)."""
     return IRA_TOOLS_SCHEMA
+
+
+def _track_agent(context: Dict[str, Any], tool_name: str) -> None:
+    """Record which Pantheon agent was used for this tool call."""
+    agent = TOOL_TO_AGENT.get(tool_name)
+    if agent:
+        context.setdefault("agents_used", []).append(agent)
+
+
+def _health():
+    """Lazy import of service health to avoid circular imports."""
+    try:
+        from openclaw.agents.ira.src.core.service_health import record_failure, record_success
+        return record_failure, record_success
+    except ImportError:
+        return (lambda s, e: None), (lambda s: None)
 
 
 async def execute_tool_call(
@@ -135,7 +183,9 @@ async def execute_tool_call(
     except ImportError:
         return "Error: Skill invocation unavailable."
 
-    # Notify progress callback if available
+    record_failure, record_success = _health()
+    _track_agent(context, tool_name)
+
     progress_fn = context.get("_progress_callback")
     if progress_fn:
         try:
@@ -146,23 +196,22 @@ async def execute_tool_call(
     if tool_name == "research_skill":
         query = arguments.get("query", "")
         results_parts = []
-        
-        # Primary search
+
         result = await invoke_research(query, context)
         if result:
             results_parts.append(f"[primary] {result}")
-        
-        # If primary search returned little, try Qdrant directly with the raw query
+
         if not result or len(result) < 100:
             try:
                 from openclaw.agents.ira.src.brain.qdrant_retriever import retrieve as qdrant_retrieve
                 rag = qdrant_retrieve(query, top_k=8)
+                record_success("qdrant")
                 if hasattr(rag, 'citations') and rag.citations:
                     for c in rag.citations[:5]:
                         results_parts.append(f"[qdrant:{c.filename}] {c.text[:400]}")
-            except Exception:
-                pass
-        
+            except Exception as e:
+                record_failure("qdrant", str(e))
+
         return "\n\n".join(results_parts) if results_parts else "(No results found in knowledge base)"
 
     elif tool_name == "web_search":
@@ -172,22 +221,41 @@ async def execute_tool_call(
             from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
             iris_ctx = {"company": company or query, "query": query}
             iris_result = await iris_enrich(iris_ctx)
+            record_success("iris")
             if iris_result:
-                parts = []
-                for k, v in iris_result.items():
-                    if v:
-                        parts.append(f"{k}: {v}")
+                parts = [f"{k}: {v}" for k, v in iris_result.items() if v]
                 return "\n".join(parts) if parts else "(No web results)"
         except Exception as e:
-            logger.warning(f"Iris web search failed: {e}")
+            record_failure("iris", str(e))
         try:
             import httpx
             resp = httpx.get(f"https://s.jina.ai/{query}", timeout=15, headers={"Accept": "application/json"})
             if resp.status_code == 200:
                 return resp.text[:3000]
-        except Exception:
-            pass
+        except Exception as e:
+            record_failure("jina", str(e))
         return "(Web search unavailable)"
+
+    elif tool_name == "lead_intelligence":
+        company = arguments.get("company", "")
+        country = arguments.get("country", "")
+        industry = arguments.get("industry", "")
+        try:
+            from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
+            iris_ctx = {
+                "company": company,
+                "country": country,
+                "industries": [industry] if industry else [],
+                "query": f"{company} {country} {industry}".strip(),
+            }
+            iris_result = await iris_enrich(iris_ctx)
+            record_success("iris")
+            if iris_result:
+                parts = [f"{k}: {v}" for k, v in iris_result.items() if v]
+                return "\n".join(parts) if parts else f"(No intelligence found for '{company}')"
+        except Exception as e:
+            record_failure("iris", str(e))
+        return f"(Lead intelligence unavailable for '{company}')"
 
     elif tool_name == "customer_lookup":
         query = arguments.get("query", "")
@@ -199,8 +267,9 @@ async def execute_tool_call(
                 memories = mem0.search(query, uid, limit=10)
                 for m in memories:
                     results.append(f"[{uid}] {m.memory}")
+            record_success("mem0")
         except Exception as e:
-            logger.warning(f"Customer lookup Mem0 error: {e}")
+            record_failure("mem0", str(e))
         try:
             result = await invoke_research(f"customer {query}", context)
             if result:
@@ -234,8 +303,9 @@ async def execute_tool_call(
                 memories = mem0.search(query, uid, limit=10)
                 for m in memories:
                     results.append(f"[{uid}] {m.memory}")
+            record_success("mem0")
         except Exception as e:
-            logger.warning(f"Memory search error: {e}")
+            record_failure("mem0", str(e))
         return "\n".join(results) if results else f"(No memories found for '{query}')"
 
     elif tool_name == "writing_skill":

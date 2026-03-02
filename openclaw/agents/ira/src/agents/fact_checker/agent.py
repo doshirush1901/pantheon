@@ -73,7 +73,7 @@ async def verify(
             verified_draft = _add_am_warning(verified_draft, original_query)
             corrections_made.append("Added AM series thickness warning")
     
-    if _needs_pricing_disclaimer(verified_draft):
+    if _needs_pricing_disclaimer(verified_draft, original_query):
         verified_draft = _add_pricing_disclaimer(verified_draft)
         corrections_made.append("Added pricing disclaimer")
     
@@ -87,14 +87,23 @@ async def verify(
     issues.extend(spec_issues)
     
     # ── PASS 2: Retrieval-augmented claim verification (LLM) ─────────
-    # Only run on substantive responses (skip short acks, greetings, etc.)
-    if len(verified_draft) > 150:
+    # Skip only trivial acks/greetings (< 30 chars)
+    if len(verified_draft) > 30:
         rav_result = await _retrieval_augmented_verify(verified_draft, original_query, context)
         if rav_result:
             verified_draft = rav_result["verified_draft"]
             corrections_made.extend(rav_result.get("corrections", []))
             issues.extend(rav_result.get("issues", []))
-    
+
+    # ── PASS 3: Entity cross-reference ────────────────────────────────
+    # Verify company names and roles against source data
+    if len(verified_draft) > 100:
+        xref_result = await _cross_reference_entities(verified_draft, original_query, context)
+        if xref_result and xref_result["corrections"]:
+            verified_draft = xref_result["corrected_draft"]
+            corrections_made.extend(xref_result["corrections"])
+            issues.extend(xref_result["issues"])
+
     logger.info({
         "agent": "Vera",
         "event": "verification_complete",
@@ -260,9 +269,22 @@ def _add_am_warning(draft: str, query: str) -> str:
     return draft + warning
 
 
-def _needs_pricing_disclaimer(draft: str) -> bool:
-    """Check if draft mentions pricing and needs disclaimer."""
-    # Check for price indicators
+def _needs_pricing_disclaimer(draft: str, original_query: str = "") -> bool:
+    """Check if draft mentions pricing and needs disclaimer.
+    
+    Skips non-sales contexts (dream summaries, status checks, training) to
+    avoid false positives.
+    """
+    if original_query:
+        query_lower = original_query.lower()
+        non_sales_indicators = [
+            "dream", "summary", "journal", "status", "memories", "teach",
+            "train", "/", "self-test", "self test", "error", "lesson",
+            "health", "score", "debug",
+        ]
+        if any(ind in query_lower for ind in non_sales_indicators):
+            return False
+
     price_patterns = [
         r'₹\s*[\d.]+',
         r'Rs\.?\s*[\d.]+',

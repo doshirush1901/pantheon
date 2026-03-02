@@ -13,6 +13,30 @@ logger = logging.getLogger("ira.tool_orchestrator")
 MAX_TOOL_ROUNDS = 15
 
 
+def _get_training_guidance() -> str:
+    """Load training weights and generate a caution note for weak knowledge areas.
+    
+    This closes the loop between the brain_trainer quiz system and actual
+    response generation — weak areas get flagged in the system prompt.
+    """
+    try:
+        import json
+        from pathlib import Path
+        weights_file = Path(__file__).parent.parent.parent.parent.parent / "data" / "brain" / "training_weights.json"
+        if not weights_file.exists():
+            return ""
+        weights = json.loads(weights_file.read_text())
+        weak_areas = [cat for cat, w in weights.items() if isinstance(w, dict) and w.get("weight", 1.0) < 0.6]
+        if not weak_areas:
+            return ""
+        return (
+            f"\nCAUTION: You have historically been weak on: {', '.join(weak_areas)}. "
+            f"Double-check any claims in these areas against the knowledge base."
+        )
+    except Exception:
+        return ""
+
+
 async def process_with_tools(
     message: str,
     channel: str = "api",
@@ -125,7 +149,8 @@ or option from your previous response. Resolve the reference and act on it.
 {"INTERNAL USER: This is Rushabh (founder). Be direct, share everything freely." if is_internal else "EXTERNAL USER: Be helpful but protect sensitive internal information."}
 
 {f"RECENT CONVERSATION:{chr(10)}{conversation_history}" if conversation_history else ""}
-{f"WHAT I REMEMBER:{chr(10)}{mem0_context}" if mem0_context else ""}"""
+{f"WHAT I REMEMBER:{chr(10)}{mem0_context}" if mem0_context else ""}
+{_get_training_guidance()}"""
 
     # Check truth hints FIRST -- self-knowledge questions don't need tools
     try:

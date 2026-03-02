@@ -1,7 +1,7 @@
 """
-Athena - Chief of Staff
+Intent Helpers (formerly Chief of Staff)
 
-Orchestration and planning services.
+Advisory utilities for intent classification and planning.
 """
 
 from .agent import (
@@ -9,7 +9,6 @@ from .agent import (
     get_recommended_skills,
     create_plan,
     synthesize_response,
-    orchestrate_request,
     get_intent,
     Plan,
     OrchestrationResult,
@@ -17,10 +16,9 @@ from .agent import (
 
 __all__ = [
     "analyze_intent",
-    "get_recommended_skills", 
+    "get_recommended_skills",
     "create_plan",
     "synthesize_response",
-    "orchestrate_request",
     "get_intent",
     "Plan",
     "OrchestrationResult",

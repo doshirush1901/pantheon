@@ -45,8 +45,12 @@ NEGATIVE_PATTERNS = [
 ]
 
 
-def detect_feedback(message: str) -> Tuple[Optional[str], float]:
+def detect_feedback(message: str, previous_response: str = "") -> Tuple[Optional[str], float]:
     """Detect if a message is positive or negative feedback.
+    
+    Uses pattern matching for clear-cut cases and an LLM for ambiguous ones
+    (e.g. "actually, can you tell me about PF2?" is NOT feedback despite
+    containing "actually,").
     
     Returns: (feedback_type, confidence) where feedback_type is 'positive', 'negative', or None.
     """
@@ -61,14 +65,62 @@ def detect_feedback(message: str) -> Tuple[Optional[str], float]:
     if pos_hits == 0 and neg_hits == 0:
         return None, 0.0
 
+    # High-confidence cases: skip LLM
+    if pos_hits >= 3 and neg_hits == 0:
+        return "positive", 0.9
+    if neg_hits >= 3 and pos_hits == 0:
+        return "negative", 0.9
+
+    # Ambiguous cases (mixed signals or low hit count): use LLM to disambiguate
+    if (pos_hits > 0 and neg_hits > 0) or max(pos_hits, neg_hits) <= 1:
+        llm_result = _llm_classify_feedback(message, previous_response)
+        if llm_result:
+            return llm_result, 0.75
+
+    # Fall back to pattern majority with capped confidence
     if pos_hits > neg_hits:
-        confidence = min(0.5 + pos_hits * 0.15, 0.95)
-        return "positive", confidence
+        return "positive", min(0.5 + pos_hits * 0.15, 0.7)
     elif neg_hits > pos_hits:
-        confidence = min(0.5 + neg_hits * 0.15, 0.95)
-        return "negative", confidence
-    else:
-        return None, 0.0
+        return "negative", min(0.5 + neg_hits * 0.15, 0.7)
+    return None, 0.0
+
+
+def _llm_classify_feedback(message: str, previous_response: str) -> Optional[str]:
+    """Use gpt-4o-mini to classify ambiguous messages as feedback or not."""
+    try:
+        import openai
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            return None
+
+        client = openai.OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "Classify this message. Is it:\n"
+                    "A) POSITIVE feedback about the previous response (praise, thanks, confirmation)\n"
+                    "B) NEGATIVE feedback about the previous response (correction, complaint, disagreement)\n"
+                    "C) NOT feedback (new question, topic change, continuation of conversation)\n\n"
+                    "Output ONLY one word: POSITIVE, NEGATIVE, or NONE"
+                )},
+                {"role": "user", "content": (
+                    f"PREVIOUS RESPONSE: {previous_response[:300]}\n\n"
+                    f"USER MESSAGE: {message}"
+                )},
+            ],
+            max_tokens=10,
+            temperature=0.0,
+        )
+        result = resp.choices[0].message.content.strip().upper()
+        if "POSITIVE" in result:
+            return "positive"
+        if "NEGATIVE" in result:
+            return "negative"
+        return None
+    except Exception as e:
+        logger.debug(f"LLM feedback classification failed: {e}")
+        return None
 
 
 def _load_agent_scores() -> Dict:
@@ -337,8 +389,15 @@ def _extract_and_store_corrections(user_message: str, previous_response: str) ->
     return stored
 
 
-def _identify_agents_used(generation_path: str) -> List[str]:
-    """Identify which agents were involved based on the generation path."""
+def _identify_agents_used(generation_path: str, agents_used: Optional[List[str]] = None) -> List[str]:
+    """Identify which agents were involved.
+    
+    Prefers the explicit agents_used list (populated by tool_orchestrator) over
+    string-matching on generation_path (legacy fallback).
+    """
+    if agents_used:
+        return list(set(["athena"] + agents_used))
+
     path_lower = (generation_path or "").lower()
     agents = ["athena"]
     if "research" in path_lower or "clio" in path_lower:
