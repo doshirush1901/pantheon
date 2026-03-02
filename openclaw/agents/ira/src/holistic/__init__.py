@@ -12,6 +12,8 @@ Ira's cognitive health:
 4. Musculoskeletal  - Action-to-learning feedback loops
 5. Sensory          - Cross-channel integration and perception
 6. Metabolic        - Active knowledge hygiene and cleanup
+7. Voice            - Adaptive tone, length, and format shaping
+8. Growth Signal    - Unified feedback signal that stimulates all systems
 """
 
 from .immune_system import ImmuneSystem, get_immune_system
@@ -20,6 +22,8 @@ from .endocrine_system import EndocrineSystem, get_endocrine_system
 from .musculoskeletal_system import MusculoskeletalSystem, get_musculoskeletal_system
 from .sensory_system import SensoryIntegrator, get_sensory_integrator
 from .metabolic_system import MetabolicSystem, get_metabolic_system
+from .voice_system import VoiceSystem, get_voice_system
+from .growth_signal import signal_email_digested, signal_bulk_ingestion
 from .vital_signs import VitalSigns, collect_vital_signs
 
 __all__ = [
@@ -29,5 +33,7 @@ __all__ = [
     "MusculoskeletalSystem", "get_musculoskeletal_system",
     "SensoryIntegrator", "get_sensory_integrator",
     "MetabolicSystem", "get_metabolic_system",
+    "VoiceSystem", "get_voice_system",
+    "signal_email_digested", "signal_bulk_ingestion",
     "VitalSigns", "collect_vital_signs",
 ]

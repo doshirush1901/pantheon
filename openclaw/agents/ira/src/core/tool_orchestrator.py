@@ -3,13 +3,9 @@ Tool-Orchestrator Gateway (P2 Remediation)
 
 LLM-driven pipeline: Athena (LLM) chooses which skills to call via tool use.
 Alternative to the fixed research->write->verify sequence in UnifiedGateway.
-
-Phase 3 Endocrine: Agent scores influence tool selection - prefer higher-performing agents.
 """
 
-import json
 import logging
-from pathlib import Path
 from typing import Any, Dict, List
 
 logger = logging.getLogger("ira.tool_orchestrator")
@@ -39,27 +35,6 @@ def _get_training_guidance() -> str:
         )
     except Exception:
         return ""
-
-
-def _get_agent_scores_prompt() -> str:
-    """Load agent scores and format for system prompt (endocrine feedback loop)."""
-    root = Path(__file__).parent.parent.parent.parent.parent
-    for path in [
-        root / "openclaw" / "data" / "learned_lessons" / "agent_scores.json",
-        root / "data" / "learned_lessons" / "agent_scores.json",
-    ]:
-        if path.exists():
-            try:
-                data = json.loads(path.read_text())
-                lines = ["AGENT CONFIDENCE (prefer higher for ambiguous tasks):"]
-                for agent, info in sorted(data.items(), key=lambda x: -x[1].get("score", 0)):
-                    s = info.get("score", 0)
-                    tool = {"clio": "research_skill", "calliope": "writing_skill", "vera": "fact_checking_skill", "iris": "web_search (company intel)", "athena": "orchestrator"}.get(agent, agent)
-                    lines.append(f"  {agent}: {s:.2f} → {tool}")
-                return "\n".join(lines) + "\n"
-            except Exception:
-                pass
-    return ""
 
 
 async def process_with_tools(
@@ -194,8 +169,6 @@ RULES
 - NEVER respond without calling at least one tool first.
 - Keep final responses concise and natural (no report formatting).
 
-{_get_agent_scores_prompt()}
-
 SHORT REFERENCES: If the user sends just a number ("1.", "2", "3.") or a very short message,
 look at the RECENT CONVERSATION for context. They are likely selecting a follow-up question
 or option from your previous response. Resolve the reference and act on it.
@@ -265,6 +238,15 @@ or option from your previous response. Resolve the reference and act on it.
                             final = action.override_response
                     except Exception:
                         pass
+            except Exception:
+                pass
+
+            # VOICE: Reshape response for channel and message complexity
+            try:
+                from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
+                final = get_voice_system().reshape(
+                    final, channel=channel, message=message,
+                )
             except Exception:
                 pass
 

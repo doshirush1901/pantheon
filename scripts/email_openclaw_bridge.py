@@ -791,19 +791,6 @@ class IraAgentBridge:
         except Exception as e:
             logger.warning(f"Error recording quote: {e}")
     
-    def _check_customer_positive_feedback(self, from_email: str, body: str, previous_response: str):
-        """Beyond the Brain Phase 9: Detect customer positive feedback and boost agent scores."""
-        try:
-            from openclaw.agents.ira.src.brain.feedback_handler import handle_customer_positive_feedback
-            handle_customer_positive_feedback(
-                customer_message=body,
-                ira_previous_response=previous_response or "",
-                from_email=from_email,
-                generation_path="email_pipeline",
-            )
-        except Exception as e:
-            logger.debug(f"Customer feedback detection (non-fatal): {e}")
-
     def _update_customer_engagement(self, from_email: str):
         """Update customer engagement metrics after interaction."""
         if not self.health_scorer_available or not self.health_scorer:
@@ -1567,7 +1554,63 @@ class EmailIraBridge:
                     response=response,
                     success=True
                 )
-                
+
+                # GROWTH HORMONE: Digest the email into permanent knowledge
+                try:
+                    sys.path.insert(0, str(PROJECT_ROOT / "openclaw" / "agents" / "ira" / "src" / "brain"))
+                    from email_nutrient_extractor import extract_email_knowledge
+
+                    # Ingest the inbound email
+                    inbound_items = extract_email_knowledge(
+                        subject=subject, body=body, from_email=from_email,
+                        to_email=os.environ.get("IRA_EMAIL", "ira@machinecraft.org"),
+                        direction="inbound", date_str=datetime.now().isoformat(),
+                    )
+
+                    # Ingest Ira's outbound reply (training data for how she should respond)
+                    outbound_items = extract_email_knowledge(
+                        subject=f"Re: {subject}", body=response, from_email="ira@machinecraft.org",
+                        to_email=from_email, direction="outbound",
+                        date_str=datetime.now().isoformat(), use_llm=False,
+                    )
+
+                    all_items = inbound_items + outbound_items
+                    if all_items:
+                        try:
+                            from knowledge_ingestor import KnowledgeIngestor
+                            result = KnowledgeIngestor().ingest_batch(all_items)
+                            logger.info(f"[GROWTH] Digested email: {result.items_ingested} items ingested")
+                        except Exception as ki_err:
+                            logger.debug(f"[GROWTH] KnowledgeIngestor unavailable: {ki_err}")
+
+                    # Also index raw email for RAG retrieval
+                    try:
+                        from realtime_indexer import index_new_email
+                        idx_result = index_new_email(
+                            email_id=hash(email_id) % (10**9),
+                            subject=subject, body=body, from_email=from_email,
+                            to_email=os.environ.get("IRA_EMAIL", ""),
+                            date=datetime.now(), direction="inbound",
+                        )
+                        logger.info(f"[GROWTH] RAG indexed: {idx_result.get('chunks', 0)} chunks")
+                    except Exception as idx_err:
+                        logger.debug(f"[GROWTH] realtime_indexer unavailable: {idx_err}")
+
+                    # Fire holistic growth signal
+                    try:
+                        from openclaw.agents.ira.src.holistic.growth_signal import signal_email_digested
+                        signal_email_digested(
+                            email_id=email_id,
+                            items_extracted=len(all_items),
+                            channel="email",
+                            contact_id=from_email,
+                        )
+                    except Exception:
+                        pass
+
+                except Exception as growth_err:
+                    logger.debug(f"[GROWTH] Email digestion skipped: {growth_err}")
+
                 return True
         else:
             logger.warning(f"No response from IRA for email from {from_email}")

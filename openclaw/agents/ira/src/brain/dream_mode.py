@@ -259,10 +259,11 @@ class IntegratedDreamMode:
             r'industry.*report', r'analysis', r'whitepaper'
         ],
         DocumentPriority.MEDIUM: [
-            r'quote', r'quotation', r'offer', r'proposal', r'inquiry'
+            r'quote', r'quotation', r'offer', r'proposal', r'inquiry',
+            r'gmail', r'email',
         ],
         DocumentPriority.LOW: [
-            r'gmail', r'email', r'message', r'reply', r'forward'
+            r'message', r'reply', r'forward',
         ],
         DocumentPriority.SKIP: [
             r'receipt', r'invoice', r'payment', r'subscription', r'unsubscribe'
@@ -1635,59 +1636,6 @@ _Dream duration: {duration:.0f}s_"""
         logger.info("Phase 6: Analyzing conversation quality...")
         conversation_analysis = self._analyze_conversation_quality()
         
-        # Phase 6.5: Immune Remediation (Beyond the Brain - recurring issues → resolution)
-        immune_remediation = {"remediated": 0, "recurring": []}
-        try:
-            sys.path.insert(0, str(BRAIN_DIR))
-            from knowledge_health import get_health_monitor
-            monitor = get_health_monitor()
-            immune_remediation = monitor.run_remediation_for_recurring(
-                threshold=3,
-                send_telegram=True,
-                add_to_dream_backlog=True,
-            )
-            if immune_remediation.get("remediated", 0) > 0 or immune_remediation.get("recurring"):
-                logger.info(f"Immune remediation: {immune_remediation.get('remediated', 0)} actions, "
-                           f"{len(immune_remediation.get('recurring', []))} recurring issue types")
-        except Exception as e:
-            logger.warning(f"Immune remediation skipped: {e}")
-
-        # Phase 6.6: Knowledge Hygiene (Beyond the Brain - Kidney system)
-        knowledge_hygiene = {"issues": 0}
-        try:
-            sys.path.insert(0, str(BRAIN_DIR))
-            from knowledge_hygiene import run_knowledge_hygiene
-            hygiene_report = run_knowledge_hygiene(
-                check_corrections=True,
-                check_hard_rules=True,
-                append_backlog=True,
-                dry_run=False,
-            )
-            knowledge_hygiene = {
-                "issues": len(hygiene_report.issues),
-                "corrections_checked": hygiene_report.corrections_checked,
-                "remediated": getattr(hygiene_report, "remediated", 0),
-            }
-            if hygiene_report.issues:
-                logger.info(f"Knowledge hygiene: {len(hygiene_report.issues)} issues (queued for review)")
-        except Exception as e:
-            logger.warning(f"Knowledge hygiene skipped: {e}")
-
-        # Phase 6.7: Memory Decay (PostgreSQL kidney - decay unused episodic/semantic memories)
-        memory_decay = {"decayed": 0, "archived": 0}
-        try:
-            sys.path.insert(0, str(SKILLS_DIR / "memory"))
-            from unified_decay import decay_memories
-            decay_result = decay_memories(identity_id=None, include_prune=False)
-            memory_decay = {
-                "decayed": decay_result.memories_decayed,
-                "archived": decay_result.memories_archived,
-            }
-            if decay_result.memories_decayed or decay_result.memories_archived:
-                logger.info(f"Memory decay: {decay_result.memories_decayed} decayed, {decay_result.memories_archived} archived")
-        except Exception as e:
-            logger.warning(f"Memory decay skipped: {e}")
-
         # Phase 7: Learn from Corrections (NEW!)
         logger.info("Phase 7: Learning from corrections...")
         corrections = self._learn_from_corrections()
@@ -1715,9 +1663,6 @@ _Dream duration: {duration:.0f}s_"""
             "metadata_index": index_result,
             "consolidation": consolidation_result,
             "conversation_analysis": conversation_analysis,
-            "immune_remediation": immune_remediation,
-            "knowledge_hygiene": knowledge_hygiene,
-            "memory_decay": memory_decay,
             "corrections_learned": corrections.get("corrections_found", 0),
             "memory_consolidation": memory_consolidation,
             "duration_seconds": duration,
@@ -1740,15 +1685,6 @@ _Dream duration: {duration:.0f}s_"""
             print(f"   Conversation gaps: {len(conversation_analysis['poor_retrievals'])} queries need better coverage")
         if corrections.get("corrections_found", 0) > 0:
             print(f"   Corrections reinforced: {corrections['corrections_found']}")
-        if immune_remediation.get("remediated", 0) > 0 or immune_remediation.get("recurring"):
-            print(f"   🛡️ Immune remediation: {immune_remediation.get('remediated', 0)} actions for "
-                  f"{len(immune_remediation.get('recurring', []))} recurring issue types")
-        if knowledge_hygiene.get("issues", 0) > 0:
-            remediated = knowledge_hygiene.get("remediated", 0)
-            print(f"   🫘 Knowledge hygiene: {knowledge_hygiene['issues']} issues"
-                  f"{f', {remediated} remediated to Mem0' if remediated else ''} (queued for review)")
-        if memory_decay.get("decayed", 0) or memory_decay.get("archived", 0):
-            print(f"   🧹 Memory decay: {memory_decay.get('decayed', 0)} decayed, {memory_decay.get('archived', 0)} archived")
         if memory_consolidation.get("patterns_found", 0) > 0:
             print(f"   🧠 Memory consolidation: {memory_consolidation['patterns_found']} patterns → "
                   f"{memory_consolidation.get('facts_created', 0)} facts, "
@@ -1791,7 +1727,34 @@ _Dream duration: {duration:.0f}s_"""
             "stored": getattr(interaction_learning_result, 'learnings_stored', 0),
             "by_type": getattr(interaction_learning_result, 'learnings_by_type', {}),
         }
-        
+
+        # Phase 8.5: EMAIL KNOWLEDGE REVIEW
+        print("\n📧 Phase 8.5: Reviewing email-derived knowledge...")
+        email_review_result = {"items_reviewed": 0, "conflicts_found": 0}
+        try:
+            import json as _json
+            audit_file = PROJECT_ROOT / "data" / "knowledge" / "audit.jsonl"
+            if audit_file.exists():
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                email_items_today = 0
+                for line in audit_file.read_text().splitlines()[-500:]:
+                    try:
+                        entry = _json.loads(line)
+                        if (entry.get("source_file", "").startswith("email_") and
+                                entry.get("timestamp", "").startswith(today_str)):
+                            email_items_today += 1
+                    except (ValueError, KeyError):
+                        continue
+                email_review_result["items_reviewed"] = email_items_today
+                if email_items_today > 0:
+                    print(f"   📧 {email_items_today} email-derived knowledge items ingested today")
+                else:
+                    print("   No email-derived knowledge today")
+        except Exception as e:
+            print(f"   ⚠ Email knowledge review error: {e}")
+
+        result["email_knowledge_review"] = email_review_result
+
         # Phase 9: Follow-Up Automation
         print("\n📋 Phase 9: Checking for stale quotes...")
         follow_up_result = {"suggestions": 0, "digest_sent": False}
@@ -1879,6 +1842,14 @@ _Dream duration: {duration:.0f}s_"""
             resp.record_dream_mode(completed=True, duration_s=dream_duration)
         except Exception as e:
             print(f"   ⚠ Respiratory recording error: {e}")
+
+        try:
+            from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
+            voice_maint = get_voice_system().run_voice_maintenance()
+            holistic_result["voice_maintenance"] = voice_maint
+            print(f"   🗣 Voice: {voice_maint.get('voice_status', 'unknown')} ({voice_maint.get('total_reshapes', 0)} reshapes)")
+        except Exception as e:
+            print(f"   ⚠ Voice maintenance error: {e}")
 
         result["holistic"] = holistic_result
 

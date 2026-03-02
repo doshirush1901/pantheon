@@ -54,7 +54,10 @@ The file should look like:
         from google_auth_oauthlib.flow import InstalledAppFlow
         from google.auth.transport.requests import Request
         
-        SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+        SCOPES = [
+            'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.readonly',
+        ]
         
         creds = None
         if token_path.exists():
@@ -76,9 +79,13 @@ The file should look like:
             print(f"[setup] Token saved to: {token_path}")
         
         print("\n✅ Gmail setup complete!")
-        print("You can now send emails with IRA.")
-        print("\nTest with:")
-        print("  python3 openclaw/agents/ira/skills/brain/knowledge_validator.py --to your@email.com")
+        print("You can now send AND read emails with IRA.")
+        print("\nTo ingest your mailbox into Ira's knowledge base:")
+        print("  python scripts/ingest_mailbox.py --dry-run    # Preview")
+        print("  python scripts/ingest_mailbox.py              # Full scan")
+        print("  python scripts/ingest_mailbox.py --since 2024-01-01  # Since date")
+        print("\nNote: If you previously authorized with send-only scope,")
+        print("delete token.json and re-run this script to get read access.")
         
     except ImportError:
         print("Installing required packages...")

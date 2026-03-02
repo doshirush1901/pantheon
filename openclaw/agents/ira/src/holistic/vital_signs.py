@@ -46,6 +46,7 @@ class VitalSigns:
     musculoskeletal: Dict
     sensory: Dict
     metabolic: Dict
+    voice: Dict
     alerts: List[str] = field(default_factory=list)
     recommendations: List[str] = field(default_factory=list)
 
@@ -191,6 +192,25 @@ def collect_vital_signs() -> Dict:
         system_scores["metabolic"] = 0.5
         logger.warning(f"[VITALS] Metabolic system check failed: {e}")
 
+    # --- VOICE SYSTEM ---
+    try:
+        from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
+        voice = get_voice_system()
+        voice_report = voice.get_voice_report()
+
+        if voice_report["status"] == "over_trimming":
+            system_scores["voice"] = 0.5
+            recommendations.append("Voice is trimming too aggressively — responses may feel terse")
+        elif voice_report["status"] == "verbose":
+            system_scores["voice"] = 0.6
+            recommendations.append("Voice compression ratio is high — responses may be too long")
+        else:
+            system_scores["voice"] = 0.9
+    except Exception as e:
+        voice_report = {"error": str(e)}
+        system_scores["voice"] = 0.5
+        logger.warning(f"[VITALS] Voice system check failed: {e}")
+
     # --- OVERALL ASSESSMENT ---
     avg_score = sum(system_scores.values()) / max(len(system_scores), 1)
     min_score = min(system_scores.values()) if system_scores else 0
@@ -215,6 +235,7 @@ def collect_vital_signs() -> Dict:
         "musculoskeletal": musculo_report,
         "sensory": sensory_report,
         "metabolic": metabolic_report,
+        "voice": voice_report,
         "alerts": alerts,
         "recommendations": recommendations,
     }
@@ -249,6 +270,7 @@ def format_vitals_telegram(report: Dict) -> str:
         "musculoskeletal": "💪 Musculoskeletal",
         "sensory": "👁 Sensory",
         "metabolic": "🔄 Metabolic",
+        "voice": "🗣 Voice",
     }
 
     for key, name in system_names.items():
