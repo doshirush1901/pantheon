@@ -557,22 +557,7 @@ class IraAgentBridge:
                 total_elapsed = time.time() - start_time
                 logger.info(f"\n✅ COMPLETE PIPELINE finished in {total_elapsed:.1f}s")
                 
-                # Also record in IRA's episodic memory
-                try:
-                    if hasattr(self.agent, '_record_episode'):
-                        from openclaw.agents.ira.agent import AgentRequest, Channel
-                        request = AgentRequest(
-                            message=body,
-                            user_id=from_email,
-                            channel=Channel.EMAIL,
-                            thread_id=thread_id
-                        )
-                        self.agent._record_episode(
-                            request, response_text, from_email,
-                            research_result.understanding.entities
-                        )
-                except Exception as e:
-                    logger.debug(f"Episode recording: {e}")
+                # Episode recording removed — agent.py was archived (deprecated)
                 
                 return response_text
             

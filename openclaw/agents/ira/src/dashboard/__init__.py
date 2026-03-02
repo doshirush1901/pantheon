@@ -3,9 +3,5 @@ Dashboard Package
 ==================
 
 Telegram Web App Dashboard for IRA.
-Provides relationship graph visualization and customer insights.
+Archived — app.py moved to _archive/dead_code_2026_03_03/dashboard/
 """
-
-from .app import app, run_dashboard
-
-__all__ = ["app", "run_dashboard"]
