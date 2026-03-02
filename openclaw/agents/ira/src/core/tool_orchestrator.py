@@ -131,17 +131,27 @@ or option from your previous response. Resolve the reference and act on it.
 {f"RECENT CONVERSATION:{chr(10)}{conversation_history}" if conversation_history else ""}
 {f"WHAT I REMEMBER:{chr(10)}{mem0_context}" if mem0_context else ""}"""
 
-    # Check truth hints FIRST -- self-knowledge questions don't need tools
-    try:
-        from openclaw.agents.ira.src.brain.truth_hints import get_truth_hint
-        hint = get_truth_hint(message)
-        if hint and hint.confidence >= 0.9:
-            logger.info(f"[Athena] Truth hint matched: {hint.id} (conf={hint.confidence})")
-            return hint.answer
-    except ImportError:
-        pass
-    except Exception:
-        pass
+    # Check truth hints for simple, short questions only.
+    # Complex multi-part requests must go through the full agentic pipeline.
+    _is_complex = (
+        len(message) > 300
+        or message.count("\n") > 3
+        or sum(1 for c in message if c in "0123456789") > 5
+        or any(w in message.lower() for w in ["draft", "email", "research", "remind me", "who else", "also,"])
+    )
+    if not _is_complex:
+        try:
+            from openclaw.agents.ira.src.brain.truth_hints import get_truth_hint
+            hint = get_truth_hint(message)
+            if hint and hint.confidence >= 0.9:
+                logger.info(f"[Athena] Truth hint matched: {hint.id} (conf={hint.confidence})")
+                return hint.answer
+        except ImportError:
+            pass
+        except Exception:
+            pass
+    else:
+        logger.info(f"[Athena] Complex request detected ({len(message)} chars, {message.count(chr(10))} lines) — skipping truth hints, using full pipeline")
 
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": system},

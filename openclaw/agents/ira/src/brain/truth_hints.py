@@ -253,7 +253,7 @@ Choose PF1 for heavy-gauge industrial forming, PF2 ONLY for bathtubs/spa shells.
         ],
         answer="""AM Series - Entry-level Vacuum Forming Machines:
 
-The AM Series is designed for THIN GAUGE materials ONLY (maximum 2mm thickness).
+The AM Series is designed for THIN GAUGE materials ONLY (maximum 1.5mm thickness).
 
 **Key Models:**
 - AM-5060: INR 7,50,000 - 500x600mm forming area
@@ -263,29 +263,27 @@ The AM Series is designed for THIN GAUGE materials ONLY (maximum 2mm thickness).
 - AMP-5060: INR 35,00,000 - pressure forming version
 
 **CRITICAL LIMITATION:**
-AM Series can only handle sheet thickness UP TO 2mm maximum. For materials thicker than 2mm (e.g., 4mm ABS), you MUST use the PF1 Series instead.
+AM Series can only handle sheet thickness UP TO 1.5mm maximum. For materials thicker than 1.5mm (e.g., 2mm+, 4mm ABS), you MUST use the PF1 Series instead.
 
 **When to use AM vs PF1:**
-- AM Series: Sheet thickness ≤2mm, blister packs, thin-wall parts
-- PF1 Series: Sheet thickness >2mm, heavy-gauge forming, deep draws""",
+- AM Series: Sheet thickness ≤1.5mm, blister packs, thin-wall parts
+- PF1 Series: Sheet thickness >1.5mm, heavy-gauge forming, deep draws""",
         category="product",
         keywords=["am", "am-m", "am-v", "am-p", "thin", "5060", "6060"],
     ),
     TruthHint(
         id="machine_selection_thickness",
         question_patterns=[
-            r"which machine.*thick|thick.*which machine",
-            r"what machine.*mm|.*mm.*machine",
-            r"suggest.*machine.*material|recommend.*machine",
-            r"machine for.*abs|abs.*machine",
-            r"budget.*machine|machine.*budget",
+            r"^which machine.*thick|^what machine.*\d+\s*mm$",
+            r"^.*\d+\s*mm.*which machine\??$",
+            r"^suggest.*machine.*\d+\s*mm|^recommend.*machine.*\d+\s*mm",
         ],
         answer="""Machine Selection by Material Thickness:
 
-**For material thickness ≤2mm:**
+**For material thickness ≤1.5mm:**
 → AM Series (budget-friendly, INR 7.5L - 50L)
 
-**For material thickness >2mm (3mm, 4mm, 5mm+):**  
+**For material thickness >1.5mm (2mm, 3mm, 4mm, 5mm+):**
 → PF1 Series ONLY (INR 33L - 80L depending on size)
 
 **PF1 Size Selection (for 4x8 feet / 1220x2440mm sheets):**
@@ -308,8 +306,8 @@ AM Series can only handle sheet thickness UP TO 2mm maximum. For materials thick
 
 The model number indicates forming area: PF1-C-XXYY = XX00 x YY00 mm""",
         category="technical",
-        keywords=["machine", "thick", "mm", "suggest", "recommend", "abs", "budget", "which", "size"],
-        confidence=0.98,
+        keywords=["thick", "mm"],
+        confidence=0.90,
     ),
     TruthHint(
         id="fcs_trimming",
@@ -618,8 +616,24 @@ class TruthHintMatcher:
         return results[:max_hints]
 
 
+def _is_complex_query(query: str) -> bool:
+    """Detect multi-part or complex requests that should NOT be short-circuited."""
+    if len(query) > 300:
+        return True
+    if query.count("\n") > 3:
+        return True
+    complexity_signals = ["draft", "email", "research", "remind me", "who else",
+                          "also,", "also ", "and also", "can you also",
+                          "give me", "list of", "customers in"]
+    if sum(1 for s in complexity_signals if s in query.lower()) >= 2:
+        return True
+    return False
+
+
 def get_truth_hint(query: str) -> Optional[TruthHint]:
-    """Get the best truth hint for a query."""
+    """Get the best truth hint for a query. Returns None for complex multi-part requests."""
+    if _is_complex_query(query):
+        return None
     matcher = TruthHintMatcher()
     return matcher.find_hint(query)
 
