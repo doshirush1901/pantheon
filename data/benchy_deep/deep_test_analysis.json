@@ -1,18 +1,8 @@
 {
-  "timestamp": "2026-03-03T00:04:07.395471",
-  "total_scenarios": 1,
-  "avg_score": 10.0,
-  "dimension_summary": {
-    "real_sales": {
-      "scores": [
-        10
-      ],
-      "errors": 2,
-      "bugs": [],
-      "avg_score": 10.0,
-      "scenario_count": 1
-    }
-  },
+  "timestamp": "2026-03-03T00:29:51.056448",
+  "total_scenarios": 0,
+  "avg_score": 0.0,
+  "dimension_summary": {},
   "all_bugs": [],
-  "pass_rate": 1.0
+  "pass_rate": 0.0
 }

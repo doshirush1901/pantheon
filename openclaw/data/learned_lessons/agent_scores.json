@@ -1,32 +1,47 @@
 {
   "clio": {
-    "score": 0.73,
+    "score": 0.68,
     "successes": 3,
-    "failures": 1
+    "failures": 2
   },
   "calliope": {
-    "score": 0.73,
+    "score": 0.68,
     "successes": 3,
-    "failures": 1
+    "failures": 2
   },
   "vera": {
-    "score": 0.73,
+    "score": 0.68,
     "successes": 3,
-    "failures": 1
+    "failures": 2
   },
   "iris": {
-    "score": 0.5,
+    "score": 0.45,
     "successes": 0,
-    "failures": 0
+    "failures": 1
   },
   "sophia": {
+    "score": 0.65,
+    "successes": 0,
+    "failures": 1
+  },
+  "athena": {
+    "score": 0.78,
+    "successes": 7,
+    "failures": 2
+  },
+  "plutus": {
     "score": 0.7,
     "successes": 0,
     "failures": 0
   },
-  "athena": {
-    "score": 0.77,
-    "successes": 5,
-    "failures": 1
+  "prometheus": {
+    "score": 0.7,
+    "successes": 0,
+    "failures": 0
+  },
+  "hermes": {
+    "score": 0.7,
+    "successes": 0,
+    "failures": 0
   }
 }

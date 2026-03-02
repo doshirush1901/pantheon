@@ -1,0 +1,14 @@
+{
+  "total_reshapes": 10,
+  "total_trims": 2,
+  "total_expansions": 0,
+  "avg_compression_ratio": 0.9888,
+  "user_preferences": {},
+  "channel_stats": {
+    "benchy_deep": {
+      "reshapes": 10,
+      "trims": 2
+    }
+  },
+  "last_updated": "2026-03-02T23:44:54.341618"
+}

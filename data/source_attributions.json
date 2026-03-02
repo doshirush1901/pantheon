@@ -70,7 +70,7 @@
     "fact_content": "{'machine_model': 'PF1-C-3020', 'prices': [{'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type machine.\\nSpecification PF1 Series (Base Config)\\nMachine Model '}, {'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type machine.\\nSpecification PF1 Series (Base Config)\\nMachine Model '}, {'price_inr':",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.730662",
+    "source_date": "2026-03-02T17:41:53.881112",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -81,7 +81,7 @@
     "fact_content": "{'machine_model': 'PF1-C-2525', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': '29.0 | Georg Fischer | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics |'}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': '29.0 | Georg Fischer | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics |'}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'contex",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.732077",
+    "source_date": "2026-03-02T17:41:53.882350",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -92,7 +92,7 @@
     "fact_content": "{'machine_model': 'PF1-X-1210', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'scher | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics | Phillipines | '}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'scher | Finland | Christie Anderson | PF1-C-2525 | 120K | EUR\\n30.0 | Manly Plastics | Phillipines | '}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'contex",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.732546",
+    "source_date": "2026-03-02T17:41:53.883045",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -103,7 +103,7 @@
     "fact_content": "{'machine_model': 'PF1-X-1510', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'ld Machine\\n32.0 | Paracoat | India | Sanjay | AM-M-1807\\n33.0 | Bega | Idris Zamard | www.bega.com | '}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'ld Machine\\n32.0 | Paracoat | India | Sanjay | AM-M-1807\\n33.0 | Bega | Idris Zamard | www.bega.com | '}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'cont",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.733146",
+    "source_date": "2026-03-02T17:41:53.883560",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -114,7 +114,7 @@
     "fact_content": "{'machine_model': 'PF1-C-1510', 'prices': [{'price_inr': 4100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ' | Dott Mazza | www.apform.it\\n36.0 | Plastiart | jf.deltenre@plastiart.com | Belgium | Jean | CEO | '}, {'price_inr': 3000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ' | Dott Mazza | www.apform.it\\n36.0 | Plastiart | jf.deltenre@plastiart.com | Belgium | Jean | CEO | '}, {'price_inr': 3100000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'contex",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.733594",
+    "source_date": "2026-03-02T17:41:53.884032",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -125,7 +125,7 @@
     "fact_content": "{'timestamp': '2026-02-27T22:08:58.008447', 'interactions_analyzed': 41, 'edges_strengthened': 0, 'edges_weakened': 5827, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.734017",
+    "source_date": "2026-03-02T17:41:53.892180",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -136,7 +136,7 @@
     "fact_content": "{'timestamp': '2026-02-27T23:21:58.200767', 'interactions_analyzed': 41, 'edges_strengthened': 0, 'edges_weakened': 5827, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.734604",
+    "source_date": "2026-03-02T17:41:53.892745",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -147,7 +147,7 @@
     "fact_content": "{'timestamp': '2026-02-27T23:29:58.516190', 'interactions_analyzed': 41, 'edges_strengthened': 0, 'edges_weakened': 5827, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.735171",
+    "source_date": "2026-03-02T17:41:53.893232",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -158,7 +158,7 @@
     "fact_content": "{'timestamp': '2026-02-28T12:39:20.187582', 'interactions_analyzed': 25, 'edges_strengthened': 0, 'edges_weakened': 7462, 'edges_created': 45, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.735716",
+    "source_date": "2026-03-02T17:41:53.893696",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -169,7 +169,7 @@
     "fact_content": "{'timestamp': '2026-02-28T12:39:37.931111', 'episodes_reviewed': 66, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 2, 'knowledge_reinforced': 0, 'duration_seconds': 15.154352188110352, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_c",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.736251",
+    "source_date": "2026-03-02T17:41:53.894178",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -180,7 +180,7 @@
     "fact_content": "{'timestamp': '2026-02-28T12:39:40.337554', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7462, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.736784",
+    "source_date": "2026-03-02T17:41:53.894636",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -191,7 +191,7 @@
     "fact_content": "{'timestamp': '2026-02-28T12:52:02.193551', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7462, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.737295",
+    "source_date": "2026-03-02T17:41:53.895110",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -202,7 +202,7 @@
     "fact_content": "{'timestamp': '2026-02-28T12:52:23.712139', 'episodes_reviewed': 66, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 1, 'knowledge_reinforced': 0, 'duration_seconds': 17.72682499885559, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_co",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.737811",
+    "source_date": "2026-03-02T17:41:53.895572",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -213,7 +213,7 @@
     "fact_content": "{'timestamp': '2026-02-28T12:52:31.074136', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7462, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.738358",
+    "source_date": "2026-03-02T17:41:53.896032",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -224,7 +224,7 @@
     "fact_content": "{'timestamp': '2026-02-28T13:09:53.459366', 'interactions_analyzed': 25, 'edges_strengthened': 0, 'edges_weakened': 7587, 'edges_created': 45, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.738841",
+    "source_date": "2026-03-02T17:41:53.896474",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -235,7 +235,7 @@
     "fact_content": "{'timestamp': '2026-02-28T13:10:13.383601', 'episodes_reviewed': 66, 'patterns_identified': 11, 'semantic_facts_created': 7, 'procedures_created': 2, 'relationships_created': 1, 'knowledge_reinforced': 0, 'duration_seconds': 17.407886028289795, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about Thermoforming machines', 'confidence': 0.9, 'evidence_c",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.739342",
+    "source_date": "2026-03-02T17:41:53.896927",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -246,7 +246,7 @@
     "fact_content": "{'timestamp': '2026-02-28T13:10:15.894234', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7587, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.739918",
+    "source_date": "2026-03-02T17:41:53.897448",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -257,7 +257,7 @@
     "fact_content": "{'timestamp': '2026-02-28T13:26:33.057339', 'interactions_analyzed': 25, 'edges_strengthened': 0, 'edges_weakened': 7787, 'edges_created': 45, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.740453",
+    "source_date": "2026-03-02T17:41:53.897862",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -268,7 +268,7 @@
     "fact_content": "{'timestamp': '2026-02-28T13:26:51.410097', 'episodes_reviewed': 66, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 0, 'knowledge_reinforced': 0, 'duration_seconds': 16.032817840576172, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_c",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.740913",
+    "source_date": "2026-03-02T17:41:53.898272",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"
@@ -279,7 +279,227 @@
     "fact_content": "{'timestamp': '2026-02-28T13:26:58.239693', 'interactions_analyzed': 25, 'edges_strengthened': 45, 'edges_weakened': 7787, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 0}",
     "source_type": "external",
     "source_name": "Unknown",
-    "source_date": "2026-02-28T14:23:22.741361",
+    "source_date": "2026-03-02T17:41:53.898669",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "147a6f5b6326": {
+    "fact_id": "147a6f5b6326",
+    "fact_content": "{'machine_model': 'PF1-C-2015', 'prices': [{'price_inr': 332000000, 'source': 'MC Machine Line-up (1).xlsx', 'confidence': 0.7, 'context': '5 Manual Servo: \u00a526.4M (~$176K USD)\\n- Japan Premium: 3.7x India price\\n\\nPF1 2000x1500 (3m\u00b2):\\n- India '}, {'price_inr': 498000000, 'source': 'MC Machine Line-up (1).xlsx', 'confidence': 0.7, 'context': '5 Manual Servo: \u00a526.4M (~$176K USD)\\n- Japan Premium: 3.7x India price\\n\\nPF1 2000x1500 (3m\u00b2):\\n- India '}, {'price_inr': 664000000, 'source': 'MC Machine ",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.884492",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "ed6362fcdbbb": {
+    "fact_id": "ed6362fcdbbb",
+    "fact_content": "{'machine_model': 'PF1-C-1008', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': 'UO 1208    | \u20b925L      | DUO    | Double station |\\n| AM-7080-CM  | \u20b928L      | AM     | Car mat |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': 'UO 1208    | \u20b925L      | DUO    | Double station |\\n| AM-7080-CM  | \u20b928L      | AM     | Car mat |\\n| '}, {'price_inr': 500",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.884981",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "afd9e197ccaf": {
+    "fact_id": "afd9e197ccaf",
+    "fact_content": "{'machine_model': 'PF1-C-1208', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '|\\n| AM-7080-CM  | \u20b928L      | AM     | Car mat |\\n| PF1-C-1008  | \u20b933L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '|\\n| AM-7080-CM  | \u20b928L      | AM     | Car mat |\\n| PF1-C-1008  | \u20b933L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 5",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.885490",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "b9243211fd11": {
+    "fact_id": "b9243211fd11",
+    "fact_content": "{'machine_model': 'PF1-C-1212', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '\\n| PF2-P2010   | \u20b935L      | PF2    | Open-type |\\n| AMP-5060    | \u20b935L      | AMP    | Pressure |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '\\n| PF2-P2010   | \u20b935L      | PF2    | Open-type |\\n| AMP-5060    | \u20b935L      | AMP    | Pressure |\\n| '}, {'price_inr': 5",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.885969",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "ecc19413ce9e": {
+    "fact_id": "ecc19413ce9e",
+    "fact_content": "{'machine_model': 'PF1-C-1812', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '| PF1-C-1212  | \u20b938L      | PF1-C  | Cut-sheet |\\n| PF1-C-1510  | \u20b940L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '| PF1-C-1212  | \u20b938L      | PF1-C  | Cut-sheet |\\n| PF1-C-1510  | \u20b940L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 500",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.886416",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "8fd5cba8eb52": {
+    "fact_id": "8fd5cba8eb52",
+    "fact_content": "{'machine_model': 'PF1-C-2010', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '00180   | \u20b950L      | AM     | Car mat XL |\\n| AMP-6070-S  | \u20b950L      | AMP    | Pressure servo |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '00180   | \u20b950L      | AM     | Car mat XL |\\n| AMP-6070-S  | \u20b950L      | AMP    | Pressure servo |\\n| '}, {'price_inr': 500",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.887041",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "6bb06f07b8ca": {
+    "fact_id": "6bb06f07b8ca",
+    "fact_content": "{'machine_model': 'PF1-R-1510', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '\\n|-------------|-----------|--------|----------|\\n| PF2-P2020   | \u20b952L      | PF2    | Open-type |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '\\n|-------------|-----------|--------|----------|\\n| PF2-P2020   | \u20b952L      | PF2    | Open-type |\\n| '}, {'price_inr': 5",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.887517",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "5ad72388da99": {
+    "fact_id": "5ad72388da99",
+    "fact_content": "{'machine_model': 'PF1-C-2020', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': 'F1-C-2015  | \u20b960L      | PF1-C  | Cut-sheet |\\n| PF2-P2424   | \u20b960L      | PF2    | Open-type XL |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': 'F1-C-2015  | \u20b960L      | PF1-C  | Cut-sheet |\\n| PF2-P2424   | \u20b960L      | PF2    | Open-type XL |\\n| '}, {'price_inr': 500",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.887985",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "d9c4034c7639": {
+    "fact_id": "d9c4034c7639",
+    "fact_content": "{'machine_model': 'PF1-C-2515', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': 'F2-P2424   | \u20b960L      | PF2    | Open-type XL |\\n| PF1-C-2020  | \u20b965L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': 'F2-P2424   | \u20b960L      | PF2    | Open-type XL |\\n| PF1-C-2020  | \u20b965L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 500",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.888443",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "4158212f693d": {
+    "fact_id": "4158212f693d",
+    "fact_content": "{'machine_model': 'PF1-C-3015', 'prices': [{'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '| PF1-C-2020  | \u20b965L      | PF1-C  | Cut-sheet |\\n| PF1-C-2515  | \u20b970L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 2000000, 'source': 'Machinecraft Price List for Plastindia (1).pdf', 'confidence': 0.7, 'context': '| PF1-C-2020  | \u20b965L      | PF1-C  | Cut-sheet |\\n| PF1-C-2515  | \u20b970L      | PF1-C  | Cut-sheet |\\n| '}, {'price_inr': 500",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.888951",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "f29990ffb720": {
+    "fact_id": "f29990ffb720",
+    "fact_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 650mm | \u20ac120,000 (pneumatic) |\\n| '}, {'price_inr': 10800000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 650mm | \u20ac120,000 (pneumatic) |\\n| '}, {'price_inr': 9130000, 'source': 'sales_playbook.md', 'confidence': 0.7,",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.889449",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "1fca5481c2ea": {
+    "fact_id": "1fca5481c2ea",
+    "fact_content": "{'machine_model': 'PF1-C-3030', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3000 x 2000mm | 800mm | \u20b985L |\\n| '}, {'price_inr': 10800000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3000 x 2000mm | 800mm | \u20b985L |\\n| '}, {'price_inr': 9130000, 'source': 'sales_playbook.md', 'confidence': 0.",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.889946",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "3f1fc9479257": {
+    "fact_id": "3f1fc9479257",
+    "fact_content": "{'machine_model': 'PF1-X-5028', 'prices': [{'price_inr': 45000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.9, 'context': 'om\\n   - Website: www.formicplastic.com\\n\\n3. Ozgul Plastik\\n   - Contact: Serdar Gulmez\\n   - Interest: '}, {'price_inr': 539500000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'ne Interests\\n\\nHIGHEST PRIORITY (Quoted/Specific Interest):\\n\\n1. Ozgul Plastik (Turkey)\\n   - Machine: '}, {'price_inr': 45000000, 'source': 'K2025 Leads.xlsx', 'confidence': ",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.890479",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "1f0532c41092": {
+    "fact_id": "1f0532c41092",
+    "fact_content": "{'machine_model': 'PF1-C-1210', 'prices': [{'price_inr': 539500000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'lmez\\n   - Note: Large format - premium deal\\n\\n2. LUX Pump Comp (Algeria)\\n   - Machines: PF1-X-1210 + '}, {'price_inr': 45000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'lmez\\n   - Note: Large format - premium deal\\n\\n2. LUX Pump Comp (Algeria)\\n   - Machines: PF1-X-1210 + '}, {'price_inr': 15300000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.891029",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "ef5546b8524d": {
+    "fact_id": "ef5546b8524d",
+    "fact_content": "{'machine_model': 'PF1-C-2012', 'prices': [{'price_inr': 539500000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ': Shower trays, thermoformed sinks\\n\\n3. Al-Hilal Industrial (Oman) - EXISTING CUSTOMER\\n   - Machine: '}, {'price_inr': 45000000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ': Shower trays, thermoformed sinks\\n\\n3. Al-Hilal Industrial (Oman) - EXISTING CUSTOMER\\n   - Machine: '}, {'price_inr': 15300000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7,",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.891553",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "610a166514c7": {
+    "fact_id": "610a166514c7",
+    "fact_content": "{'timestamp': '2026-03-01T22:48:29.455658', 'interactions_analyzed': 68, 'edges_strengthened': 0, 'edges_weakened': 8503, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 20}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.899082",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "309197cdaabd": {
+    "fact_id": "309197cdaabd",
+    "fact_content": "{'timestamp': '2026-03-01T22:48:44.576460', 'episodes_reviewed': 140, 'patterns_identified': 10, 'semantic_facts_created': 7, 'procedures_created': 1, 'relationships_created': 0, 'knowledge_reinforced': 0, 'duration_seconds': 12.780504941940308, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.899493",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "cdcc2d0a2eb2": {
+    "fact_id": "cdcc2d0a2eb2",
+    "fact_content": "{'timestamp': '2026-03-02T17:40:59.766593', 'interactions_analyzed': 8, 'edges_strengthened': 0, 'edges_weakened': 8503, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 8}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.899900",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "c31d96b21b5c": {
+    "fact_id": "c31d96b21b5c",
+    "fact_content": "{'timestamp': '2026-03-02T17:41:25.756135', 'episodes_reviewed': 148, 'patterns_identified': 11, 'semantic_facts_created': 7, 'procedures_created': 2, 'relationships_created': 0, 'knowledge_reinforced': 0, 'duration_seconds': 22.150283098220825, 'errors': [], 'top_patterns': [{'type': 'topic', 'description': 'Users frequently ask about PF1', 'confidence': 0.9, 'evidence_count': 6}, {'type': 'topic', 'description': 'Users frequently ask about thermoforming machines', 'confidence': 0.9, 'evidence_",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.900329",
+    "confidence": 0.48,
+    "chain_of_custody": [
+      "Created from external: Unknown"
+    ]
+  },
+  "26c033245564": {
+    "fact_id": "26c033245564",
+    "fact_content": "{'timestamp': '2026-03-02T17:41:27.525523', 'interactions_analyzed': 8, 'edges_strengthened': 0, 'edges_weakened': 8503, 'edges_created': 0, 'nodes_updated': 0, 'clusters_reorganized': 0, 'knowledge_gaps_count': 8}",
+    "source_type": "external",
+    "source_name": "Unknown",
+    "source_date": "2026-03-02T17:41:53.900770",
     "confidence": 0.48,
     "chain_of_custody": [
       "Created from external: Unknown"

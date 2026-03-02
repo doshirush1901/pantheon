@@ -15,7 +15,9 @@
     "identity_id": "rushabh@machinecraft.org",
     "source": "email",
     "timestamp": "2026-02-28T08:46:01.483562",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685823"
   },
   {
     "id": "c6c5ca27227b",
@@ -24,7 +26,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-02-28T15:02:53.407972",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685831"
   },
   {
     "id": "8efd19f59481",
@@ -33,7 +37,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-02-28T15:03:37.804181",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685846"
   },
   {
     "id": "ee12845948fd",
@@ -42,7 +48,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-02-28T21:43:46.141076",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685850"
   },
   {
     "id": "6e2b527af113",
@@ -51,7 +59,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-02-28T22:01:49.331408",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685854"
   },
   {
     "id": "a83d1b15b130",
@@ -60,7 +70,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-02-28T22:01:49.815036",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685867"
   },
   {
     "id": "74ceb521a5ef",
@@ -69,7 +81,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-03-01T07:43:01.166005",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685879"
   },
   {
     "id": "526e29a4c255",
@@ -78,7 +92,9 @@
     "identity_id": "5700751574",
     "source": "telegram",
     "timestamp": "2026-03-01T07:45:03.751409",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685883"
   },
   {
     "id": "b00bc3771688",
@@ -87,7 +103,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T08:55:58.688304",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685886"
   },
   {
     "id": "7f4cd925e896",
@@ -96,7 +114,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T08:58:52.623457",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685890"
   },
   {
     "id": "e4d64c2ac1b1",
@@ -105,7 +125,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T09:00:47.265841",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685903"
   },
   {
     "id": "dbd521fa3391",
@@ -114,7 +136,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T09:02:36.359399",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685915"
   },
   {
     "id": "24da3e194711",
@@ -141,7 +165,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T09:46:52.303316",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685959"
   },
   {
     "id": "d445ba8b9df9",
@@ -159,7 +185,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T12:56:01.814551",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685970"
   },
   {
     "id": "70b710b1b21c",
@@ -168,7 +196,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T13:04:20.650292",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685972"
   },
   {
     "id": "a79588d9f3a7",
@@ -195,7 +225,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T13:57:40.915817",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685977"
   },
   {
     "id": "70b710b1b21c",
@@ -204,7 +236,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T14:44:26.435924",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685979"
   },
   {
     "id": "b6e62893a4ac",
@@ -213,7 +247,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T14:45:20.427115",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685981"
   },
   {
     "id": "b7e029fe66b7",
@@ -222,7 +258,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T14:45:21.053034",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685983"
   },
   {
     "id": "b7e029fe66b7",
@@ -231,7 +269,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T14:46:13.926762",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685985"
   },
   {
     "id": "316c100a4ef3",
@@ -240,7 +280,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T14:47:01.223138",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685989"
   },
   {
     "id": "fbb57591235f",
@@ -249,7 +291,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T14:48:56.140227",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685991"
   },
   {
     "id": "1613fe3d7485",
@@ -267,7 +311,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T15:09:43.210153",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.685997"
   },
   {
     "id": "e7a1d37fcfb4",
@@ -285,7 +331,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T15:18:18.572970",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686000"
   },
   {
     "id": "df5da629c323",
@@ -303,7 +351,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T15:22:38.970695",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686004"
   },
   {
     "id": "aa5d6771976e",
@@ -321,7 +371,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T16:22:22.654561",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686008"
   },
   {
     "id": "b4faf912bd58",
@@ -330,7 +382,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T16:29:43.300387",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686010"
   },
   {
     "id": "13d84a9e7eb7",
@@ -339,7 +393,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T16:35:30.945865",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686013"
   },
   {
     "id": "0f7f6fda2b46",
@@ -366,7 +422,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T17:32:18.538580",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686019"
   },
   {
     "id": "5d72f07770df",
@@ -393,7 +451,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T17:51:01.593037",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686024"
   },
   {
     "id": "4a3e6a9f93d5",
@@ -411,7 +471,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T18:15:44.917502",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686028"
   },
   {
     "id": "0d1b2f5f8402",
@@ -429,7 +491,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T20:00:15.156552",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686035"
   },
   {
     "id": "5137111c09d2",
@@ -447,7 +511,9 @@
     "identity_id": "rushabh@machinecraft.org",
     "source": "telegram",
     "timestamp": "2026-03-01T20:00:49.464056",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686039"
   },
   {
     "id": "e4ced542454b",
@@ -456,7 +522,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T20:01:30.800671",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686041"
   },
   {
     "id": "5137111c09d2",
@@ -474,7 +542,9 @@
     "identity_id": "rushabh@machinecraft.org",
     "source": "telegram",
     "timestamp": "2026-03-01T20:04:59.059479",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686045"
   },
   {
     "id": "7cbf6c28bfaa",
@@ -483,7 +553,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T20:49:44.111594",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686048"
   },
   {
     "id": "dcdf2c161e95",
@@ -492,7 +564,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T21:20:05.140881",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686051"
   },
   {
     "id": "5d280c2b2615",
@@ -501,7 +575,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T21:22:34.660359",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686053"
   },
   {
     "id": "6c8708569a95",
@@ -510,7 +586,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T21:22:35.166458",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686056"
   },
   {
     "id": "3f1475d529cd",
@@ -519,7 +597,9 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-01T22:06:51.854821",
-    "resolved": false
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686058"
   },
   {
     "id": "96bb56fbf6e0",
@@ -528,6 +608,173 @@
     "identity_id": "id_db1a9b47e00d",
     "source": "telegram",
     "timestamp": "2026-03-02T07:49:34.805761",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686061"
+  },
+  {
+    "id": "a48ebec7a413",
+    "new_content": "Hi Ira,\n>\n> I just got off a call with a new lead \u2014 Hans M\u00fcller from PackRight GmbH in Stuttgart. They're a mid-size packaging company doing sustainable food trays. He wants to switch from a competitor (I think they use ILLIG machines currently) to us.\n>\n> Here's what he needs:\n> 1. They form 0.8mm rPET and 3mm HDPE \u2014 same machine if possible\n> 2. Sheet size around 1200 x 800 mm\n> 3. Budget is \u20ac120,000\n> 4. He asked specifically if our AM-5060 can handle both materials\n> 5. Needs delivery to Stuttgart within 4 months\n>\n> Can you research PackRight GmbH, recommend the right machine(s), give me the pricing in EUR, and draft a first-touch email to Hans? Make it warm but professional \u2014 reference their sustainability angle if you find anything about them online.\n>\n> Also, remind me \u2014 who else do we have as customers in Germany? I know there were a few.",
+    "existing_id": "90dc8129-375d-4ae2-a9e2-31f4f6ab51ec",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T15:37:54.768666",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686070"
+  },
+  {
+    "id": "5d4664051a4d",
+    "new_content": "Here's the information you requested:\n\n### PackRight GmbH\nPackRight GmbH is a mid-size packaging company in Stuttgart, specializing in sustainable food trays made from renewable materials. They emphasize sustainability and have been showcased at events like Intergastra for their compostable packaging solutions. This aligns well with their focus on reducing environmental impact.\n\n### Machine Recommendation\nBased on the requirements:\n- **Materials**: 0.8mm rPET and 3mm HDPE\n- **Sheet Size**: 1200 ",
+    "existing_id": "52bfb7b6-2fa0-4141-ad8f-a4887cde6386",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T15:37:55.326754",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686073"
+  },
+  {
+    "id": "d035ae49cc42",
+    "new_content": "but this is not possible\nfor 0.8 mm rpet you can have am-v, am-p but for hdpe 3 mm you need pf1-c ofpf1-r, you cannot combine these machines, not possible",
+    "existing_id": "89489a9d-e909-48f7-bb50-e6d3b14cdfb0",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T15:39:40.482707",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686075"
+  },
+  {
+    "id": "fdf41bb78154",
+    "new_content": "PF1 is our flagship HEAVY-GAUGE vacuum forming machine series (single-station, closed chamber).\n\n**Material Thickness:** 2mm to 8mm (some models up to 10mm). This is NOT a thin-gauge or flexible materials machine.\n\n**Materials:** ABS, HDPE, PC (Polycarbonate), PMMA (Acrylic), PP, HIPS, TPO, PVC \u2014 all in HEAVY GAUGE (thick sheets).\n\n**Applications:** Automotive interiors, truck bedliners, refrigerator liners, luggage shells, EV battery enclosures, industrial enclosures, sanitary ware, equipment h",
+    "existing_id": "24b6fd82-bfb6-40c7-88f8-e4a7e518517c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T15:39:41.029332",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686081"
+  },
+  {
+    "id": "c332a735154d",
+    "new_content": "Ira, new opportunity just came in.\n>\n> Mehmet Yilmaz from AutoCraft Otomotiv in Bursa, Turkey. They're a Tier-1 automotive supplier making interior trim panels for a major OEM (I think Renault). Currently outsourcing thermoforming to a local job shop but want to bring it in-house.\n>\n> Here's the brief:\n> 1. Primary need: TPO interior door panels with Class-A textured surface \u2014 grain retention is critical, the OEM spec requires it\n> 2. Sheet size: 1800 x 1200 mm, thickness 3mm TPO\n> 3. Secondary need: 5mm ABS structural brackets for under-dash mounting\n> 4. They asked if our PF1-C can do the textured TPO panels\n> 5. Total budget: USD 200,000 for both lines\n> 6. They want delivery in 8 weeks \u2014 Mehmet said a competitor quoted 6 weeks\n>\n> Can you recommend the right machines, give pricing in USD, and draft a short email to Mehmet? He's an engineer so keep it technical but friendly. Also look up AutoCraft Otomotiv if you can find anything about them.",
+    "existing_id": "90dc8129-375d-4ae2-a9e2-31f4f6ab51ec",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T16:52:03.036608",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686090"
+  },
+  {
+    "id": "c4fe8c28cfc9",
+    "new_content": "Hi Mehmet!\n\nThank you for considering Machinecraft for your in-house thermoforming needs. Based on your requirements, I recommend our PF1-C-3020 model. It\u2019s perfect for producing TPO interior door panels with a Class-A textured surface, ensuring excellent grain retention. This model also handles 5mm ABS structural brackets efficiently.\n\nThe total investment for both lines is within your budget of USD 200,000, subject to final configuration. We can aim for an 8-week delivery timeline, ensuring we",
+    "existing_id": "1b52653a-0037-44fa-8196-bb23f31e67b1",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T16:52:03.648454",
+    "resolved": true,
+    "resolution": "auto_nap",
+    "resolved_at": "2026-03-02T17:41:26.686095"
+  },
+  {
+    "id": "541216d1a110",
+    "new_content": "I found some information on Machinecraft's customers, but it seems there isn't a specific list of the latest customers readily available. Here's what I found:\n1. Machinecraft has a diverse customer base in Europe, having served 21 customers since 1998, including companies like Linecross, Nelipack, and Isotec.\n2. In India, Machinecraft's automotive customers include Alphafoam, Pinnacle, Mayur Ind, Maini, Zylog, Indu TFM, Premier Auto, Automat, and Smartline, with a total of 12 machines sold to Al",
+    "existing_id": "06fac030-84f9-4ff0-83d5-6e7dae1b512d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T19:49:05.179909",
+    "resolved": false
+  },
+  {
+    "id": "bf6997ea5776",
+    "new_content": "I found some information about Machinecraft's customers, but there isn't a specific list of the latest customers readily available. Here's what I gathered:\n1. **European Customers**: Machinecraft has served 21 customers in Europe since 1998, including companies like Linecross, Nelipack, and Isotec.\n2. **Indian Automotive Customers**: In India, Machinecraft's automotive customers include Alphafoam, Pinnacle, Mayur Ind, Maini, Zylog, Indu TFM, Premier Auto, Automat, and Smartline. Notably, 12 mach",
+    "existing_id": "06fac030-84f9-4ff0-83d5-6e7dae1b512d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T19:51:39.422795",
+    "resolved": false
+  },
+  {
+    "id": "17df48372551",
+    "new_content": "I found some comprehensive information about Machinecraft's customers:\n1. **Total Customers**: Machinecraft has 47 unique customers based on historical data from 2014 to 2017. The total number of machines sold is over 54 units.\n2. **Geographic Distribution**:\n   - **India**: Approximately 35 customers (75% of total).\n   - **Europe**: 21 customers since 1998, including countries like Hungary, Sweden, and the UK.\n   - **Middle East**: Customers in Kenya, UAE, and Iran.\n   - **Other Regions**: Cust",
+    "existing_id": "06fac030-84f9-4ff0-83d5-6e7dae1b512d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T20:03:31.123067",
+    "resolved": false
+  },
+  {
+    "id": "50e62fb9b681",
+    "new_content": "I found some detailed information regarding Machinecraft's customers and current order book:\n\n1. **Customer Data**:\n   - Machinecraft has served customers in over 45 countries, including India, Europe, GCC, Russia, and Canada.\n   - Key industries served include automotive (EV, bus, truck), aerospace, railway, industrial equipment, and the energy sector.\n   - Machinecraft has 21 European customers since 1998 and has been actively engaging with various industrial sectors in India and overseas.\n\n2.",
+    "existing_id": "06fac030-84f9-4ff0-83d5-6e7dae1b512d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T20:04:53.268865",
+    "resolved": false
+  },
+  {
+    "id": "d1aca2195189",
+    "new_content": "These are leads, not customers",
+    "existing_id": "e6ff17c3-f672-477c-8833-b903ffbec869",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T20:19:46.164169",
+    "resolved": false
+  },
+  {
+    "id": "59eb3b69b7cc",
+    "new_content": "We have a customer in Germany who's currently running Kiefel machines for automotive door panels. They're expanding to a new plant and have budget approved for Q3. They need 3mm ABS forming with at least 2000x1500mm area. They've asked for a 20% discount because Illig quoted them lower. What's our best machine recommendation, competitive positioning against both Kiefel and Illig, and how should we handle the discount request?",
+    "existing_id": "1b52653a-0037-44fa-8196-bb23f31e67b1",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T21:00:48.508524",
+    "resolved": false
+  },
+  {
+    "id": "895df4f700eb",
+    "new_content": "Based on the information gathered, here's how we can approach the customer's requirements and the competitive positioning against Kiefel and Illig:\n\n### Machine Recommendation\nFor forming 3mm ABS with a forming area of at least 2000x1500mm, the **PF1-C-2015** model would be an ideal choice. This machine is designed for heavy-gauge applications and offers robust performance for automotive parts like door panels. The PF1-C-2015 is priced at INR 60,00,000, subject to configuration and current prici",
+    "existing_id": "24b6fd82-bfb6-40c7-88f8-e4a7e518517c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T21:00:49.083275",
+    "resolved": false
+  },
+  {
+    "id": "80bf581b46c8",
+    "new_content": "We have a customer in Germany who's currently running Geiss machines for automotive door panels. They're expanding to a new plant and have budget approved for Q3. They need 4.5 mm ABS PMMA forming with at least 2000x1500mm area. They've asked for a 20% discount because Geiss quoted them lower. What's our best machine recommendation, competitive positioning against both Geiss and CMS, and how should we handle the discount request?",
+    "existing_id": "1b52653a-0037-44fa-8196-bb23f31e67b1",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T21:21:37.957761",
+    "resolved": false
+  },
+  {
+    "id": "76f32b2e6041",
+    "new_content": "What are some things we can do toegether for Machinecraft ? give me some cool usecases that I could not do without you",
+    "existing_id": "9316882b-b18c-4912-95b4-d81a2913944c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T22:39:59.727931",
+    "resolved": false
+  },
+  {
+    "id": "76f32b2e6041",
+    "new_content": "What are some things we can do toegether for Machinecraft ? give me some cool usecases that I could not do without you",
+    "existing_id": "9316882b-b18c-4912-95b4-d81a2913944c",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T22:42:22.748717",
+    "resolved": false
+  },
+  {
+    "id": "6c8ac2613d32",
+    "new_content": "Here are some cool use cases for the AM-P-5060 at Machinecraft that highlight its unique capabilities:\n\n1. **High-Precision Pressure Forming**: The AM-P-5060 is designed for high-precision pressure forming of thick gauge plastics, making it ideal for industries like automotive parts manufacturing. Its ability to achieve deeper draws and sharper detail definition is particularly beneficial for producing complex automotive components.\n\n2. **Versatile Packaging Solutions**: This machine is also sui",
+    "existing_id": "f03012e9-92ac-403d-8a38-90fd8b2f128d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-02T22:42:23.250095",
     "resolved": false
   }
 ]

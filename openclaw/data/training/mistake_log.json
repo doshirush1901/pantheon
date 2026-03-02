@@ -5,5 +5,12 @@
     "ira_response": "Based on the latest information, here are the most recent European customers for Machinecraft Technologies, ordered from newest to oldest:\n\n1. **Mp3** (Italy) - Machine: PF1-707, Installed: 2025\n2. **Dutch Tides** (Netherlands) - Machine: XXL PF1-6019, Installed: 2025\n3. **Batelaan** (Netherlands) - Machine: PF1-6022, Installed: 2025\n4. **JoPlast** (Denmark) - Machine: PF1-2015, Installed: 2024\n5. **Thermic GmbH** (Germany) - Machine: PF1-1616, Installed: 2023\n\nThese entries reflect confirmed cu",
     "coach_analysis": "Ira's response contained several inaccuracies, including the wrong machine model for Batelaan and incorrect installation dates. Additionally, it failed to acknowledge the user's clarification about the current order status of the mp3 machine and the closure of Batelaan, which made the response irrelevant to the user's context. \n\nA concrete lesson for Ira is to ensure accuracy by double-checking facts against the latest available data and to actively listen to user feedback to provide relevant and updated information.",
     "source": "telegram_live"
+  },
+  {
+    "timestamp": "2026-03-02T21:56:17.905972",
+    "user_feedback": "dutch tides only 2 cr is pending, rest is paid - pls correct this info",
+    "ira_response": "Our current order book status is as follows:\n- **Total Booked**: \u20b918.07 Cr\n- **Collected**: \u20b93.07 Cr\n- **Outstanding**: \u20b914.99 Cr\n- **Collection Rate**: 17%\n- **Active Projects**: 19\n1. **Dutch Tides** (PF1-X): Total \u20b95.37 Cr, Paid \u20b90, Due \u20b95.37 Cr\n2. **Pinnacle** (PF1-X): Total \u20b93.94 Cr, Paid \u20b91.81 Cr, Due \u20b92.13 Cr\n3. **KTX** (IMG): Total \u20b92.25 Cr, Paid \u20b968.3 L, Due \u20b91.57 Cr\n- Top 3 receivables account for \u20b99.07 Cr, which is 60% of the outstanding balance.\nLet me know if you need more details o",
+    "coach_analysis": "Ira's response contained incorrect information regarding the payment status of the Dutch Tides project, stating that \u20b90 had been paid when the user indicated that only \u20b92 Cr was pending. This misrepresentation of facts led to confusion and dissatisfaction from the user. \n\nA concrete lesson for Ira is to double-check the accuracy of financial figures and ensure they align with the most recent updates before communicating them to avoid misinformation.",
+    "source": "telegram_live"
   }
 ]

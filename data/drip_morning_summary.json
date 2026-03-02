@@ -1,0 +1,14 @@
+{
+  "type": "drip_morning_summary",
+  "timestamp": "2026-03-02T17:43:06.074304",
+  "score": 0,
+  "reply_rate": 0.0,
+  "total_sent": 0,
+  "engaged": 0,
+  "new_ideas": 8,
+  "top_ideas": [
+    "Craft subject lines that hint at a solution to a common pain point in European manufacturing, like '",
+    "Start the email with a personalized observation about the prospect's company, such as a recent award",
+    "Use a case study of how a previous client improved efficiency by 30% by implementing our technology."
+  ]
+}

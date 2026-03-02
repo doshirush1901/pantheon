@@ -1,0 +1,21 @@
+{
+  "last_heartbeat": null,
+  "heartbeat_count": 0,
+  "today": "2026-03-02",
+  "daily_rhythms": {
+    "2026-03-02": {
+      "dream_mode_ran": true,
+      "dream_mode_completed": true,
+      "dream_mode_duration_s": 0.170375,
+      "morning_summary_sent": false,
+      "total_breaths": 0,
+      "avg_latency_ms": 0,
+      "p95_latency_ms": 0,
+      "errors_count": 0,
+      "immune_sweep_ran": false,
+      "metabolic_cleanup_ran": false
+    }
+  },
+  "consecutive_heartbeats": 0,
+  "longest_gap_s": 0
+}

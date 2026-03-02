@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "topic": "specifications",
+    "probability": 0.2,
+    "reason": "Historically common on Tuesdays",
+    "suggested_preload": [
+      "Latest specifications information",
+      "Recent specifications inquiries"
+    ]
+  },
+  {
+    "topic": "technical",
+    "probability": 0.1,
+    "reason": "Historically common on Tuesdays",
+    "suggested_preload": [
+      "Latest technical information",
+      "Recent technical inquiries"
+    ]
+  }
+]

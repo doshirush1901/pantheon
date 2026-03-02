@@ -1,0 +1,58 @@
+{
+  "last_updated": "2026-03-02T18:00:38.491365+00:00",
+  "total": 1,
+  "opportunities": [
+    {
+      "id": "730e9a2875f7",
+      "product": {
+        "name": "EV Battery Module Cover",
+        "description": "A protective cover for individual battery modules within an EV battery pack, providing structural support and protection from environmental factors.",
+        "industry": "EV battery enclosures",
+        "sub_industry": "",
+        "materials": [
+          "ABS",
+          "PC",
+          "HDPE"
+        ],
+        "typical_thickness_mm": "2-4",
+        "typical_size_mm": "600x400",
+        "fit_score": "strong",
+        "why_vacuum_forming": "Thermoforming is ideal for creating large, lightweight covers with complex contours and deep draws, which are common in battery module designs.",
+        "competing_processes": [
+          "Injection Molding",
+          "Compression Molding"
+        ],
+        "example_companies": [
+          "Tesla",
+          "Rivian",
+          "Lucid Motors"
+        ],
+        "regions_of_demand": [],
+        "estimated_volume": "medium",
+        "source_urls": []
+      },
+      "market_maturity": "emerging",
+      "machinecraft_fit": "PF1-X series (servo), PF1-C series (pneumatic)",
+      "recommended_machines": [
+        "PF1-X",
+        "PF1-C"
+      ],
+      "estimated_price_range_usd": "150,000 - 300,000",
+      "competitive_landscape": "Current competitors include traditional metal stamping and injection molding companies, as well as emerging thermoforming specialists focusing on EV components.",
+      "entry_strategy": "Leverage the emerging EV market by partnering with EV battery manufacturers to co-develop tailored solutions, emphasizing the precision and reliability of Machinecraft's forming technology.",
+      "reference_customers": [],
+      "score": 50.0,
+      "score_breakdown": {
+        "technical_fit": 50,
+        "market_timing": 50,
+        "volume_match": 50,
+        "competitive_gap": 50,
+        "revenue_potential": 50,
+        "strategic_value": 50
+      },
+      "discovered_at": "2026-03-02T18:00:38.491270+00:00",
+      "last_updated": "2026-03-02T18:00:38.491326+00:00",
+      "iris_intelligence": {}
+    }
+  ]
+}

@@ -11,7 +11,13 @@
       "facts_count": 0,
       "quality": 0.75,
       "timestamp": "2026-02-28T14:23:22.742006"
+    },
+    {
+      "domain": "dream_cycle",
+      "facts_count": 0,
+      "quality": 0.75,
+      "timestamp": "2026-03-02T17:41:53.901539"
     }
   ],
-  "last_updated": "2026-02-28T14:23:22.742026"
+  "last_updated": "2026-03-02T17:41:53.901572"
 }

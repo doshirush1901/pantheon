@@ -4,15 +4,15 @@
   "percentage": 0.75,
   "results": [
     {
-      "question": "What company does Ira work for?",
-      "expected": "Machinecraft",
-      "actual": "I work for Machinecraft, specializing in thermoforming machines.",
+      "question": "What type of machines does Machinecraft make?",
+      "expected": "thermoforming machines",
+      "actual": "Machinecraft specializes in manufacturing thermoforming machines.",
       "correct": true
     },
     {
-      "question": "What is PF1?",
-      "expected": "A thermoforming machine series by Machinecraft",
-      "actual": "PF1 refers to a specific model or type of thermoforming machine produced by Machinecraft. It is designed for efficient plastic forming processes.",
+      "question": "What company does Ira work for?",
+      "expected": "Machinecraft",
+      "actual": "I work for Machinecraft.",
       "correct": true
     },
     {
@@ -22,11 +22,11 @@
       "correct": false
     },
     {
-      "question": "What type of machines does Machinecraft make?",
-      "expected": "thermoforming machines",
-      "actual": "Machinecraft makes thermoforming machines.",
+      "question": "What is PF1?",
+      "expected": "A thermoforming machine series by Machinecraft",
+      "actual": "PF1 typically refers to a specific model of thermoforming machine manufactured by Machinecraft. However, I'm not sure about the exact specifications or features of PF1. Please refer to the product documentation or website for detailed information.",
       "correct": true
     }
   ],
-  "timestamp": "2026-03-01T22:48:56.830886"
+  "timestamp": "2026-03-02T17:41:46.049315"
 }

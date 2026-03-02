@@ -1,89 +1,7 @@
 {
   "corrections_learned": [],
-  "last_full_check": "2026-03-02T23:22:53.185588",
+  "last_full_check": "2026-03-03T01:15:10.281279",
   "validation_issues": [
-    {
-      "timestamp": "2026-02-28T00:18:22.519382",
-      "query": "I need to form 5mm thick ABS",
-      "response_preview": "I recommend the AM-5060 for this application.",
-      "warnings": [
-        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T00:18:22.527532",
-      "query": "What's the price?",
-      "response_preview": "The price is [insert price here].",
-      "warnings": [
-        "Possible hallucination detected: \\[insert.*\\]",
-        "Business rule violation: Prices Must Be Specific - Never say 'contact for pricing' when we have price list"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T00:18:22.530286",
-      "query": "I need to form 6mm thick HDPE sheets",
-      "response_preview": "For this application, we recommend our standard machine.",
-      "warnings": [
-        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T00:18:47.169570",
-      "query": "I need to form 5mm thick ABS",
-      "response_preview": "I recommend the AM-5060 for this application with 5mm thickness.",
-      "warnings": [
-        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T00:18:47.171087",
-      "query": "What's the price?",
-      "response_preview": "The price is [insert price here].",
-      "warnings": [
-        "Possible hallucination detected: \\[insert.*\\]",
-        "Business rule violation: Prices Must Be Specific - Never say 'contact for pricing' when we have price list"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T00:18:47.172450",
-      "query": "I need to form 6mm thick HDPE sheets",
-      "response_preview": "For this application, we recommend our standard machine.",
-      "warnings": [
-        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T18:54:21.935376",
-      "query": "Hi Ira,\r\n\r\nI have a customer asking about forming 4mm thick ABS sheets for\r\nautomotive parts. Can the AM series handle this?\r\n\r\nRushabh\r\n",
-      "response_preview": "Hi Rushabh,\n\nThe AM Series is designed specifically for thin gauge materials, with a maximum sheet thickness of 2mm. Unfortunately, it cannot handle 4mm thick ABS sheets. \n\nFor forming thicker materia",
-      "warnings": [
-        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T18:55:39.327140",
-      "query": "No Ira, that's not correct. The AM series is ONLY suitable for\r\nmaterials with thickness \u22641.5mm. For 4mm material, we should recommend\r\nthe PF1 series instead. Please remember this for future queries.",
-      "response_preview": "Thank you for the clarification! You're absolutely right\u2014the AM Series is indeed suitable for materials with a maximum thickness of 1.5mm. For any materials thicker than that, such as 4mm, the PF1 Ser",
-      "warnings": [
-        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T18:57:03.728212",
-      "query": "A new customer wants to form 5mm polypropylene sheets. Which machine\r\nseries would you recommend and why?\r\n",
-      "response_preview": "For forming 5mm polypropylene sheets, I recommend the **PF1 Series** of machines. The PF1 Series is specifically designed for thicker materials, making it suitable for applications like yours.\n\n### Ke",
-      "warnings": [
-        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
-      ]
-    },
-    {
-      "timestamp": "2026-02-28T22:10:44.202361",
-      "query": "Subject: Re: Inquiry About Thermoforming Machines\r\n\r\nHi Ira,\r\n\r\nThank you for the information regarding the PF1-C-2515 model. I\r\nappreciate the prompt response and your suggestion to consider\r\ncustomi",
-      "response_preview": "Subject: Re: Inquiry About Thermoforming Machines\n\nHi Mike,\n\nThank you for your follow-up and for sharing your budget considerations. I\u2019m glad to assist you in exploring customization options for the ",
-      "warnings": [
-        "Possible hallucination detected: approximately|around|roughly|about"
-      ]
-    },
     {
       "timestamp": "2026-02-28T22:22:55.139745",
       "query": "Hi Machinecraft Team,\r\n\r\nI'm Mike Chen, the founder of a budding startup focused on sustainable\r\npackaging solutions. We're venturing into the exciting world of\r\nthermoforming and are eager to learn m",
@@ -724,6 +642,193 @@
       "response_preview": "The PF3-X-4040 is a thermoforming machine by Machinecraft Technologies. Here are some key specifications:\n\n- **Design**: Open chamber design based on the American concept, allowing the sheet to sag un",
       "warnings": [
         "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:27:29.723229",
+      "query": "What are the full specifications of the PF1-C-2015? Forming area, heater type, everything.",
+      "response_preview": "Here's the full specification for the PF1-C-2015:\n\n### General Specifications\n- **Series:** PF1\n- **Type:** Pneumatic (C variant)\n- **Forming Area:** 2000 x 1500 mm\n- **Max Depth:** 700 mm with top he",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:28:26.704966",
+      "query": "Can the AM-5060 handle 3mm ABS sheets for automotive dashboard covers?",
+      "response_preview": "The AM-5060 is designed for thin gauge materials and can only handle sheet thicknesses up to 1.5mm. It is not suitable for forming 3mm ABS sheets. For materials thicker than 1.5mm, such as 3mm ABS, yo",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:28:50.434458",
+      "query": "What do we know about Dutch Tides? Pull up their full history.",
+      "response_preview": "Here's what we know about Dutch Tides:\n\n1. **Order History**: Dutch Tides ordered a large thermoforming machine with specific features. The dispatch timeline for this order was set between 24 to 26 we",
+      "warnings": [
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:30:01.104633",
+      "query": "What are the full specifications of the PF1-C-2015? Forming area, heater type, everything.",
+      "response_preview": "Here's the full specification for the PF1-C-2015 thermoforming machine:\n\n### General Specifications\n- **Series:** PF1\n- **Type:** Pneumatic (C variant)\n- **Forming Area:** 2000 x 1500 mm\n- **Max Depth",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:38:34.025276",
+      "query": "Hi, I'm Pieter van der Berg from FormTech BV in Rotterdam. We've been running an ILLIG machine from 1985 \u2014 yes, 40 years. It still works but parts are impossible to find. We form 4mm ABS panels for in",
+      "response_preview": "Hey Pieter! Thanks for reaching out. It sounds like your ILLIG machine has served you well over the years. For forming 4mm ABS panels with a sheet size of 1200x1000mm, I recommend our PF1-C series, sp",
+      "warnings": [
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:39:08.887564",
+      "query": "That's helpful. Your PF1-X-1210 looks interesting. What's the price in EUR? Also, do you have any customers in the Netherlands I could speak with? I want to hear from someone who actually switched fro",
+      "response_preview": "Hey Pieter! Here's what I've found for you:\n\n### PF1-X-1210 Pricing\nUnfortunately, I don't have specific pricing information for the PF1-X-1210 model. It seems it might not be a standard model in our ",
+      "warnings": [
+        "Possible hallucination detected: i don't have.*specific"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:39:57.982704",
+      "query": "\u20ac140K is above our budget. We were thinking closer to \u20ac110K. A Chinese manufacturer quoted us \u20ac95K for a similar spec. Can you match that? What's included in your price that justifies the premium?",
+      "response_preview": "Hey Pieter! Here's what I've found regarding the PF1-X-1210 and how it compares to Chinese manufacturers:\n\n### PF1-X-1210 Specifications\nUnfortunately, I don't have specific details for the PF1-X-1210",
+      "warnings": [
+        "Possible hallucination detected: i don't have.*specific",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:41:07.156927",
+      "query": "Hi, I'm Vikram Mehta, VP Manufacturing at AutoForm Industries, Pune. We're a Tier-1 supplier to Mahindra and Tata Motors. We need a thermoforming machine for ABS+PMMA laminated dashboard covers. The p",
+      "response_preview": "Hey Vikram! For your requirement of forming large ABS+PMMA laminated dashboard covers, the PF1 series can definitely accommodate your needs. Our largest standard model is the PF1-C-3020, which offers ",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)",
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:41:38.152151",
+      "query": "Good, the PF1-X-2515 looks right. What are your standard payment terms? We typically do 25% advance, 65% on dispatch, 10% after installation. Also, what's the lead time? We need this operational by Q4",
+      "response_preview": "Hi Vikram! Here's the information regarding the PF1-X-2515 model:\n\n### Payment Terms\nOur standard payment terms are:\n- **25% Advance**: At the time of order confirmation.\n- **65% on Dispatch**: Before",
+      "warnings": [
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:44:14.928610",
+      "query": "Hey! I'm Joris de Vries from HydroGrow, a hydroponics startup near Amsterdam. We're making large ebb-flow trays from 4mm polystyrene. The trays are huge \u2014 we need a forming area of at least 6000x1800m",
+      "response_preview": "Hi Joris! It looks like the largest forming area we typically handle with our standard machines is around 3500 x 2650 mm, as seen with the PF1-X-3526 model. Unfortunately, a forming area of 6000 x 180",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:44:54.338025",
+      "query": "Wow, so it IS possible as a custom build. What's the ballpark price? We're a startup so cash flow is tight \u2014 can we do staged payments? Like 30% advance, then milestones? Also, how long would a custom",
+      "response_preview": "Hey Joris! Here's what I found:\n\n1. **Pricing & Payment Terms:** For a custom machine of the size you're considering, the cost can start from around USD 90,000 and go upwards, depending on the complex",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:46:55.470540",
+      "query": "Hello, this is James from a UK thermoforming company. We've been an OEM partner with Machinecraft since 2008, selling your machines under our brand in the UK market. We need to discuss the ATF RAFTER ",
+      "response_preview": "Hey James! Great to hear from you. Let's dive into the ATF RAFTER series specs and pricing for your OEM arrangement.\n\n### ATF RAFTER Series Specs:\n- **Machine Type**: Automatic Thermoforming\n- **Appli",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:47:48.895079",
+      "query": "I need a PF1-C-1510 for 3mm HDPE panels. What's the price in EUR? I'm based in Hamburg, Germany.",
+      "response_preview": "The PF1-C-1510 is priced at INR 40,00,000. To convert this to EUR, using the current exchange rate of approximately 1 EUR = 103.35 INR, the price is about EUR 38,700. \n\nHere's a quick summary of the P",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:53:00.425080",
+      "query": "Wow, so it IS possible as a custom build. What's the ballpark price? We're a startup so cash flow is tight \u2014 can we do staged payments? Like 30% advance, then milestones? Also, how long would a custom",
+      "response_preview": "Hey Joris! Here's what I found regarding your questions:\n\n1. **Ballpark Price**: For a custom machine with a forming area of 6000x1800mm, the cost would be significantly higher than our largest standa",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:02:51.176513",
+      "query": "Hi, I'm Pieter van der Berg from FormTech BV in Rotterdam. We've been running an ILLIG machine from 1985 \u2014 yes, 40 years. It still works but parts are impossible to find. We form 4mm ABS panels for in",
+      "response_preview": "Hey Pieter! Thanks for reaching out. Let's dive into what Machinecraft can offer and how we stack up against ILLIG.\n\n### Machine Recommendation\nFor forming 4mm ABS panels with a sheet size of 1200x100",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:03:15.605543",
+      "query": "That's helpful. Your PF1-X-1210 looks interesting. What's the price in EUR? Also, do you have any customers in the Netherlands I could speak with? I want to hear from someone who actually switched fro",
+      "response_preview": "The PF1-X-1210 is priced at approximately \u20ac140,000. This is based on the conversion from INR to EUR using the approximate rate of 1 EUR \u2248 90-92 INR.\n\nRegarding customers in the Netherlands, Machinecra",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:27:44.252632",
+      "query": "Thanks, Ira, for the detailed information. The AM-5060 seems to fit within our budget at INR 7,50,000, which is a relief. Could you clarify what you mean by \"subject to configuration\"? Are there addit",
+      "response_preview": "Hey! Here's a breakdown of the differences between the AM-5060 and the AM-5060-P, along with what \"subject to configuration\" means:\n\n### AM-5060 vs. AM-5060-P\n\n**AM-5060:**\n- **Type:** Vacuum forming ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:28:36.246632",
+      "query": "Thanks for the clarification, Ira. The AM-5060 does seem like a good fit for our startup budget. However, I'm curious about the energy consumption of the AM-5060, as we're trying to keep operational c",
+      "response_preview": "Hey Priya! Here's what I found about the AM-5060 regarding your queries:\n\n1. **Energy Consumption & Heater Type:**\n   - The AM-5060 uses infrared ceramic elements for heating, configured in a grid. Th",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:29:05.640669",
+      "query": "Thanks, Ira, for the detailed response on the energy consumption and heater type. The energy efficiency of the AM-5060 sounds promising, especially with the infrared ceramic elements. Since we're comm",
+      "response_preview": "I've drafted a formal quote for the AM-5060 Thermoforming Machine, which includes the pricing, delivery timeline, and what's included in the purchase. Here's a summary:\n\n- **Price:** INR 7,50,000\n- **",
+      "warnings": [
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:29:37.932105",
+      "query": "Thanks, Ira, for the quote summary. The INR 7,50,000 price for the AM-5060 is within our initial budget, but I'm concerned about any additional configurations that might drive up the cost. Could you c",
+      "response_preview": "Hey Priya! Here's what I found regarding your queries:\n\n1. **Handling 0.7mm rPET:**\n   - The AM-5060 is well-suited for handling thin gauge materials like 0.7mm rPET. It's optimized for materials such",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:44:05.118592",
+      "query": "Give me full technical specifications, pricing, options, and all details for PF1-C-3020",
+      "response_preview": "Here's the detailed information for the PF1-C-3020 thermoforming machine:\n\n### Technical Specifications\n- **Series**: PF1 Series - Air Cylinder Driven Thermoforming Machine\n- **Variant**: Pneumatic (C",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-03T00:47:31.541221",
+      "query": "Give me EVERYTHING you know about Formpack from the knowledge base. I need:\n1. Full company overview (team, facility, machines, capacity)\n2. Current industries and clients served\n3. Sales process and ",
+      "response_preview": "Here's a comprehensive overview of Formpack based on the available data:\n\n### 1. Full Company Overview\n- **Team & Facility**: Formpack operates as a sister company to Machinecraft, located near Mumbai",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1",
+        "Business rule violation: Lead Time Must Be 12-16 Weeks - Lead time is ALWAYS 12-16 weeks. Never promise faster."
       ]
     }
   ]

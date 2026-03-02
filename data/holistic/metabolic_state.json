@@ -1,0 +1,27 @@
+{
+  "last_cleanup": "2026-03-02T17:41:25.926945",
+  "total_cleanups": 1,
+  "total_items_cleaned": 8,
+  "total_contradictions_found": 0,
+  "total_stale_archived": 0,
+  "knowledge_stats": {
+    "total_files": 539,
+    "total_size_mb": 11.12,
+    "stale_files_count": 0,
+    "last_audit": "2026-03-02T17:41:25.785225"
+  },
+  "qdrant_stats": {
+    "ira_chunks_v4_voyage": {
+      "total_points": 5227,
+      "duplicates": 6,
+      "empty": 80,
+      "last_scan": "2026-03-02T17:41:25.891989"
+    },
+    "ira_discovered_knowledge": {
+      "total_points": 4486,
+      "duplicates": 3,
+      "empty": 0,
+      "last_scan": "2026-03-02T17:41:25.926656"
+    }
+  }
+}

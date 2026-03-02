@@ -38,5 +38,85 @@
     "severity": "moderate",
     "suggested_resolution": "Different prices for PF1 models: PF1-C-3020 is 8500000 INR while PF1-X-1510 is 4100000 INR.",
     "detected_at": "2026-02-28T14:23:22.728043"
+  },
+  {
+    "memory_1_id": "f29990ffb720",
+    "memory_1_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 65",
+    "memory_2_id": "1fca5481c2ea",
+    "memory_2_content": "{'machine_model': 'PF1-C-3030', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3",
+    "conflict_type": "numeric",
+    "severity": "critical",
+    "suggested_resolution": "Verify which is correct: 1500 mm vs 2000 mm",
+    "detected_at": "2026-03-02T17:41:48.400956"
+  },
+  {
+    "memory_1_id": "f29990ffb720",
+    "memory_1_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 65",
+    "memory_2_id": "1fca5481c2ea",
+    "memory_2_content": "{'machine_model': 'PF1-C-3030', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3",
+    "conflict_type": "numeric",
+    "severity": "critical",
+    "suggested_resolution": "Verify which is correct: 1500 mm vs 2000 mm",
+    "detected_at": "2026-03-02T17:41:48.415796"
+  },
+  {
+    "memory_1_id": "f29990ffb720",
+    "memory_1_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 65",
+    "memory_2_id": "1fca5481c2ea",
+    "memory_2_content": "{'machine_model': 'PF1-C-3030', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3",
+    "conflict_type": "numeric",
+    "severity": "critical",
+    "suggested_resolution": "Verify which is correct: 1500 mm vs 2000 mm",
+    "detected_at": "2026-03-02T17:41:48.415860"
+  },
+  {
+    "memory_1_id": "f29990ffb720",
+    "memory_1_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 65",
+    "memory_2_id": "1fca5481c2ea",
+    "memory_2_content": "{'machine_model': 'PF1-C-3030', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3",
+    "conflict_type": "numeric",
+    "severity": "critical",
+    "suggested_resolution": "Verify which is correct: 1500 mm vs 2000 mm",
+    "detected_at": "2026-03-02T17:41:48.415900"
+  },
+  {
+    "memory_1_id": "f29990ffb720",
+    "memory_1_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 65",
+    "memory_2_id": "1fca5481c2ea",
+    "memory_2_content": "{'machine_model': 'PF1-C-3030', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': ' |\\n| PF1-C-2020 | 2000 x 2000mm | 500mm | \u20ac70,000 |\\n| PF1-C-3020 | 3",
+    "conflict_type": "numeric",
+    "severity": "critical",
+    "suggested_resolution": "Verify which is correct: 1500 mm vs 2000 mm",
+    "detected_at": "2026-03-02T17:41:48.415939"
+  },
+  {
+    "memory_1_id": "45d2698fe3f9",
+    "memory_1_content": "{'machine_model': 'PF1-C-3020', 'prices': [{'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type mac",
+    "memory_2_id": "1f0532c41092",
+    "memory_2_content": "{'machine_model': 'PF1-C-1210', 'prices': [{'price_inr': 539500000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': 'lmez\\n   - Note: Large format - premium deal\\n\\n2. LUX Pump Comp (Alger",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1-C-1210 (8500000 vs 539500000)",
+    "detected_at": "2026-03-02T17:41:53.875922"
+  },
+  {
+    "memory_1_id": "45d2698fe3f9",
+    "memory_1_content": "{'machine_model': 'PF1-C-3020', 'prices': [{'price_inr': 8500000, 'source': 'PF1-C-3020 _ Machinecraft PF1 Quotation (2).pdf', 'confidence': 0.9, 'context': 'trol\u201d\\nalso known as \u201czero sag\u201d - type mac",
+    "memory_2_id": "f29990ffb720",
+    "memory_2_content": "{'machine_model': 'PF1-C-1520', 'prices': [{'price_inr': 705500000, 'source': 'sales_playbook.md', 'confidence': 0.7, 'context': '-----------|-----------|------------|\\n| PF1-1515 | 1500 x 1500mm | 65",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1-C-1520 (8500000 vs 705500000)",
+    "detected_at": "2026-03-02T17:41:53.876047"
+  },
+  {
+    "memory_1_id": "147a6f5b6326",
+    "memory_1_content": "{'machine_model': 'PF1-C-2015', 'prices': [{'price_inr': 332000000, 'source': 'MC Machine Line-up (1).xlsx', 'confidence': 0.7, 'context': '5 Manual Servo: \u00a526.4M (~$176K USD)\\n- Japan Premium: 3.7x I",
+    "memory_2_id": "ef5546b8524d",
+    "memory_2_content": "{'machine_model': 'PF1-C-2012', 'prices': [{'price_inr': 539500000, 'source': 'K2025 Leads.xlsx', 'confidence': 0.7, 'context': ': Shower trays, thermoformed sinks\\n\\n3. Al-Hilal Industrial (Oman) - E",
+    "conflict_type": "price",
+    "severity": "moderate",
+    "suggested_resolution": "Different prices for PF1-C-2015 (332000000 vs 539500000)",
+    "detected_at": "2026-03-02T17:41:53.876068"
   }
 ]

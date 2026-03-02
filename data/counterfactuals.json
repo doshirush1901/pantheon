@@ -3,58 +3,60 @@
     {
       "scenario": "What if a competitor offered 30% faster delivery?",
       "impact": "Would lose time-sensitive deals",
-      "readiness": 0.3,
+      "readiness": 0.4,
       "gaps": [
-        "Lack of understanding of competitive delivery times and benchmarks",
-        "No clear strategy for responding to competitors' speed improvements",
-        "Insufficient data on customer preferences regarding delivery speed"
+        "No data on competitor's delivery logistics or processes",
+        "Absence of strategies for improving delivery speed or customer service",
+        "Lack of market analysis on how delivery speed impacts customer decision-making"
       ],
       "preparations": [
-        "Conduct a market analysis to understand competitors' delivery capabilities",
-        "Develop a flexible logistics strategy to enhance delivery speed",
-        "Gather customer feedback regarding delivery expectations and satisfaction"
+        "Develop an understanding of competitors' delivery capabilities and strategies",
+        "Create strategies to enhance delivery speed and improve customer satisfaction",
+        "Conduct market research to ascertain the importance of delivery time to potential customers"
       ]
     },
     {
       "scenario": "What if prices increased by 15%?",
       "impact": "May lose price-sensitive customers",
-      "readiness": 0.4,
+      "readiness": 0.6,
       "gaps": [
-        "Inability to calculate new prices from existing data when faced with a percentage increase.",
-        "Limited understanding of economic principles related to pricing and inflation."
+        "Lack of scenario modeling for price elasticity and consumer response to price increases.",
+        "Limited data on competitor pricing strategies during significant price changes."
       ],
       "preparations": [
-        "Develop algorithms for updating price information based on percentage changes.",
-        "Create educational resources to explain economic concepts related to pricing and market changes."
+        "Develop a financial model that simulates the impact of a 15% price increase on sales volume and revenue.",
+        "Gather additional market data to analyze competitor reactions and pricing strategies in response to price increases."
       ]
     },
     {
       "scenario": "What if key raw materials became scarce?",
       "impact": "Delivery times would extend",
-      "readiness": 0.3,
+      "readiness": 0.4,
       "gaps": [
-        "Lack of data on alternative raw material sourcing options",
-        "Insufficient analysis on the impact of material scarcity on production and machine pricing"
+        "Insufficient data on alternative raw materials or substitutes for key materials.",
+        "Lack of information on impact assessments related to supply chain disruptions due to raw material scarcity.",
+        "No contingency plans outlined for the scenarios of raw material shortages."
       ],
       "preparations": [
-        "Develop a comprehensive risk assessment plan for raw material scarcity",
-        "Create partnerships with alternative suppliers or find substitutes for key materials"
+        "Develop a database of alternative materials and suppliers to mitigate raw material scarcity.",
+        "Create comprehensive risk assessment frameworks that evaluate supply chain vulnerabilities.",
+        "Establish contingency plans and strategic reserves to address interruptions in raw material availability."
       ]
     },
     {
       "scenario": "What if a customer asked for a feature we don't have?",
       "impact": "Could lose deal to competitor",
-      "readiness": 0.4,
+      "readiness": 0.3,
       "gaps": [
-        "Lack of documentation or process on how to handle feature requests.",
-        "No clear communication strategy for informing customers about feature availability."
+        "Lack of information on features that are currently offered or under development, making it difficult to address customer inquiries about unavailable features.",
+        "No strategy or guidelines for handling customer requests for new features, including how to collect feedback and potentially prioritize development."
       ],
       "preparations": [
-        "Develop a standardized response guideline for feature requests.",
-        "Create a feedback loop to document customer feature requests and assess demand."
+        "Develop a comprehensive database of existing features and their specifications to assist staff in responding to customer inquiries accurately.",
+        "Create a customer feedback system to log feature requests, assess demand, and facilitate communication with the development team regarding potential new features."
       ]
     }
   ],
-  "overall_readiness": 0.35,
-  "timestamp": "2026-02-28T14:23:44.760225"
+  "overall_readiness": 0.425,
+  "timestamp": "2026-03-02T17:42:49.053977"
 }

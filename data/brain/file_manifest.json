@@ -10,9 +10,31 @@
       "original_name": "_PF1-X-1210 Quote EUR.pdf",
       "file_path": "/Users/rushabhdoshi/Desktop/Ira/data/imports/docs_from_telegram/20260302_083150__PF1-X-1210_Quote_EUR.pdf",
       "last_updated": "2026-03-02T08:31:56.043142"
+    },
+    "20260302_215750_Machinecraft_machine_payment_schedule.pdf": {
+      "descriptions": [
+        {
+          "text": "this data has the payment schedule - can you check this data - it is also inside the import folder",
+          "timestamp": "2026-03-02T21:57:52.196917"
+        }
+      ],
+      "original_name": "Machinecraft machine payment schedule.pdf",
+      "file_path": "/Users/rushabhdoshi/Desktop/Ira/data/imports/docs_from_telegram/20260302_215750_Machinecraft_machine_payment_schedule.pdf",
+      "last_updated": "2026-03-02T21:57:52.196923"
+    },
+    "Machinecraft machine payment schedule.pdf": {
+      "descriptions": [
+        {
+          "text": "this data has the payment schedule - can you check this data - it is also inside the import folder",
+          "timestamp": "2026-03-02T21:57:52.196917"
+        }
+      ],
+      "original_name": "Machinecraft machine payment schedule.pdf",
+      "file_path": "/Users/rushabhdoshi/Desktop/Ira/data/imports/docs_from_telegram/20260302_215750_Machinecraft_machine_payment_schedule.pdf",
+      "last_updated": "2026-03-02T21:57:52.196925"
     }
   },
   "stats": {
-    "total_files": 1
+    "total_files": 3
   }
 }

@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-03-02T17:43:06.073002",
+  "proposed_strategies": [
+    {
+      "id": "strat_20260302_0",
+      "name": "Segmented Outreach",
+      "description": "Customize emails based on the specific industry and needs of the leads to increase engagement and relevance.",
+      "tactics": [
+        "Segment your leads into industries such as automotive, aerospace, and packaging, and tailor the content to each sector's needs.",
+        "Include case studies and testimonials relevant to each industry's use of thermoforming machines and CNC routers.",
+        "Use industry-specific subject lines to capture attention, e.g., 'Revolutionize Your Automotive Parts Production with Our CNC Routers'.",
+        "Offer a free industry-specific white paper or guide to add value and encourage replies.",
+        "Personalize the introduction by referencing recent industry trends or news relevant to the recipient's sector."
+      ],
+      "target_reply_rate": 0.15,
+      "generated_at": "2026-03-02T17:43:06.072897",
+      "source": "self_evaluation",
+      "status": "proposed",
+      "results": null
+    },
+    {
+      "id": "strat_20260302_1",
+      "name": "Value-Driven Content",
+      "description": "Focus on delivering high-value content that addresses pain points and showcases the benefits of our technology.",
+      "tactics": [
+        "Craft emails around common problems in manufacturing and how our solutions can solve them, e.g., 'Reduce Production Time by 30% with Our CNC Routers'.",
+        "Highlight unique selling propositions such as energy efficiency, precision, and cost-effectiveness of our machines.",
+        "Include a call-to-action offering a free consultation or demo to initiate conversation.",
+        "Incorporate multimedia elements like short videos or infographics to visually demonstrate the product's benefits.",
+        "Provide limited-time offers or discounts to create urgency and encourage quick replies."
+      ],
+      "target_reply_rate": 0.2,
+      "generated_at": "2026-03-02T17:43:06.072916",
+      "source": "self_evaluation",
+      "status": "proposed",
+      "results": null
+    },
+    {
+      "id": "strat_20260302_2",
+      "name": "Relationship Building",
+      "description": "Establish a rapport with leads through consistent, conversational, and personalized email sequences.",
+      "tactics": [
+        "Start with a warm introduction email that focuses on mutual connections or interests, such as industry events or associations.",
+        "Send follow-up emails that build on previous interactions and provide additional valuable insights, not just sales pitches.",
+        "Use a conversational tone to make emails feel more personal and less like marketing blasts.",
+        "Leverage LinkedIn to connect with leads and reinforce email communication with personalized messages.",
+        "Track and reference interactions (opens, clicks, previous replies) to show attentiveness and tailor future communications."
+      ],
+      "target_reply_rate": 0.1,
+      "generated_at": "2026-03-02T17:43:06.072925",
+      "source": "self_evaluation",
+      "status": "proposed",
+      "results": null
+    }
+  ],
+  "current_strategy": "Segmented Outreach"
+}
