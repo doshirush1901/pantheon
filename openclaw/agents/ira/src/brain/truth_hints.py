@@ -113,7 +113,10 @@ TRUTH_HINTS: List[TruthHint] = [
 
 **Key Features:** Closed chamber, sag control, pre-blow, zone heating, recipe management, servo drives (X variant), auto load/unload, plug assist.
 
-**Variants:** PF1-C (pneumatic, affordable), PF1-X (all-servo, premium).
+**Variants:**
+- PF1-C (pneumatic, affordable) — heavy gauge sheet-fed
+- PF1-X (all-servo, premium) — heavy gauge sheet-fed
+- PF1-R (roll-fed) — for thin materials 0.2mm to 1.5mm on PF1 platform
 
 Available in sizes from PF1-C-1008 (1000x800mm) to PF1-C-3020 (3000x2000mm) forming area.""",
         category="product",
@@ -253,7 +256,7 @@ Choose PF1 for heavy-gauge industrial forming, PF2 ONLY for bathtubs/spa shells.
         ],
         answer="""AM Series - Entry-level Vacuum Forming Machines:
 
-The AM Series is designed for THIN GAUGE materials ONLY (maximum 1.5mm thickness).
+The AM Series is designed for THIN GAUGE materials ONLY (maximum 1.5mm standard, up to 1.8mm with duplex chain option).
 
 **Key Models:**
 - AM-5060: INR 7,50,000 - 500x600mm forming area
@@ -280,11 +283,14 @@ AM Series can only handle sheet thickness UP TO 1.5mm maximum. For materials thi
         ],
         answer="""Machine Selection by Material Thickness:
 
-**For material thickness ≤1.5mm:**
-→ AM Series (budget-friendly, INR 7.5L - 50L)
+**For material thickness ≤1.5mm (thin gauge):**
+→ AM Series (budget-friendly, INR 7.5L - 50L) — up to 1.8mm with duplex chain
+→ PF1-R (roll-fed PF1 variant, 0.2-1.5mm) — alternative to AM on PF1 platform
 
-**For material thickness >1.5mm (2mm, 3mm, 4mm, 5mm+):**
-→ PF1 Series ONLY (INR 33L - 80L depending on size)
+**For material thickness >1.5mm (2mm, 3mm, 4mm, 5mm+, heavy gauge):**
+→ PF1-C or PF1-X Series ONLY (INR 33L - 80L depending on size)
+
+**If customer needs BOTH thin AND thick:** Two separate machines required. Cannot combine.
 
 **PF1 Size Selection (for 4x8 feet / 1220x2440mm sheets):**
 - PF1-C-2515 (2500x1500mm): INR 70,00,000
