@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial open-source release
-- Comprehensive README with detailed documentation
 - GitHub issue and PR templates
 - Security policy and code of conduct
 - MIT License
 
 ### Changed
+- Complete README rewrite with full Pantheon documentation (all 11 agents)
+- Added Hermes, Prometheus, Plutus, Hephaestus, Mnemosyne agent documentation
+- Added defense-in-depth documentation (injection guard, knowledge health, immune system)
+- Added biological body systems documentation (immune, respiratory, endocrine, voice, metabolic, musculoskeletal, sensory, growth)
+- Added metabolic cycle documentation (EAT → GROW)
+- Added full technology stack with all 6 Qdrant collections
+- Added detailed message flow walkthrough (7-layer pipeline)
+- Updated project structure to reflect current codebase (60+ brain modules, 150+ scripts, 24 skills)
 - Reorganized codebase for GitHub-ready structure
 - Updated `.gitignore` to exclude sensitive files
 
@@ -23,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-03-01
 
 ### Added
-- **Pantheon Architecture**: Multi-agent system with Athena, Clio, Iris, Calliope, Vera, and Sophia
+- **Pantheon Architecture**: Multi-agent system with Athena, Clio, Iris, Calliope, Vera, Sophia, Hermes, Prometheus, Plutus, Hephaestus, and Mnemosyne
 - **Brain System**: Hybrid RAG with Voyage AI embeddings and FlashRank reranking
 - **Memory System**: Episodic, semantic, and procedural memory with Mem0 integration
 - **Telegram Channel**: Full-featured Telegram bot with rich formatting
