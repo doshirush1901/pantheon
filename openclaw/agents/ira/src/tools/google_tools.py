@@ -640,13 +640,15 @@ def _is_email_allowed(address: str) -> bool:
     return False
 
 
-def gmail_send(to: str, subject: str, body: str, thread_id: str = "") -> str:
-    """Send an email via Gmail API.
+def gmail_send(to: str, subject: str, body: str, body_html: str = "", thread_id: str = "") -> str:
+    """Send an email via Gmail API. Supports HTML for rich formatting.
 
     Args:
         to: Recipient email address.
         subject: Email subject.
-        body: Email body (plain text).
+        body: Email body (plain text fallback).
+        body_html: Optional HTML body for rich formatting. If provided,
+                   sends multipart (text/plain + text/html).
         thread_id: Optional thread ID to reply in.
 
     Returns:
@@ -667,8 +669,15 @@ def gmail_send(to: str, subject: str, body: str, thread_id: str = "") -> str:
     try:
         import base64
         from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
 
-        message = MIMEText(body)
+        if body_html:
+            message = MIMEMultipart("alternative")
+            message.attach(MIMEText(body, "plain"))
+            message.attach(MIMEText(body_html, "html"))
+        else:
+            message = MIMEText(body)
+
         message["to"] = to
         message["subject"] = subject
 
@@ -678,7 +687,8 @@ def gmail_send(to: str, subject: str, body: str, thread_id: str = "") -> str:
             send_body["threadId"] = thread_id
 
         result = service.users().messages().send(userId="me", body=send_body).execute()
-        return f"Email sent to {to} (message id: {result.get('id', '?')})"
+        fmt = "HTML" if body_html else "plain text"
+        return f"Email sent to {to} ({fmt}, message id: {result.get('id', '?')})"
     except Exception as e:
         logger.error(f"Gmail send error: {e}")
         return f"(Gmail send error: {e})"

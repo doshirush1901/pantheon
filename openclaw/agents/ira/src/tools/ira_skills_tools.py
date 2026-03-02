@@ -307,13 +307,14 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "send_email",
-            "description": "Send an email from Rushabh's Gmail. IMPORTANT: Always confirm with Rushabh before sending. Never send without explicit approval.",
+            "description": "ACTUALLY SEND an email from Rushabh's Gmail. Call this after the user approves a draft. Supports HTML for rich formatting.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "to": {"type": "string", "description": "Recipient email address"},
                     "subject": {"type": "string", "description": "Email subject line"},
-                    "body": {"type": "string", "description": "Email body (plain text)"},
+                    "body": {"type": "string", "description": "Email body (plain text fallback)"},
+                    "body_html": {"type": "string", "description": "Optional: HTML-formatted email body. Use <h2>, <strong>, <ul>, <table> for professional formatting. If provided, recipient sees this; plain text body is the fallback."},
                     "thread_id": {"type": "string", "description": "Optional: thread ID to reply in an existing conversation"},
                 },
                 "required": ["to", "subject", "body"],
@@ -408,6 +409,26 @@ IRA_TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "build_quote_pdf",
+            "description": "Ask Quotebuilder to build a detailed formal quotation (tech specs, terms, optional extras) and export it as a PDF for sending to the customer. Use when the user wants a formal quote document as an attachment (e.g. 'prepare a quote for PF1-C-2015 for Acme Corp', 'build a detailed quote and PDF'). Returns quote ID and path to the generated PDF file.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "width_mm": {"type": "integer", "description": "Forming area width in mm (e.g. 2000 for 2000mm)"},
+                    "height_mm": {"type": "integer", "description": "Forming area height in mm (e.g. 1500 for 1500mm)"},
+                    "variant": {"type": "string", "description": "Machine variant: C (pneumatic) or X (servo). Default C."},
+                    "customer_name": {"type": "string", "description": "Customer contact name"},
+                    "company_name": {"type": "string", "description": "Customer company name"},
+                    "customer_email": {"type": "string", "description": "Customer email address"},
+                    "country": {"type": "string", "description": "Country for pricing (India = GST; other = Ex-Works). Default India."},
+                },
+                "required": ["width_mm", "height_mm"],
+            },
+        },
+    },
 ]
 
 
@@ -468,6 +489,7 @@ async def execute_tool_call(
         "draft_email": "hermes",
         "run_analysis": "hephaestus",
         "correction_report": "nemesis",
+        "build_quote_pdf": "quotebuilder",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -900,12 +922,13 @@ async def execute_tool_call(
         to = arguments.get("to", "")
         subject = arguments.get("subject", "")
         body = arguments.get("body", "")
+        body_html = arguments.get("body_html", "")
         thread_id = arguments.get("thread_id", "")
         if not to or not subject or not body:
             return "(Error: to, subject, and body are all required)"
         try:
             from openclaw.agents.ira.src.tools.google_tools import gmail_send
-            return gmail_send(to=to, subject=subject, body=body, thread_id=thread_id)
+            return gmail_send(to=to, subject=subject, body=body, body_html=body_html, thread_id=thread_id)
         except ImportError:
             return "(Gmail not available.)"
         except Exception as e:
@@ -973,6 +996,43 @@ async def execute_tool_call(
             logger.warning(f"correction_report failed: {e}")
             return f"(Nemesis report unavailable: {e})"
 
+    elif tool_name == "build_quote_pdf":
+        width_mm = arguments.get("width_mm")
+        height_mm = arguments.get("height_mm")
+        if width_mm is None or height_mm is None:
+            return "(Error: width_mm and height_mm are required for build_quote_pdf)"
+        try:
+            width_mm = int(width_mm) if width_mm is not None else None
+            height_mm = int(height_mm) if height_mm is not None else None
+        except (TypeError, ValueError):
+            return "(Error: width_mm and height_mm must be numbers)"
+        if width_mm is None or height_mm is None:
+            return "(Error: width_mm and height_mm are required for build_quote_pdf)"
+        try:
+            from openclaw.agents.ira.src.agents.quotebuilder import build_quote_pdf as quotebuilder_build
+            result = quotebuilder_build(
+                width_mm=width_mm,
+                height_mm=height_mm,
+                variant=str(arguments.get("variant", "C")).strip() or "C",
+                customer_name=str(arguments.get("customer_name", "")),
+                company_name=str(arguments.get("company_name", "")),
+                customer_email=str(arguments.get("customer_email", "")),
+                country=str(arguments.get("country", "India")),
+            )
+            return (
+                f"Quote PDF generated.\n"
+                f"Quote ID: {result.quote_id}\n"
+                f"Model: {result.model}\n"
+                f"Total: ₹{result.total_inr:,} INR (approx. ${result.total_usd:,} USD)\n"
+                f"PDF path: {result.pdf_path}\n"
+                f"(File is ready to attach and send to the customer.)"
+            )
+        except ImportError as e:
+            return f"(Quotebuilder not available: {e})"
+        except Exception as e:
+            logger.warning(f"build_quote_pdf failed: {e}")
+            return f"(Quotebuilder error: {e})"
+
     return f"Error: Unknown tool '{tool_name}'"
 
 
@@ -985,6 +1045,7 @@ _TOOL_SCHEMAS: Dict[str, Dict[str, type]] = {
     "customer_lookup": {"query": str},
     "search_contacts": {"query": str},
     "lead_intelligence": {"company": str, "context": str},
+    "build_quote_pdf": {"width_mm": int, "height_mm": int, "variant": str, "customer_name": str, "company_name": str, "customer_email": str, "country": str},
 }
 
 _MAX_ARG_LENGTH = 16000

@@ -588,15 +588,11 @@ Data stores: Qdrant (vector search), Mem0 (AI memory), PostgreSQL (identity/stat
             r"pantheon|athena|clio|calliope|vera|sophia",
             r"who.*works?.*for you|agents.*working",
         ],
-        answer="""I operate as a Pantheon of 5 specialist agents:
+        answer="""I operate as a Pantheon of 13 specialist roles:
 
-1. Athena (Chief of Staff) - The strategist and orchestrator. All tasks start and end with her. She plans, delegates, and synthesizes.
-2. Clio (Researcher) - The meticulous historian. Retrieves knowledge from Qdrant, Mem0, machine database, and knowledge files.
-3. Calliope (Writer) - The eloquent wordsmith. Crafts all communications, emails, quotes, and responses.
-4. Vera (Fact-Checker) - The incorruptible auditor. Verifies specs, prices, and claims against the machine database before any response goes out.
-5. Sophia (Reflector) - The wise mentor. Learns from every interaction, stores corrections, and improves over time through the nightly dream cycle.
+Athena (orchestrator), Clio (research), Calliope (writing), Vera (fact-check), Sophia (learning), Mnemosyne (CRM), Hermes (outreach), Prometheus (discovery), Plutus (finance), Hephaestus (code forge), Sphinx (gatekeeper — clarifies vague requests), Nemesis (correction learner — trains during sleep).
 
-Flow: User -> Athena (plans) -> Clio (researches) -> Calliope (writes) -> Vera (verifies) -> Athena (synthesizes) -> User. Sophia reflects post-interaction.""",
+Flow: User → Sphinx (if vague, asks questions) → Athena (plans, tool loop) → Clio/Calliope/Vera/others as needed → Sophia reflects; Nemesis learns from every correction.""",
         category="self_knowledge",
         keywords=["agent", "agents", "pantheon", "sub-agent", "subagent", "names", "athena", "clio", "calliope", "vera", "sophia"],
     ),
@@ -669,7 +665,7 @@ When you ask a question, I search across all these layers in parallel to build t
 - Ingest PDFs, spreadsheets, web pages into my knowledge base (/ingest, /url)
 - Extract and remember key data from uploaded files
 
-I operate as a Pantheon of specialist roles — Athena (strategy), Clio (research), Calliope (writing), Vera (fact-checking), Sophia (learning), Mnemosyne (CRM), Hermes (outreach), Prometheus (discovery), and Plutus (finance).
+I operate as a Pantheon of specialist roles — Athena (strategy), Clio (research), Calliope (writing), Vera (fact-checking), Sophia (learning), Mnemosyne (CRM), Hermes (outreach), Prometheus (discovery), Plutus (finance), Hephaestus (code forge), Sphinx (gatekeeper of clarity), and Nemesis (correction learner).
 
 Type /help to see all commands, or just ask me anything naturally!""",
         category="self_knowledge",

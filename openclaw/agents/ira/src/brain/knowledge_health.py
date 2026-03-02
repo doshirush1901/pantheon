@@ -134,10 +134,10 @@ BUSINESS_RULES = [
     {
         "id": "pf1_for_heavy_gauge",
         "name": "PF1 for Heavy Gauge",
-        "description": "Heavy gauge (>1.5mm) requires PF1 Series",
+        "description": "Heavy gauge (>1.5mm) requires PF1 Series (PF1-C or PF1-X, NOT PF1-R which is thin-gauge roll-fed)",
         "check_pattern": r"([2-9]|1[0-9])\s*mm.*thick|heavy.*gauge|thick.*material",
         "required_mention": r"pf[-\s]?1",
-        "correct_response": "For heavy gauge materials (>1.5mm), recommend PF1 Series",
+        "correct_response": "For heavy gauge materials (>1.5mm), recommend PF1-C (pneumatic) or PF1-X (servo). PF1-R is roll-fed thin-gauge only.",
     },
     {
         "id": "price_must_be_specific",
@@ -587,12 +587,56 @@ class KnowledgeHealthMonitor:
                     else:
                         warnings.append(f"Unverified model number: {model_upper} — not in machine database")
 
+        # Check 6: Finance response sanity — catch fabricated orders/cashflow
+        if self._is_finance_query(query):
+            finance_warnings = self._check_finance_hallucination(query, response)
+            warnings.extend(finance_warnings)
+            if finance_warnings:
+                is_safe = False
+
         # Log issues for learning
         if warnings:
             self._log_validation_issue(query, response, warnings)
         
         return is_safe, warnings
-    
+
+    def _is_finance_query(self, query: str) -> bool:
+        """Check if this is a finance/cashflow/order query."""
+        return bool(re.search(
+            r"cash\s*flow|inflow|order\s*book|outstanding|receivable|payment|revenue|financial|"
+            r"when.*money|when.*cash|next.*payment|next.*inflow",
+            query, re.IGNORECASE,
+        ))
+
+    def _check_finance_hallucination(self, query: str, response: str) -> List[str]:
+        """Detect fabricated finance data — orders/amounts not from Plutus tools."""
+        warnings = []
+        resp_lower = response.lower()
+
+        _KNOWN_NO_ACTIVE_ORDER = {"alp", "alp delhi"}
+        for entity in _KNOWN_NO_ACTIVE_ORDER:
+            if entity in resp_lower and any(kw in resp_lower for kw in [
+                "order", "payment", "inflow", "cash", "million", "lakh", "crore",
+            ]):
+                warnings.append(
+                    f"FINANCE_HALLUCINATION: '{entity}' mentioned in finance context "
+                    f"but has no active order. This is likely fabricated from old quote data."
+                )
+
+        specific_date = re.search(
+            r"(?:scheduled|set|due|expected)\s+(?:for|on)\s+"
+            r"(?:(?:january|february|march|april|may|june|july|august|september|october|november|december)"
+            r"\s+\d{1,2}(?:st|nd|rd|th)?)",
+            resp_lower,
+        )
+        if specific_date and "payment schedule" not in resp_lower and "plutus" not in resp_lower:
+            warnings.append(
+                "FINANCE_HALLUCINATION: Specific payment date cited without referencing "
+                "payment schedule. Dates must come from Plutus tools only."
+            )
+
+        return warnings
+
     def _should_have_data(self, query: str) -> bool:
         """Check if we should have data for this query type."""
         data_topics = [

@@ -2395,7 +2395,10 @@ I'm your AI assistant for MachineCraft. Here's what I can do:
             "💾 *Mnemosyne* — CRM keeper (contacts, deals, history)\n"
             "📨 *Hermes* — Sales outreach (drip campaigns, personalized emails)\n"
             "🔥 *Prometheus* — Market scout (new industries & opportunities)\n"
-            "💰 *Plutus* — Finance chief (order book, cashflow, revenue)"
+            "💰 *Plutus* — Finance chief (order book, cashflow, revenue)\n"
+            "⚒️ *Hephaestus* — Code forge (writes & runs Python for data tasks)\n"
+            "🦁 *Sphinx* — Gatekeeper (asks clarifying questions when requests are vague)\n"
+            "⚖️ *Nemesis* — Correction learner (no mistake goes unlearned; trains during sleep)"
         )
         self.send_message(msg2, parse_mode="Markdown")
         _time.sleep(0.8)
