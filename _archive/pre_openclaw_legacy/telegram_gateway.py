@@ -145,16 +145,18 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 AGENT_DIR = PROJECT_ROOT / "openclaw" / "agents" / "ira"
 BRAIN_DIR = AGENT_DIR / "src" / "brain"
 
-# Add project root and agent source directories to path
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(AGENT_DIR))  # For config.py
-sys.path.insert(0, str(BRAIN_DIR))
-sys.path.insert(0, str(AGENT_DIR / "src" / "core"))
-sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
-sys.path.insert(0, str(AGENT_DIR / "src" / "conversation"))
-sys.path.insert(0, str(AGENT_DIR / "src" / "identity"))
-sys.path.insert(0, str(AGENT_DIR / "src" / "common"))
-sys.path.insert(0, str(AGENT_DIR / "core"))
+# Add project root and agent source directories to path (once at startup)
+_SYS_PATHS_ADDED = set()
+for _p in [
+    PROJECT_ROOT, AGENT_DIR, BRAIN_DIR,
+    AGENT_DIR / "src" / "core", AGENT_DIR / "src" / "memory",
+    AGENT_DIR / "src" / "conversation", AGENT_DIR / "src" / "identity",
+    AGENT_DIR / "src" / "common", AGENT_DIR / "core",
+]:
+    _ps = str(_p)
+    if _ps not in _SYS_PATHS_ADDED and _ps not in sys.path:
+        sys.path.insert(0, _ps)
+        _SYS_PATHS_ADDED.add(_ps)
 
 # Import centralized config
 try:
@@ -926,7 +928,6 @@ class TelegramGateway:
     def handle_url_ingest(self, url: str, context: Optional[str] = None) -> GatewayResponse:
         """Fetch a URL, extract content, and ingest into Ira's knowledge base."""
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from document_extractor import extract_url
             from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
 
@@ -1198,7 +1199,6 @@ class TelegramGateway:
         # --- File Manifest: store the human-written description for NN research ---
         if caption:
             try:
-                sys.path.insert(0, str(BRAIN_DIR))
                 from nn_research import get_file_manifest
                 manifest = get_file_manifest()
                 manifest.add_file(
@@ -1214,7 +1214,6 @@ class TelegramGateway:
         # --- Path 1: KnowledgeIngestor (Qdrant + Mem0 + JSON) for text documents ---
         if not is_image or extracted_text:
             try:
-                sys.path.insert(0, str(BRAIN_DIR))
                 from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
 
                 ingestor = KnowledgeIngestor()
@@ -1335,7 +1334,6 @@ class TelegramGateway:
         # --- Path 2: DocumentIngestor (fact extraction → Mem0/PostgreSQL) ---
         if not is_image:
             try:
-                sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
                 from document_ingestor import DocumentIngestor
 
                 fact_ingestor = DocumentIngestor(check_conflicts=True)
@@ -1428,7 +1426,6 @@ class TelegramGateway:
         self.send_typing_action()
 
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from document_extractor import DocumentExtractor
             from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
 
@@ -1534,7 +1531,6 @@ class TelegramGateway:
         self.send_typing_action()
 
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from url_fetcher import fetch_url_content, extract_first_url
             from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
         except ImportError as e:
@@ -2815,7 +2811,6 @@ SAFETY:
             lines.append("")
         
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from retrieval_diagnostics import get_diagnostics
             
             diag = get_diagnostics()
@@ -3067,7 +3062,6 @@ SAFETY:
         - Entity memories
         """
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from memory_analytics import search_memories, format_search_for_telegram
             
             results = search_memories(query, limit=15)
@@ -3091,7 +3085,6 @@ SAFETY:
     def handle_memory_stats(self) -> GatewayResponse:
         """Handle /memory_stats - Show memory analytics dashboard."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from memory_analytics import format_stats_for_telegram
             
             response_text = format_stats_for_telegram()
@@ -3114,7 +3107,6 @@ SAFETY:
     def handle_export_memory(self) -> GatewayResponse:
         """Handle /export_memory - Export all IRA knowledge to backup file."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from memory_analytics import export_all_knowledge
             from datetime import datetime
             
@@ -3151,7 +3143,6 @@ File saved to: `crm/backups/`"""
     def handle_decay_memory(self) -> GatewayResponse:
         """Handle /decay_memory - Apply memory decay to old unused memories."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from memory_analytics import apply_memory_decay
             
             # First do a dry run
@@ -3186,7 +3177,6 @@ Reply `CONFIRM DECAY` to apply these changes."""
     def handle_conflicts_command(self) -> GatewayResponse:
         """Handle /conflicts - Show all pending memory conflicts."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from conflict_clarifier import handle_conflicts_command
             
             response_text = handle_conflicts_command()
@@ -3209,7 +3199,6 @@ Reply `CONFIRM DECAY` to apply these changes."""
     def handle_price_conflicts_command(self) -> GatewayResponse:
         """Handle /price_conflicts - Show pending price conflicts."""
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from pricing_learner import PricingLearner
             
             learner = PricingLearner(verbose=False)
@@ -3269,7 +3258,6 @@ Reply `CONFIRM DECAY` to apply these changes."""
         model = result
         
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from pricing_learner import PricingLearner
             
             learner = PricingLearner(verbose=False)
@@ -3319,7 +3307,6 @@ Reply `CONFIRM DECAY` to apply these changes."""
     def handle_resolve_command(self, args: str) -> GatewayResponse:
         """Handle /resolve <id> <1|2|merge:text> - Resolve a specific conflict."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from conflict_clarifier import handle_resolve_command
             
             response_text = handle_resolve_command(args)
@@ -3398,7 +3385,6 @@ Reply `CONFIRM DECAY` to apply these changes."""
             )
         
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from document_ingestor import DocumentIngestor
             
             ingestor = DocumentIngestor(check_conflicts=True)
@@ -3447,7 +3433,6 @@ Use `/conflicts` to review and resolve them."""
     def _handle_index_status(self) -> GatewayResponse:
         """Handle /index — show metadata index stats."""
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from imports_metadata_index import get_index_stats, get_index_progress
             
             progress = get_index_progress()
@@ -3494,7 +3479,6 @@ Use `/conflicts` to review and resolve them."""
     def _handle_index_build(self) -> GatewayResponse:
         """Handle /index build — trigger metadata index build in background."""
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from imports_metadata_index import build_index, get_index_stats
             import threading
             
@@ -3538,7 +3522,6 @@ Use `/conflicts` to review and resolve them."""
     def _handle_research_feedback(self, research_id: str, is_positive: bool) -> GatewayResponse:
         """Handle /confirm or /reject for NN research results."""
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from nn_research import handle_research_feedback
             result = handle_research_feedback(research_id, is_positive)
             return GatewayResponse(
@@ -3560,7 +3543,6 @@ Use `/conflicts` to review and resolve them."""
             /quote 3m x 2m           → Automatic size conversion
         """
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "brain"))
             from quote_generator import generate_quote
             from quote_email_formatter import format_quote_telegram
         except ImportError as e:
@@ -3645,7 +3627,6 @@ Use `/conflicts` to review and resolve them."""
             return None
         
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from conflict_clarifier import check_if_conflict_response
             
             response_text = check_if_conflict_response(text)
@@ -4327,7 +4308,6 @@ Use `/conflicts` to review and resolve them."""
         - /learn ABC Corp prefers email contact
         """
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from feedback_learner import teach_ira
             
             # Extract keywords from the fact
@@ -4528,7 +4508,6 @@ I'll use this in future conversations!""",
         def _run_dream():
             try:
                 import asyncio as _aio
-                sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
                 from nap import nap as run_nap
                 _aio.run(run_nap(**nap_kwargs))
             except Exception as e:
@@ -4784,7 +4763,6 @@ I'll use this in future conversations!""",
         
         # Use Qdrant retriever (canonical retrieval path)
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from qdrant_retriever import retrieve as qdrant_retrieve
             
             retrieval_result = qdrant_retrieve(
@@ -4893,7 +4871,6 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
     def _get_last_bot_response(self, chat_id: str) -> str:
         """Get the last bot response for correction detection."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from memory_service import get_memory_service
             
             memory = get_memory_service()
@@ -4925,7 +4902,6 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
             return
 
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
             from memory_service import get_memory_service, MessageTurn
 
             memory = get_memory_service()
@@ -5037,7 +5013,6 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
         
         # ===== UNIFIED RESPONSE GENERATION =====
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from generate_answer import generate_answer, ContextPack, ResponseMode, ConfidenceLevel
             UNIFIED_AVAILABLE = True
         except ImportError as e:
@@ -5126,7 +5101,6 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
             cross_channel_context_str = ""
             cross_channel_data = None
             try:
-                sys.path.insert(0, str(AGENT_DIR / "src" / "conversation"))
                 from cross_channel_context import get_cross_channel_context
                 
                 cross_channel_data = get_cross_channel_context(
@@ -6098,7 +6072,6 @@ Respond concisely (max 500 words for Telegram)."""
     def handle_preview_batch(self, batch_id: int) -> GatewayResponse:
         """Preview campaign batch drafts."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "campaign_engine"))
             from draft_batch import CampaignDrafter
             
             drafter = CampaignDrafter()
@@ -6355,7 +6328,6 @@ Total: {len(draft_ids)}""",
         # CRM
         if text_lower.startswith("/crm"):
             try:
-                sys.path.insert(0, str(PROJECT_ROOT / "openclaw/agents/ira/src/crm"))
                 from crm_telegram_commands import handle_crm_command
                 result = handle_crm_command(text, str(message.chat_id))
                 if result:
@@ -6539,7 +6511,6 @@ Total: {len(draft_ids)}""",
         # CORRECTION LEARNING - Detect and learn from user corrections
         # =====================================================================
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from correction_learner import detect_and_learn, get_learner
             
             # Get previous bot response for context
@@ -7303,7 +7274,6 @@ Total: {len(draft_ids)}""",
         Usage: /leads or /leads A
         """
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from lead_email_drafter import list_plastindia_leads
             
             result = list_plastindia_leads(category)
@@ -7330,7 +7300,6 @@ Total: {len(draft_ids)}""",
         Usage: "Draft email for Dhanya Plastics" or "/draft A2"
         """
         try:
-            sys.path.insert(0, str(BRAIN_DIR))
             from lead_email_drafter import draft_email_for_lead
             
             result = draft_email_for_lead(query)

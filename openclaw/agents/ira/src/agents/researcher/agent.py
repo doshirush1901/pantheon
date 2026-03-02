@@ -248,109 +248,111 @@ async def _parallel_search(
 # DATA SOURCES
 # =============================================================================
 
-# In-memory machine database (would be replaced with actual DB queries)
-MACHINE_DATABASE = {
-    "PF1-C-2015": {
-        "model": "PF1-C-2015",
-        "series": "PF1",
-        "type": "Positive Forming",
-        "forming_area": "2000 x 1500 mm",
-        "max_depth": "400 mm",
-        "material_thickness": "1-8 mm",
-        "applications": ["Automotive interiors", "Door panels", "Dashboards"],
-        "price_range": "₹45-55 lakhs",
-        "source": "Machine Database"
-    },
-    "PF1-C-2520": {
-        "model": "PF1-C-2520",
-        "series": "PF1",
-        "type": "Positive Forming",
-        "forming_area": "2500 x 2000 mm",
-        "max_depth": "500 mm",
-        "material_thickness": "1-8 mm",
-        "applications": ["Large automotive parts", "Commercial vehicle panels"],
-        "price_range": "₹65-75 lakhs",
-        "source": "Machine Database"
-    },
-    "PF1-5060": {
-        "model": "PF1-5060",
-        "series": "PF1",
-        "type": "Positive Forming",
-        "forming_area": "5000 x 6000 mm",
-        "max_depth": "800 mm",
-        "material_thickness": "1-10 mm",
-        "applications": ["Large industrial parts", "Vehicle body panels"],
-        "price_range": "₹1.2-1.5 crores",
-        "source": "Machine Database"
-    },
-    "AM-2015": {
-        "model": "AM-2015",
-        "series": "AM",
-        "type": "Multi-station Automatic",
-        "forming_area": "2000 x 1500 mm",
-        "max_thickness": "1.5 mm",  # CRITICAL: AM series limit
-        "applications": ["Thin gauge packaging", "Consumer goods", "Disposables"],
-        "price_range": "₹35-45 lakhs",
-        "note": "⚠️ For materials ≤1.5mm thickness ONLY",
-        "source": "Machine Database"
-    },
-    "ATF-1520": {
-        "model": "ATF-1520",
-        "series": "ATF",
-        "type": "Automatic Thermoforming",
-        "forming_area": "1500 x 2000 mm",
-        "applications": ["High volume packaging", "Food containers"],
-        "price_range": "₹55-65 lakhs",
-        "source": "Machine Database"
-    },
-    "IMG-2015": {
-        "model": "IMG-2015",
-        "series": "IMG",
-        "type": "In-mold Graining",
-        "forming_area": "2000 x 1500 mm",
-        "applications": ["Textured surfaces", "Premium automotive interiors"],
-        "price_range": "₹70-85 lakhs",
-        "source": "Machine Database"
-    }
-}
+_MACHINE_DATABASE: Optional[Dict] = None
+_MACHINE_SPECS_PATH = Path(__file__).parent.parent.parent.parent.parent / "data" / "brain" / "machine_specs.json"
+
+
+def _get_machine_database() -> Dict:
+    """Load machine specs from the canonical source of truth (machine_specs.json).
+
+    Cached after first load. Falls back to an empty dict if the file is missing
+    so callers never crash.
+    """
+    global _MACHINE_DATABASE
+    if _MACHINE_DATABASE is not None:
+        return _MACHINE_DATABASE
+
+    try:
+        raw = json.loads(_MACHINE_SPECS_PATH.read_text())
+        db: Dict[str, Dict] = {}
+        for model_key, spec in raw.items():
+            entry: Dict[str, Any] = {
+                "model": spec.get("model", model_key),
+                "series": spec.get("series", ""),
+                "variant": spec.get("variant", "standard"),
+                "forming_area": spec.get("forming_area_mm", ""),
+                "max_draw_depth_mm": spec.get("max_draw_depth_mm"),
+                "max_sheet_thickness_mm": spec.get("max_sheet_thickness_mm"),
+                "min_sheet_thickness_mm": spec.get("min_sheet_thickness_mm"),
+                "heater_type": spec.get("heater_type", ""),
+                "applications": spec.get("applications", []),
+                "features": spec.get("features", []),
+                "source": "Machine Database (machine_specs.json)",
+            }
+            price_inr = spec.get("price_inr", 0)
+            if price_inr:
+                entry["price_inr"] = price_inr
+            price_usd = spec.get("price_usd", 0)
+            if price_usd:
+                entry["price_usd"] = price_usd
+
+            if spec.get("series") == "AM":
+                entry["note"] = "⚠️ AM series: materials ≤1.5mm thickness ONLY"
+
+            db[model_key.upper()] = entry
+        _MACHINE_DATABASE = db
+        logger.info("Clio: Loaded %d machines from machine_specs.json", len(db))
+    except FileNotFoundError:
+        logger.warning("Clio: machine_specs.json not found at %s — machine DB empty", _MACHINE_SPECS_PATH)
+        _MACHINE_DATABASE = {}
+    except Exception as e:
+        logger.error("Clio: Failed to load machine_specs.json: %s", e)
+        _MACHINE_DATABASE = {}
+
+    return _MACHINE_DATABASE
 
 
 async def _search_machine_db(machines: List[str], intent: str) -> List[Dict]:
     """Search the machine database for specifications."""
+    db = _get_machine_database()
     results = []
-    
+
     for machine in machines:
-        if machine in MACHINE_DATABASE:
+        spec = db.get(machine.upper())
+        if spec:
             results.append({
                 "source": "Machine Database",
                 "type": "machine_specs",
-                "content": MACHINE_DATABASE[machine],
-                "relevance": 0.95
+                "content": spec,
+                "relevance": 0.95,
             })
-    
-    # If no specific machines but asking about machines
+
     if not machines and intent in ["specs", "recommendation", "pricing"]:
+        series_set = sorted({s.get("series", "?") for s in db.values() if s.get("series")})
         results.append({
             "source": "Machine Database",
             "type": "general_info",
             "content": {
-                "available_series": [
+                "total_models": len(db),
+                "available_series": series_set,
+                "series_notes": [
                     "PF1/PF2 - Positive Forming (1-10mm thickness)",
                     "AM - Multi-station Automatic (≤1.5mm ONLY)",
                     "ATF - Automatic Thermoforming",
                     "IMG - In-mold Graining",
-                    "FCS - Form-Cut-Stack"
-                ]
+                    "FCS - Form-Cut-Stack",
+                ],
             },
-            "relevance": 0.7
+            "relevance": 0.7,
         })
-    
+
     return results
 
 
-# Simple in-memory cache
+# In-memory cache with TTL and max-size eviction
 _cache: Dict[str, tuple] = {}
 _cache_ttl = 300  # 5 minutes
+_CACHE_MAX_SIZE = 200
+
+
+def _cache_evict():
+    """Evict oldest entries when cache exceeds max size."""
+    global _cache
+    if len(_cache) <= _CACHE_MAX_SIZE:
+        return
+    sorted_keys = sorted(_cache, key=lambda k: _cache[k][1])
+    for key in sorted_keys[:len(_cache) - _CACHE_MAX_SIZE]:
+        del _cache[key]
 
 
 async def _search_knowledge_base(query: str) -> List[Dict]:
@@ -360,6 +362,8 @@ async def _search_knowledge_base(query: str) -> List[Dict]:
         cached, timestamp = _cache[cache_key]
         if time.time() - timestamp < _cache_ttl:
             return cached
+        else:
+            del _cache[cache_key]
 
     _init_knowledge_sources()
     results = []
@@ -384,6 +388,7 @@ async def _search_knowledge_base(query: str) -> List[Dict]:
         results = _search_json_knowledge_fallback(query)
 
     _cache[cache_key] = (results, time.time())
+    _cache_evict()
     return results
 
 
@@ -662,7 +667,7 @@ def get_machine_specs(model: str) -> Optional[Dict]:
         Machine specifications dict or None
     """
     model_upper = model.upper().strip()
-    return MACHINE_DATABASE.get(model_upper)
+    return _get_machine_database().get(model_upper)
 
 
 def list_machines(series: Optional[str] = None) -> List[Dict]:
@@ -675,14 +680,15 @@ def list_machines(series: Optional[str] = None) -> List[Dict]:
     Returns:
         List of machine summaries
     """
+    db = _get_machine_database()
     machines = []
-    for model, specs in MACHINE_DATABASE.items():
-        if series is None or specs.get("series") == series.upper():
+    for model, specs in db.items():
+        if series is None or specs.get("series", "").upper() == series.upper():
             machines.append({
                 "model": model,
                 "series": specs.get("series"),
-                "type": specs.get("type"),
-                "forming_area": specs.get("forming_area")
+                "variant": specs.get("variant"),
+                "forming_area": specs.get("forming_area"),
             })
     return machines
 

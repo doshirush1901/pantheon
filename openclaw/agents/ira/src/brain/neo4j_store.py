@@ -260,9 +260,10 @@ class Neo4jStore:
         """Create or update a relationship between entities."""
         if not self.is_connected():
             return False
-        
+
         safe_rel_type = rel_type.upper().replace(' ', '_').replace('-', '_')
-        
+        clamped = max(0.0, min(1.0, strength))
+
         try:
             with self._driver.session() as session:
                 session.run(f"""
@@ -270,11 +271,12 @@ class Neo4jStore:
                     MERGE (target:Entity {{name: $target}})
                     MERGE (source)-[r:{safe_rel_type}]->(target)
                     SET r.strength = $strength,
-                        r.updated_at = datetime()
+                        r.updated_at = datetime(),
+                        r.last_accessed = datetime()
                 """, {
                     "source": source_entity,
                     "target": target_entity,
-                    "strength": strength,
+                    "strength": clamped,
                 })
             return True
         except Exception as e:
@@ -288,17 +290,25 @@ class Neo4jStore:
         rel_type: str,
         factor: float = 1.1
     ) -> bool:
-        """Strengthen an existing relationship (dream mode learning)."""
+        """Strengthen an existing relationship (dream mode learning).
+
+        Strength is clamped to [0, 1] to keep the filter in
+        expand_query_with_graph (r.strength > 0.5) meaningful.
+        """
         if not self.is_connected():
             return False
-        
+
         safe_rel_type = rel_type.upper().replace(' ', '_').replace('-', '_')
-        
+
         try:
             with self._driver.session() as session:
                 session.run(f"""
                     MATCH (source:Entity {{name: $source}})-[r:{safe_rel_type}]->(target:Entity {{name: $target}})
-                    SET r.strength = COALESCE(r.strength, 0.5) * $factor,
+                    SET r.strength = CASE
+                            WHEN COALESCE(r.strength, 0.5) * $factor > 1.0 THEN 1.0
+                            WHEN COALESCE(r.strength, 0.5) * $factor < 0.0 THEN 0.0
+                            ELSE COALESCE(r.strength, 0.5) * $factor
+                        END,
                         r.access_count = COALESCE(r.access_count, 0) + 1,
                         r.last_accessed = datetime()
                 """, {
@@ -538,20 +548,46 @@ class Neo4jStore:
     # =========================================================================
     
     def decay_unused_relationships(self, days_threshold: int = 7, decay_factor: float = 0.95):
-        """Decay relationships that haven't been accessed recently."""
+        """Decay relationships that haven't been accessed recently.
+
+        Also handles legacy edges that were created before last_accessed was
+        set — those are treated as stale and decayed too.
+        """
         if not self.is_connected():
             return
-        
+
         try:
             with self._driver.session() as session:
-                session.run("""
+                # Decay edges that haven't been accessed within the threshold
+                result1 = session.run("""
                     MATCH ()-[r]->()
-                    WHERE r.last_accessed IS NOT NULL 
-                    AND r.last_accessed < datetime() - duration({days: $days})
-                    SET r.strength = r.strength * $factor
+                    WHERE r.last_accessed IS NOT NULL
+                      AND r.last_accessed < datetime() - duration({days: $days})
+                    SET r.strength = CASE
+                            WHEN r.strength * $factor < 0.01 THEN 0.0
+                            ELSE r.strength * $factor
+                        END
+                    RETURN count(r) as decayed
                 """, {"days": days_threshold, "factor": decay_factor})
-                
-                logger.info(f"Decayed unused relationships (>{days_threshold} days)")
+                decayed_recent = result1.single()["decayed"]
+
+                # Decay legacy edges that never had last_accessed set
+                result2 = session.run("""
+                    MATCH ()-[r]->()
+                    WHERE r.last_accessed IS NULL
+                      AND r.strength IS NOT NULL
+                      AND r.strength > 0.0
+                    SET r.strength = CASE
+                            WHEN r.strength * $factor < 0.01 THEN 0.0
+                            ELSE r.strength * $factor
+                        END,
+                        r.last_accessed = datetime()
+                    RETURN count(r) as decayed
+                """, {"factor": decay_factor})
+                decayed_legacy = result2.single()["decayed"]
+
+                logger.info("Decayed relationships: %d recent (>%d days) + %d legacy (no last_accessed)",
+                            decayed_recent, days_threshold, decayed_legacy)
         except Exception as e:
             logger.error(f"Failed to decay relationships: {e}")
     

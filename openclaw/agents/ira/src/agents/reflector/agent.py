@@ -108,11 +108,11 @@ async def reflect(interaction_data: Dict[str, Any]) -> ReflectionResult:
     # Log errors if any
     if issues:
         _log_errors(issues, interaction_data)
-    
+
     # Log lessons if any
     if lessons:
         _log_lessons(lessons, interaction_data)
-    
+
     # Feed Nemesis — she wants every failure, every issue
     if issues and quality.overall < 0.8:
         try:
@@ -127,7 +127,10 @@ async def reflect(interaction_data: Dict[str, Any]) -> ReflectionResult:
             )
         except Exception:
             pass
-    
+
+    # Feed back into the endocrine system so agent scores reflect quality
+    _signal_quality_to_endocrine(quality, issues, interaction_data)
+
     logger.info({
         "agent": "Sophia",
         "event": "reflection_complete",
@@ -291,6 +294,38 @@ def _generate_recommendations(quality: QualityScore, issues: List[str]) -> List[
         recommendations.append("Add pricing disclaimer check to response pipeline")
     
     return recommendations
+
+
+def _signal_quality_to_endocrine(
+    quality: QualityScore, issues: List[str], interaction_data: Dict
+) -> None:
+    """Feed Sophia's quality assessment back into the endocrine system.
+
+    This closes the loop: Sophia evaluates → endocrine scores update →
+    scores are visible in vital signs and (via P3-2) influence tool dispatch.
+    """
+    try:
+        from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+        endo = get_endocrine_system()
+
+        tools_used = interaction_data.get("tools_used", [])
+        tool_agent_map = {
+            "research_skill": "clio", "writing_skill": "calliope",
+            "fact_checking_skill": "vera", "web_search": "iris",
+            "lead_intelligence": "iris",
+        }
+        agents_involved = {tool_agent_map[t] for t in tools_used if t in tool_agent_map}
+
+        if quality.overall >= 0.7 and not issues:
+            for agent in agents_involved:
+                endo.signal_success(agent, context={"source": "sophia_reflection"})
+            endo.signal_success("athena", context={"source": "sophia_reflection", "score": round(quality.overall, 2)})
+        elif quality.overall < 0.5 or len(issues) >= 2:
+            for agent in agents_involved:
+                endo.signal_failure(agent, context={"source": "sophia_reflection", "issues": issues[:3]})
+            endo.signal_failure("athena", context={"source": "sophia_reflection", "score": round(quality.overall, 2)})
+    except Exception as e:
+        logger.debug("Sophia: endocrine feedback failed: %s", e)
 
 
 def _log_errors(issues: List[str], interaction_data: Dict) -> None:
