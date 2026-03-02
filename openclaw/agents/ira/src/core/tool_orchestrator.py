@@ -20,7 +20,8 @@ from typing import Any, Dict, List
 logger = logging.getLogger("ira.tool_orchestrator")
 
 MAX_TOOL_ROUNDS = 25
-PROPOSAL_NUDGE_ROUND = 6
+PROPOSAL_NUDGE_ROUND = 12
+MIN_RESEARCH_ROUNDS = 5
 TOOL_TIMEOUT_SECONDS = 45
 LLM_MAX_RETRIES = 3
 
@@ -154,20 +155,10 @@ _SALES_SIGNALS = re.compile(
 )
 
 PROPOSAL_CHECKPOINT_MSG = """═══════════════════════════════════════════════════
-⚡ PROPOSAL CHECKPOINT — STOP RESEARCHING, START PROPOSING
+📋 PROPOSAL READINESS CHECK
 ═══════════════════════════════════════════════════
 
-You have done enough research. NOW you MUST either:
-
-OPTION A — You have enough info (material + thickness + size OR budget):
-  → PROPOSE a specific machine with model number, price, and lead time.
-  → Example: "For 4mm ABS at 2000×1500mm, I recommend PF1-C-2015 at INR 60,00,000
-    (subject to configuration). Lead time: 12-16 weeks."
-
-OPTION B — Critical info is missing:
-  → Ask AT MOST 2-3 focused questions from the qualification checklist.
-  → Prioritize: application, thickness, sheet size, budget.
-  → Do NOT ask generic questions. Be specific: "What is the max depth of your part?"
+You've done significant research. Take stock of what you have:
 
 CHECKLIST — What do you know?
   □ Application (what they're making)
@@ -176,14 +167,18 @@ CHECKLIST — What do you know?
   □ Sheet size (determines model number)
   □ Depth of article
   □ Budget
+  □ Similar customer references / success stories
+  □ Competitive context or industry trends
 
 ROUTING REMINDER:
   ≤1.5mm → AM | >1.5mm → PF1-C/X | TPO+grain → IMG | Bathtubs → PF2
 
-DO NOT call more research tools. DO NOT give vague ranges.
-Lead time is ALWAYS 12-16 weeks. Include pricing disclaimer.
+IF you have all the key info → proceed to your proposal.
+IF there are gaps you can fill with more research → keep going (you have more rounds).
+IF critical info can ONLY come from the customer → ask 2-3 focused questions.
 
-NOW WRITE YOUR FINAL RESPONSE."""
+A thorough, well-researched proposal is ALWAYS better than a fast shallow one.
+Lead time is ALWAYS 12-16 weeks. Include pricing disclaimer."""
 
 
 def _is_sales_inquiry(message: str) -> bool:
@@ -901,8 +896,6 @@ or option from your previous response. Resolve the reference and act on it.
         # Compact older tool results if approaching context window limit
         messages = _compact_tool_results(messages, _TOKEN_BUDGET)
 
-        force_no_tools = proposal_nudged and round_num == PROPOSAL_NUDGE_ROUND
-
         response = None
         for attempt in range(1, LLM_MAX_RETRIES + 1):
             try:
@@ -910,7 +903,7 @@ or option from your previous response. Resolve the reference and act on it.
                     model="gpt-4o",
                     messages=messages,
                     tools=tools,
-                    tool_choice="none" if force_no_tools else "auto",
+                    tool_choice="auto",
                     max_tokens=4096,
                     temperature=0.3,
                 )

@@ -2559,15 +2559,18 @@ The response should be professional and comprehensive like a formal quotation em
     
     # =========================================================================
     # CRITICAL PF1 SERIES CHECK - Catch incorrect "flexible" / "thin-gauge" / "packaging" claims
-    # PF1 is HEAVY-GAUGE ONLY (2-8mm ABS, HDPE, PC, etc.), NOT for flexible materials
+    # PF1-C/X is HEAVY-GAUGE ONLY (2-8mm). BUT PF1-R is the roll-fed thin-gauge
+    # variant on the PF1 platform (0.2-1.5mm) — do NOT flag PF1-R as misuse.
     # =========================================================================
     import re as regex_module  # ensure available even if AM block didn't run
-    if ("pf1" in final_text_lower or "pf-1" in final_text_lower or "pf 1" in final_text_lower):
+    _mentions_pf1 = ("pf1" in final_text_lower or "pf-1" in final_text_lower or "pf 1" in final_text_lower)
+    _mentions_pf1r = bool(regex_module.search(r"pf1[\s-]?r", final_text_lower, regex_module.IGNORECASE))
+    if _mentions_pf1 and not _mentions_pf1r:
         pf1_misuse = False
         pf1_misuse_phrases = [
-            "flexible packaging", "flexible material", "thin gauge", "thin-gauge",
+            "flexible packaging", "flexible material",
             "food tray", "food container", "blister pack", "clamshell",
-            "food packaging", "flexible film", "thin film", "roll-fed",
+            "food packaging", "flexible film", "thin film",
             "primarily.*flexible", "designed for flexible", "suited for flexible",
         ]
         for phrase in pf1_misuse_phrases:
@@ -2582,7 +2585,7 @@ The response should be professional and comprehensive like a formal quotation em
                 '',
                 final_text
             ).strip()
-            final_text += "\n\n**⚠️ Clarification:** The PF1 Series is a **heavy-gauge** thermoforming machine for thick sheet materials (2–8mm). It processes ABS, HDPE, PC, PMMA, HIPS, and similar heavy-gauge plastics. It is used for automotive interiors, refrigerator liners, truck bedliners, luggage, EV parts, and industrial enclosures. For thin-gauge or flexible packaging (≤1.5mm), the **AM Series** is the correct choice."
+            final_text += "\n\n**⚠️ Clarification:** The PF1 Series is a **heavy-gauge** thermoforming machine for thick sheet materials (2–8mm). It processes ABS, HDPE, PC, PMMA, HIPS, and similar heavy-gauge plastics. It is used for automotive interiors, refrigerator liners, truck bedliners, luggage, EV parts, and industrial enclosures. For thin-gauge or flexible packaging (≤1.5mm), the **AM Series** or **PF1-R** (roll-fed) is the correct choice."
             pipeline_debug_info["pf1_misuse_correction_applied"] = True
 
     # Determine confidence based on grounding and pipeline results
