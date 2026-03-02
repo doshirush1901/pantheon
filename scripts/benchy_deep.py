@@ -1015,6 +1015,374 @@ def build_scenarios() -> List[DeepScenario]:
 
 
 # =============================================================================
+# CONVERSATION SCENARIOS — GPT-4o plays the customer, reacts to Ira's replies
+# =============================================================================
+
+CONV_STAGES = ["opener", "discovery", "technical", "quote", "negotiation", "closing"]
+
+CONV_STAGE_INSTRUCTIONS = {
+    "opener": (
+        "Write your FIRST message to Machinecraft. Introduce yourself, your company, "
+        "and your basic need. Keep it 2-4 sentences, natural, like a real inquiry."
+    ),
+    "discovery": (
+        "Ira responded. Now react SPECIFICALLY to what she said — quote her numbers or "
+        "machine names. Ask follow-up questions about materials, specs, or suitability. "
+        "If she asked you questions, answer them but also push for more detail."
+    ),
+    "technical": (
+        "Get technical. Ask about cycle times, heater types, energy consumption, or "
+        "specific features. If Ira recommended a machine, ask about its limits. "
+        "Compare to your current setup or a competitor if relevant."
+    ),
+    "quote": (
+        "You want pricing now. Ask for a formal quote with breakdown, payment terms, "
+        "delivery timeline, and what's included. If Ira already gave a price, push for "
+        "a better deal or ask about options/upgrades."
+    ),
+    "negotiation": (
+        "Push back on price. Mention a competitor quote or budget constraint. Ask for "
+        "extras (training, spare parts, extended warranty). Be firm but realistic."
+    ),
+    "closing": (
+        "Wrap up naturally. Either: accept and ask for next steps, request one final "
+        "adjustment, say you need internal approval, or politely decline with a reason."
+    ),
+}
+
+
+@dataclass
+class ConversationScenario:
+    """A dynamic multi-turn conversation where GPT-4o plays the customer."""
+    id: str
+    name: str
+    difficulty: str
+    persona: str
+    opening_message: str
+    requirements: Dict[str, str]
+    budget: str
+    expected_machines: List[str]
+    not_suitable: List[str]
+    key_rules: List[str]
+    traps: List[str]
+    stages: List[str] = field(default_factory=lambda: list(CONV_STAGES))
+    max_turns: int = 5
+    rubric: Dict[str, str] = field(default_factory=dict)
+    tags: List[str] = field(default_factory=list)
+
+
+def build_conversation_scenarios() -> List[ConversationScenario]:
+    convos = []
+
+    convos.append(ConversationScenario(
+        id="CONV-01",
+        name="German Automotive — ILLIG Replacement (like Dezet)",
+        difficulty="hard",
+        persona=(
+            "You are Stefan Braun, Plant Manager at FormWerk GmbH in Düsseldorf. "
+            "You're replacing a 30-year-old ILLIG RDM-75K. You form 4mm ABS instrument "
+            "panels for BMW. You're methodical, compare everything to ILLIG specs, and "
+            "negotiate firmly. You visited K2025 and saw Machinecraft's booth. Budget is "
+            "€120-150K. You want servo drives and energy data."
+        ),
+        opening_message=(
+            "Hello, Stefan Braun from FormWerk GmbH, Düsseldorf. We met at K2025. "
+            "We need to replace our ILLIG RDM-75K — it's 30 years old and parts are "
+            "impossible. We form 4mm ABS instrument panels, sheet size 1200x1000mm. "
+            "What can you offer?"
+        ),
+        requirements={"forming_area": "1200x1000mm", "thickness": "4mm", "materials": "ABS", "application": "Automotive instrument panels"},
+        budget="EUR 120,000-150,000",
+        expected_machines=["PF1-X-1210", "PF1-C-1212"],
+        not_suitable=["AM series", "PF2"],
+        key_rules=["PF1 for heavy gauge", "EUR pricing with disclaimer", "12-16 weeks lead time", "No ILLIG badmouthing", "Reference Dezet or Dutch Tides"],
+        traps=["Badmouthing ILLIG", "Promising faster delivery", "AM for 4mm"],
+        rubric={
+            "correct_machine": "Must recommend PF1-X-1210 or PF1-C-1212 (not AM, not PF2)",
+            "eur_pricing": "Must provide EUR pricing with disclaimer at some point",
+            "lead_time": "Must state 12-16 weeks, never match competitor claims",
+            "no_badmouthing": "Must NOT badmouth ILLIG, focus on own strengths",
+            "references": "Should mention European references (Dezet, Dutch Tides, Thermic)",
+            "qualification": "Should ask about depth, automation needs, or budget if not given",
+        },
+        tags=["conversation", "europe", "automotive", "negotiation"],
+    ))
+
+    convos.append(ConversationScenario(
+        id="CONV-02",
+        name="Indian Packaging Startup — Budget Squeeze (like PackForm)",
+        difficulty="medium",
+        persona=(
+            "You are Priya Kapoor, founder of GreenPack India in Bangalore. You make "
+            "compostable food containers from 0.7mm rPET. You're new to thermoforming, "
+            "enthusiastic but budget-constrained at INR 12 lakhs max. You ask basic "
+            "questions and need hand-holding. You push back on anything over budget."
+        ),
+        opening_message=(
+            "Hi! I'm Priya from GreenPack India, Bangalore. We're a startup making "
+            "compostable food containers from 0.7mm rPET. We need an entry-level "
+            "thermoforming machine. Budget is tight — around 12 lakhs. What's your "
+            "most affordable option?"
+        ),
+        requirements={"thickness": "0.7mm", "materials": "rPET", "application": "Food containers", "forming_area": "500x600mm or larger"},
+        budget="INR 12,00,000",
+        expected_machines=["AM-5060", "AM-6060"],
+        not_suitable=["PF1 series", "PF2"],
+        key_rules=["AM for thin gauge", "INR pricing", "Training info", "Don't oversell"],
+        traps=["Recommending expensive PF1", "Overselling features they don't need"],
+        rubric={
+            "am_recommended": "Must recommend AM-5060 or AM-6060 for 0.7mm rPET",
+            "budget_fit": "Must acknowledge budget and recommend within range (AM-5060 at 7.5L fits)",
+            "not_oversold": "Must NOT push PF1 or expensive options on a startup with 12L budget",
+            "training_mentioned": "Should mention training/support since they're new to thermoforming",
+        },
+        tags=["conversation", "india", "startup", "packaging"],
+    ))
+
+    convos.append(ConversationScenario(
+        id="CONV-03",
+        name="Japanese OEM — IMG Grain Retention (like KTX)",
+        difficulty="hard",
+        persona=(
+            "You are Kenji Watanabe, Senior Process Engineer at NihonForm Industries, "
+            "Osaka. You supply Honda with TPO door panels requiring Class-A grain retention "
+            "per Honda HES D6102. You currently use an Asano machine. You are extremely "
+            "precise, ask about tolerances and certifications, and communicate formally. "
+            "Budget is JPY 30M (~$200K). You initially ask about PF1."
+        ),
+        opening_message=(
+            "Good morning. I am Kenji Watanabe from NihonForm Industries, Osaka. We are "
+            "a Honda Tier-1 supplier. We require thermoforming of 3mm TPO door panels with "
+            "Class-A grain retention per Honda HES D6102. Sheet size 1500x1200mm. "
+            "Please advise on your PF1-X-1520 suitability for this application."
+        ),
+        requirements={"forming_area": "1500x1200mm", "thickness": "3mm", "materials": "TPO", "application": "Automotive door panels, grain retention"},
+        budget="JPY 30,000,000 (~USD 200,000)",
+        expected_machines=["IMG series"],
+        not_suitable=["PF1 alone", "AM series"],
+        key_rules=["IMG required for grain retention", "PF1 alone cannot do Class-A grain", "Formal tone for Japan"],
+        traps=["Agreeing PF1 can do grain retention", "Casual tone with Japanese customer"],
+        rubric={
+            "img_recommended": "MUST recommend IMG series, NOT PF1 alone, for grain retention",
+            "pf1_corrected": "Must explain PF1 alone cannot achieve Class-A grain retention",
+            "formal_tone": "Must maintain formal, precise tone throughout (not 'Hey Kenji!')",
+            "honest_specs": "Must NOT fabricate specific tolerance numbers if unknown",
+        },
+        tags=["conversation", "japan", "automotive", "img"],
+    ))
+
+    convos.append(ConversationScenario(
+        id="CONV-04",
+        name="Dutch Hydroponics — Custom XL Machine (like Dutch Tides)",
+        difficulty="hard",
+        persona=(
+            "You are Willem de Jong, CTO of AquaGrow BV near Utrecht. You're building "
+            "large hydroponic ebb-flow trays from 4mm polystyrene. The trays are 5500x1600mm. "
+            "You're a startup, cash-conscious, and want staged payments. You're informal "
+            "and direct (Dutch style). You want to know if this size is even possible."
+        ),
+        opening_message=(
+            "Hey! Willem from AquaGrow BV, Utrecht. We need huge ebb-flow trays — "
+            "5500x1600mm from 4mm polystyrene. Is that even possible? What would it cost "
+            "roughly? We're a startup so cash flow matters."
+        ),
+        requirements={"forming_area": "5500x1600mm", "thickness": "4mm", "materials": "Polystyrene", "application": "Hydroponic ebb-flow trays"},
+        budget="EUR 300,000-500,000",
+        expected_machines=["PF1-X custom"],
+        not_suitable=["AM series", "Standard models only"],
+        key_rules=["Custom sizing always possible", "Reference Dutch Tides (6400x1900mm)", "Staged payments possible"],
+        traps=["Saying 'we don't make that size'", "Refusing custom builds"],
+        rubric={
+            "custom_possible": "MUST say custom size is possible — never refuse a size request",
+            "dutch_tides_reference": "Should mention Dutch Tides as reference for similar large build",
+            "staged_payments": "Should discuss staged payment options for startup",
+            "pf1x_platform": "Must identify PF1-X as the platform for custom build",
+        },
+        tags=["conversation", "netherlands", "custom", "startup"],
+    ))
+
+    convos.append(ConversationScenario(
+        id="CONV-05",
+        name="UAE Multi-Line RFQ — 3 Machines (like Gulf Plastics)",
+        difficulty="hard",
+        persona=(
+            "You are Fatima Al-Mansoori, Procurement Director at Emirates Plastics, Dubai. "
+            "You need machines for 3 lines: 0.5mm PET food trays, 4mm ABS enclosures, and "
+            "acrylic bathtub shells. Total budget USD 300K. You're a sophisticated buyer who "
+            "wants package pricing and phased delivery. You compare to Turkish manufacturers."
+        ),
+        opening_message=(
+            "Hello, Fatima Al-Mansoori from Emirates Plastics, Dubai. We need machines for "
+            "three product lines:\n"
+            "1. 0.5mm PET food containers, 600x500mm\n"
+            "2. 4mm ABS equipment housings, 1500x1000mm\n"
+            "3. Acrylic bathtub shells, 2000x1200mm\n\n"
+            "Total budget USD 300,000. Can you quote a package deal?"
+        ),
+        requirements={"line_1": "0.5mm PET food containers", "line_2": "4mm ABS housings", "line_3": "Acrylic bathtubs"},
+        budget="USD 300,000",
+        expected_machines=["AM for PET", "PF1 for ABS", "PF2 for bathtubs"],
+        not_suitable=["One machine for all three"],
+        key_rules=["Three different machines needed", "AM for thin", "PF1 for heavy", "PF2 for bath only"],
+        traps=["One machine for all", "AM for 4mm ABS", "PF2 for non-bath"],
+        rubric={
+            "three_machines": "Must recommend 3 separate machines, not one for all",
+            "am_for_pet": "AM series for 0.5mm PET line",
+            "pf1_for_abs": "PF1 for 4mm ABS line",
+            "pf2_for_bath": "PF2 for bathtub line",
+            "usd_pricing": "Must provide USD pricing with disclaimer",
+        },
+        tags=["conversation", "uae", "multi_line", "package_deal"],
+    ))
+
+    return convos
+
+
+def generate_customer_reply(
+    scenario: ConversationScenario,
+    stage: str,
+    conversation: List[Dict[str, str]],
+    turn: int,
+) -> str:
+    """GPT-4o plays the customer, reacting to Ira's actual response."""
+    import openai
+    client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+
+    history_text = "\n\n".join(
+        f"{'CUSTOMER' if m['role'] == 'customer' else 'IRA'}: {m['text'][:500]}"
+        for m in conversation[-6:]
+    )
+
+    stage_instruction = CONV_STAGE_INSTRUCTIONS.get(stage, "Continue the conversation naturally.")
+
+    result = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    f"You are role-playing as a real customer in a B2B sales conversation with Ira, "
+                    f"an AI sales assistant for Machinecraft (thermoforming machines).\n\n"
+                    f"YOUR PERSONA:\n{scenario.persona}\n\n"
+                    f"YOUR REQUIREMENTS:\n{json.dumps(scenario.requirements, indent=2)}\n"
+                    f"YOUR BUDGET: {scenario.budget}\n\n"
+                    f"CURRENT STAGE: {stage}\n"
+                    f"STAGE INSTRUCTION: {stage_instruction}\n\n"
+                    f"RULES:\n"
+                    f"- Write 2-5 sentences. Be natural, like a real business email/message.\n"
+                    f"- React SPECIFICALLY to what Ira said — quote her numbers, machine names, prices.\n"
+                    f"- If Ira asked questions, answer them but also advance your own agenda.\n"
+                    f"- If Ira gave a price, react to it (too high? reasonable? ask for breakdown).\n"
+                    f"- Stay in character. Don't mention you're an AI or a test.\n"
+                    f"- Use the tone matching your persona (formal/casual/technical).\n"
+                    f"- Include realistic details: your company name, specific numbers, real concerns.\n"
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"CONVERSATION SO FAR:\n{history_text}\n\nWrite your next message as the customer:",
+            },
+        ],
+        max_tokens=250,
+        temperature=0.7,
+    )
+
+    return result.choices[0].message.content.strip()
+
+
+async def run_conversation_scenario(scenario: ConversationScenario) -> ScenarioResult:
+    """Run a dynamic multi-turn conversation where GPT-4o plays the customer."""
+    logger.info(f"\n{'='*70}")
+    logger.info(f"  [{scenario.id}] {scenario.name}")
+    logger.info(f"  Conversation: {len(scenario.stages)} stages | Difficulty: {scenario.difficulty}")
+    logger.info(f"{'='*70}")
+
+    send_telegram(
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"CONVERSATION: {scenario.id}\n"
+        f"{scenario.name}\n"
+        f"Stages: {len(scenario.stages)} | Difficulty: {scenario.difficulty}\n"
+        f"Budget: {scenario.budget}\n"
+        f"Expected: {', '.join(scenario.expected_machines)}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    )
+
+    probe_results = []
+    conversation = []
+    conversation_history = ""
+    total_tool_calls = 0
+    errors = []
+    t_start = time.time()
+
+    customer_msg = scenario.opening_message
+
+    for turn_idx, stage in enumerate(scenario.stages[:scenario.max_turns]):
+        logger.info(f"  Turn {turn_idx+1}/{len(scenario.stages)}: [{stage}]")
+
+        send_telegram(f"[Turn {turn_idx+1} — {stage}]\nCustomer: {customer_msg}")
+        await asyncio.sleep(MSG_DELAY)
+
+        conversation.append({"role": "customer", "text": customer_msg})
+
+        t0 = time.time()
+        ira_response, tool_calls = await run_probe(customer_msg, conversation_history)
+        latency = time.time() - t0
+
+        conversation.append({"role": "ira", "text": ira_response})
+        conversation_history += f"\nCustomer: {customer_msg}\nIra: {ira_response}\n"
+
+        tool_names = [tc.tool_name for tc in tool_calls]
+        send_telegram(f"Ira ({latency:.1f}s, {len(tool_calls)} tools):\n{ira_response}")
+        await asyncio.sleep(MSG_DELAY)
+
+        pr = ProbeResult(
+            probe_idx=turn_idx,
+            probe_content=customer_msg,
+            response=ira_response,
+            tool_calls=tool_calls,
+            latency_s=round(latency, 2),
+            keyword_hits=[],
+            keyword_misses=[],
+            rejected_present=[],
+        )
+        probe_results.append(pr)
+        total_tool_calls += len(tool_calls)
+
+        logger.info(f"    Ira ({latency:.1f}s): {ira_response[:100]}...")
+        logger.info(f"    Tools: {tool_names}")
+
+        if turn_idx < len(scenario.stages) - 1:
+            next_stage = scenario.stages[turn_idx + 1]
+            customer_msg = generate_customer_reply(
+                scenario=scenario,
+                stage=next_stage,
+                conversation=conversation,
+                turn=turn_idx + 1,
+            )
+            logger.info(f"    Customer [{next_stage}]: {customer_msg[:100]}...")
+
+    total_latency = time.time() - t_start
+
+    send_telegram(
+        f"[{scenario.id} DONE] {total_latency:.0f}s total | "
+        f"{total_tool_calls} tool calls | {len(scenario.stages)} turns"
+    )
+
+    return ScenarioResult(
+        scenario_id=scenario.id,
+        dimension="conversation",
+        sub_dimension="dynamic_sales",
+        name=scenario.name,
+        difficulty=scenario.difficulty,
+        probe_results=probe_results,
+        timestamp=datetime.now().isoformat(),
+        total_latency_s=round(total_latency, 2),
+        total_tool_calls=total_tool_calls,
+        errors=errors,
+    )
+
+
+# =============================================================================
 # TOOL CALL INTERCEPTOR — Captures all tool calls for logging
 # =============================================================================
 
@@ -1489,10 +1857,13 @@ async def main():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     all_scenarios = build_scenarios()
+    all_conversations = build_conversation_scenarios()
 
     if args.list:
+        dims = set(s.dimension for s in all_scenarios)
+        total = len(all_scenarios) + len(all_conversations)
         print(f"\n{'='*80}")
-        print(f"  BENCHY-DEEP: {len(all_scenarios)} Scenarios Across {len(set(s.dimension for s in all_scenarios))} Dimensions")
+        print(f"  BENCHY-DEEP: {total} Scenarios Across {len(dims) + 1} Dimensions")
         print(f"{'='*80}\n")
         current_dim = ""
         for s in all_scenarios:
@@ -1500,19 +1871,32 @@ async def main():
                 current_dim = s.dimension
                 print(f"\n  [{current_dim.upper()}]")
             print(f"    {s.id:12s} | {s.difficulty:12s} | {s.name}")
+        if all_conversations:
+            print(f"\n  [CONVERSATION] (dynamic multi-turn — GPT-4o plays customer)")
+            for c in all_conversations:
+                print(f"    {c.id:12s} | {c.difficulty:12s} | {c.name} ({len(c.stages)} turns)")
         print()
         return
 
     # Filter scenarios
+    run_conversations = []
     scenarios = all_scenarios
     if args.dimension:
-        scenarios = [s for s in scenarios if s.dimension == args.dimension]
-        if not scenarios:
-            print(f"No scenarios found for dimension '{args.dimension}'")
-            return
+        if args.dimension == "conversation":
+            scenarios = []
+            run_conversations = all_conversations
+        else:
+            scenarios = [s for s in scenarios if s.dimension == args.dimension]
+            if not scenarios:
+                print(f"No scenarios found for dimension '{args.dimension}'")
+                return
     if args.scenario:
         scenarios = [s for s in scenarios if s.id == args.scenario]
-        if not scenarios:
+        conv_match = [c for c in all_conversations if c.id == args.scenario]
+        if conv_match:
+            scenarios = []
+            run_conversations = conv_match
+        elif not scenarios:
             print(f"No scenario found with ID '{args.scenario}'")
             return
     if args.quick:
@@ -1523,6 +1907,8 @@ async def main():
                 seen_dims.add(s.dimension)
                 quick_scenarios.append(s)
         scenarios = quick_scenarios
+        if not args.dimension and not args.scenario:
+            run_conversations = all_conversations[:1]
 
     # Load checkpoint if resuming
     completed_ids = set()
@@ -1554,13 +1940,17 @@ async def main():
         _analyze_and_report(entries, all_scenarios)
         return
 
-    if not scenarios:
+    if not scenarios and not run_conversations:
         print("No scenarios to run (all completed or filtered out).")
         return
 
+    total_to_run = len(scenarios) + len(run_conversations)
+    dims = sorted(set(s.dimension for s in scenarios))
+    if run_conversations:
+        dims.append("conversation")
     print(f"\n{'='*80}")
-    print(f"  BENCHY-DEEP: Running {len(scenarios)} scenarios")
-    print(f"  Dimensions: {sorted(set(s.dimension for s in scenarios))}")
+    print(f"  BENCHY-DEEP: Running {total_to_run} scenarios")
+    print(f"  Dimensions: {dims}")
     print(f"{'='*80}\n")
 
     all_entries = list(checkpoint_results)
@@ -1628,6 +2018,79 @@ async def main():
         score_str = f"{result.overall_score}/10" if not args.no_score else "N/A"
         status = "PASS" if result.overall_score >= 7 else "WARN" if result.overall_score >= 5 else "FAIL"
         logger.info(f"  [{status}] {scenario.id}: Score={score_str} | Latency={result.total_latency_s}s | Errors={len(result.errors)}")
+
+    # Run conversation scenarios (dynamic multi-turn with GPT-4o customer)
+    for ci, conv in enumerate(run_conversations):
+        if conv.id in completed_ids:
+            continue
+        logger.info(f"\n[{len(scenarios) + ci + 1}/{total_to_run}] Conversation: {conv.id}...")
+
+        try:
+            result = await run_conversation_scenario(conv)
+        except Exception as e:
+            logger.error(f"Conversation {conv.id} crashed: {e}")
+            result = ScenarioResult(
+                scenario_id=conv.id, dimension="conversation",
+                sub_dimension="dynamic_sales", name=conv.name,
+                difficulty=conv.difficulty, probe_results=[],
+                timestamp=datetime.now().isoformat(),
+                errors=[f"CRASH: {type(e).__name__}: {str(e)}"],
+            )
+
+        # Build a temporary DeepScenario for scoring
+        tmp_scenario = DeepScenario(
+            id=conv.id, dimension="conversation", sub_dimension="dynamic_sales",
+            name=conv.name, difficulty=conv.difficulty,
+            description=conv.persona,
+            probes=[],
+            rubric=conv.rubric, tags=conv.tags,
+        )
+
+        analysis = {}
+        if not args.no_score:
+            try:
+                analysis = score_scenario(tmp_scenario, result)
+                result.overall_score = analysis.get("overall_score", 0)
+                result.analysis = analysis
+            except Exception as e:
+                logger.error(f"Scoring failed for {conv.id}: {e}")
+                analysis = {"overall_score": 0, "error": str(e), "bugs_found": []}
+
+        entry = {
+            "scenario_id": result.scenario_id,
+            "dimension": result.dimension,
+            "sub_dimension": result.sub_dimension,
+            "name": result.name,
+            "difficulty": result.difficulty,
+            "overall_score": result.overall_score,
+            "total_latency_s": result.total_latency_s,
+            "total_tool_calls": result.total_tool_calls,
+            "errors": result.errors,
+            "timestamp": result.timestamp,
+            "analysis": analysis,
+            "probes": [
+                {
+                    "probe_idx": pr.probe_idx,
+                    "probe_content": pr.probe_content,
+                    "response": pr.response,
+                    "tool_calls": [asdict(tc) for tc in pr.tool_calls],
+                    "latency_s": pr.latency_s,
+                    "error": pr.error,
+                    "keyword_hits": pr.keyword_hits,
+                    "keyword_misses": pr.keyword_misses,
+                    "rejected_present": pr.rejected_present,
+                }
+                for pr in result.probe_results
+            ],
+        }
+
+        with open(CHECKPOINT_FILE, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        all_entries.append(entry)
+
+        score_str = f"{result.overall_score}/10" if not args.no_score else "N/A"
+        status = "PASS" if result.overall_score >= 7 else "WARN" if result.overall_score >= 5 else "FAIL"
+        logger.info(f"  [{status}] {conv.id}: Score={score_str} | Latency={result.total_latency_s}s | Turns={len(result.probe_results)}")
 
     _analyze_and_report(all_entries, all_scenarios)
 
