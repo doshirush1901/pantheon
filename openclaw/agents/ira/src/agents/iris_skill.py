@@ -11,6 +11,28 @@ from typing import Any, Dict
 logger = logging.getLogger("ira.iris_skill")
 
 
+def _extract_company_from_message(message: str) -> str:
+    """
+    Heuristic extraction of company name from message when identity doesn't have it.
+    Patterns: "to Acme Corp", "at TSN GmbH", "for Company X", "draft for Acme", "email to XYZ"
+    """
+    if not message or len(message) < 5:
+        return ""
+    import re
+    # "to Company Name" / "at Company Name" / "for Company Name"
+    for pat in [
+        r"(?:to|for|at|about)\s+([A-Z][A-Za-z0-9\s&\.\-]{2,40}?)(?:\s|,|$|\.)",
+        r"(?:company|lead|prospect)\s+([A-Z][A-Za-z0-9\s&\.\-]{2,40}?)(?:\s|,|$|\.)",
+        r"([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:GmbH|Ltd|Inc|Ltd\.|LLC|AG|BV)",
+    ]:
+        m = re.search(pat, message, re.IGNORECASE)
+        if m:
+            name = m.group(1).strip()
+            if len(name) > 2 and name.lower() not in ("the", "a", "an", "for", "to", "at"):
+                return name
+    return ""
+
+
 async def iris_enrich(context: Dict[str, Any]) -> Dict[str, str]:
     """
     Enrich context with Iris intelligence (company news, industry trends, etc.).
@@ -25,6 +47,10 @@ async def iris_enrich(context: Dict[str, Any]) -> Dict[str, str]:
     """
     lead_id = context.get("lead_id") or context.get("lead", "")
     company = context.get("company", "")
+    if not company:
+        # Max mode: extract from message when identity doesn't have company
+        message = context.get("message", "")
+        company = _extract_company_from_message(message or "")
     if not company:
         return {}
 

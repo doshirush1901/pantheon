@@ -1,0 +1,71 @@
+{
+  "_source": "Derived from data/brain/hard_rules.txt - sync when hard_rules change",
+  "_updated": "2026-03-02",
+  "rules": [
+    {
+      "id": "am_max_1_5mm",
+      "entity": "AM Series",
+      "correct": "AM Series: ≤1.5mm ONLY. For >1.5mm use PF1.",
+      "wrong_patterns": [
+        "am.*2\\s*mm",
+        "am.*up to 2\\s*mm",
+        "maximum\\s*2\\s*mm.*am",
+        "am series.*2mm"
+      ],
+      "exclude_patterns": ["not.*2mm", "cannot.*2mm", "1\\.5\\s*mm", "≤1\\.5"]
+    },
+    {
+      "id": "pf1_heavy_gauge",
+      "entity": "PF1",
+      "correct": "PF1 is heavy-gauge, NOT for packaging/blister/thin",
+      "wrong_patterns": [
+        "pf1.*thin.*gauge",
+        "pf1.*flexible",
+        "pf1.*food packaging",
+        "pf1.*blister",
+        "pf1.*clamshell",
+        "pf1.*food tray"
+      ]
+    },
+    {
+      "id": "pf2_bath_only",
+      "entity": "PF2",
+      "correct": "PF2 is bath industry ONLY",
+      "wrong_patterns": [
+        "pf2.*automotive",
+        "pf2.*packaging",
+        "pf2.*general manufacturing",
+        "pf2.*positive forming"
+      ]
+    },
+    {
+      "id": "fake_img_models",
+      "entity": "IMG",
+      "correct": "Only use real IMG models from database",
+      "wrong_patterns": [
+        "img[-\\s]?2220",
+        "img[-\\s]?2518",
+        "img[-\\s]?3020"
+      ]
+    },
+    {
+      "id": "batelaan_closed",
+      "entity": "Batelaan",
+      "correct": "Batelaan is closed, remove from customer list",
+      "wrong_patterns": [
+        "batelaan.*customer",
+        "batelaan.*active",
+        "batelaan.*current"
+      ]
+    },
+    {
+      "id": "frimo_not_agent",
+      "entity": "FRIMO",
+      "correct": "Do not refer to FRIMO as active agent",
+      "wrong_patterns": [
+        "frimo.*agent",
+        "frimo.*representative"
+      ]
+    }
+  ]
+}

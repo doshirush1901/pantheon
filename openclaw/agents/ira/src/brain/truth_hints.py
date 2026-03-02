@@ -266,10 +266,10 @@ The AM Series is designed for THIN GAUGE materials ONLY (maximum 1.5mm standard,
 - AMP-5060: INR 35,00,000 - pressure forming version
 
 **CRITICAL LIMITATION:**
-AM Series can only handle sheet thickness UP TO 1.5mm maximum. For materials thicker than 1.5mm (e.g., 2mm+, 4mm ABS), you MUST use the PF1 Series instead.
+AM Series can ONLY handle sheet thickness ≤1.5mm. For materials thicker than 1.5mm (e.g., 2mm+, 4mm ABS), you MUST use the PF1 Series instead.
 
 **When to use AM vs PF1:**
-- AM Series: Sheet thickness ≤1.5mm, blister packs, thin-wall parts
+- AM Series: Sheet thickness ≤1.5mm ONLY, blister packs, thin-wall parts
 - PF1 Series: Sheet thickness >1.5mm, heavy-gauge forming, deep draws""",
         category="product",
         keywords=["am", "am-m", "am-v", "am-p", "thin", "5060", "6060"],

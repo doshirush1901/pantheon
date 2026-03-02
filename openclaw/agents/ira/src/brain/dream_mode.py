@@ -1635,6 +1635,59 @@ _Dream duration: {duration:.0f}s_"""
         logger.info("Phase 6: Analyzing conversation quality...")
         conversation_analysis = self._analyze_conversation_quality()
         
+        # Phase 6.5: Immune Remediation (Beyond the Brain - recurring issues → resolution)
+        immune_remediation = {"remediated": 0, "recurring": []}
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from knowledge_health import get_health_monitor
+            monitor = get_health_monitor()
+            immune_remediation = monitor.run_remediation_for_recurring(
+                threshold=3,
+                send_telegram=True,
+                add_to_dream_backlog=True,
+            )
+            if immune_remediation.get("remediated", 0) > 0 or immune_remediation.get("recurring"):
+                logger.info(f"Immune remediation: {immune_remediation.get('remediated', 0)} actions, "
+                           f"{len(immune_remediation.get('recurring', []))} recurring issue types")
+        except Exception as e:
+            logger.warning(f"Immune remediation skipped: {e}")
+
+        # Phase 6.6: Knowledge Hygiene (Beyond the Brain - Kidney system)
+        knowledge_hygiene = {"issues": 0}
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from knowledge_hygiene import run_knowledge_hygiene
+            hygiene_report = run_knowledge_hygiene(
+                check_corrections=True,
+                check_hard_rules=True,
+                append_backlog=True,
+                dry_run=False,
+            )
+            knowledge_hygiene = {
+                "issues": len(hygiene_report.issues),
+                "corrections_checked": hygiene_report.corrections_checked,
+                "remediated": getattr(hygiene_report, "remediated", 0),
+            }
+            if hygiene_report.issues:
+                logger.info(f"Knowledge hygiene: {len(hygiene_report.issues)} issues (queued for review)")
+        except Exception as e:
+            logger.warning(f"Knowledge hygiene skipped: {e}")
+
+        # Phase 6.7: Memory Decay (PostgreSQL kidney - decay unused episodic/semantic memories)
+        memory_decay = {"decayed": 0, "archived": 0}
+        try:
+            sys.path.insert(0, str(SKILLS_DIR / "memory"))
+            from unified_decay import decay_memories
+            decay_result = decay_memories(identity_id=None, include_prune=False)
+            memory_decay = {
+                "decayed": decay_result.memories_decayed,
+                "archived": decay_result.memories_archived,
+            }
+            if decay_result.memories_decayed or decay_result.memories_archived:
+                logger.info(f"Memory decay: {decay_result.memories_decayed} decayed, {decay_result.memories_archived} archived")
+        except Exception as e:
+            logger.warning(f"Memory decay skipped: {e}")
+
         # Phase 7: Learn from Corrections (NEW!)
         logger.info("Phase 7: Learning from corrections...")
         corrections = self._learn_from_corrections()
@@ -1662,6 +1715,9 @@ _Dream duration: {duration:.0f}s_"""
             "metadata_index": index_result,
             "consolidation": consolidation_result,
             "conversation_analysis": conversation_analysis,
+            "immune_remediation": immune_remediation,
+            "knowledge_hygiene": knowledge_hygiene,
+            "memory_decay": memory_decay,
             "corrections_learned": corrections.get("corrections_found", 0),
             "memory_consolidation": memory_consolidation,
             "duration_seconds": duration,
@@ -1684,6 +1740,15 @@ _Dream duration: {duration:.0f}s_"""
             print(f"   Conversation gaps: {len(conversation_analysis['poor_retrievals'])} queries need better coverage")
         if corrections.get("corrections_found", 0) > 0:
             print(f"   Corrections reinforced: {corrections['corrections_found']}")
+        if immune_remediation.get("remediated", 0) > 0 or immune_remediation.get("recurring"):
+            print(f"   🛡️ Immune remediation: {immune_remediation.get('remediated', 0)} actions for "
+                  f"{len(immune_remediation.get('recurring', []))} recurring issue types")
+        if knowledge_hygiene.get("issues", 0) > 0:
+            remediated = knowledge_hygiene.get("remediated", 0)
+            print(f"   🫘 Knowledge hygiene: {knowledge_hygiene['issues']} issues"
+                  f"{f', {remediated} remediated to Mem0' if remediated else ''} (queued for review)")
+        if memory_decay.get("decayed", 0) or memory_decay.get("archived", 0):
+            print(f"   🧹 Memory decay: {memory_decay.get('decayed', 0)} decayed, {memory_decay.get('archived', 0)} archived")
         if memory_consolidation.get("patterns_found", 0) > 0:
             print(f"   🧠 Memory consolidation: {memory_consolidation['patterns_found']} patterns → "
                   f"{memory_consolidation.get('facts_created', 0)} facts, "

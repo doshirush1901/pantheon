@@ -147,6 +147,60 @@ def run_pipeline_summary() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+def run_european_drip() -> Dict[str, Any]:
+    """Run European drip campaign - check for leads ready for next email."""
+    try:
+        sys.path.insert(0, str(SKILLS_DIR / "crm"))
+        from european_drip_campaign import get_campaign
+        campaign = get_campaign()
+        ready = campaign.get_leads_ready_for_outreach()
+
+        result = {
+            "summary": f"{len(ready)} European leads ready for next drip email",
+            "leads_ready": len(ready),
+            "leads": [{"id": l.get("id"), "stage": l.get("stage")} for l in ready[:10]],
+        }
+
+        if ready:
+            telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+            chat_id = os.environ.get("RUSHABH_TELEGRAM_ID", "5700751574")
+            if telegram_token:
+                import requests
+                msg = f"🇪🇺 *European Drip Campaign*\n{len(ready)} leads ready for next email.\n"
+                for l in ready[:5]:
+                    msg += f"  • {l.get('company', l.get('id', '?'))} (stage {l.get('stage', '?')})\n"
+                if len(ready) > 5:
+                    msg += f"  ...and {len(ready) - 5} more\n"
+                msg += "\nApprove via /drip approve <id>"
+                requests.post(
+                    f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                    json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"},
+                    timeout=10,
+                )
+                result["notification_sent"] = True
+
+        log_task("european_drip", result)
+        return result
+    except Exception as e:
+        log_task("european_drip", {"error": str(e)}, success=False)
+        return {"error": str(e)}
+
+
+def run_vital_signs() -> Dict[str, Any]:
+    """Run vital signs report (Beyond the Brain respiratory rhythm)."""
+    try:
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+        from ira_vital_signs import generate_report, format_report, send_to_telegram
+        report = generate_report()
+        text = format_report(report)
+        sent = send_to_telegram(text)
+        log_task("vital_signs", {"summary": "Sent to Telegram" if sent else "Generated (no Telegram)", "sent": sent})
+        return {"sent": sent}
+    except Exception as e:
+        log_task("vital_signs", {"error": str(e)}, success=False)
+        return {"error": str(e)}
+
+
 def run_all_daily_tasks():
     """Run all daily tasks."""
     print(f"\n{'='*50}")
@@ -156,6 +210,8 @@ def run_all_daily_tasks():
     run_proactive_outreach()
     time.sleep(2)
     run_follow_up_check()
+    time.sleep(2)
+    run_european_drip()
 
 
 def run_once():
@@ -171,12 +227,16 @@ def run_daemon():
     print(f"Starting sales scheduler daemon at {datetime.now().isoformat()}")
     print(f"Log file: {LOG_DIR / 'scheduler.log'}")
     
+    schedule.every().day.at("07:30").do(run_vital_signs)
     schedule.every().day.at("09:00").do(run_proactive_outreach)
+    schedule.every().day.at("09:30").do(run_european_drip)
     schedule.every().day.at("10:00").do(run_follow_up_check)
     schedule.every().monday.at("08:00").do(run_pipeline_summary)
     
     print("\nScheduled tasks:")
+    print("  - Vital signs: Daily at 07:30")
     print("  - Proactive outreach: Daily at 09:00")
+    print("  - European drip: Daily at 09:30")
     print("  - Follow-up check: Daily at 10:00")
     print("  - Pipeline summary: Monday at 08:00")
     print("\nPress Ctrl+C to stop.\n")
@@ -192,7 +252,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sales Scheduler")
     parser.add_argument("--daemon", action="store_true", help="Run as daemon")
     parser.add_argument("--once", action="store_true", help="Run all tasks once")
-    parser.add_argument("--task", choices=["outreach", "followup", "pipeline"], help="Run specific task")
+    parser.add_argument("--task", choices=["outreach", "followup", "pipeline", "drip", "vitals"], help="Run specific task")
     args = parser.parse_args()
     
     if args.daemon:
@@ -206,5 +266,9 @@ if __name__ == "__main__":
             run_follow_up_check()
         elif args.task == "pipeline":
             run_pipeline_summary()
+        elif args.task == "drip":
+            run_european_drip()
+        elif args.task == "vitals":
+            run_vital_signs()
     else:
         parser.print_help()

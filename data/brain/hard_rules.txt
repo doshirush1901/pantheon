@@ -121,3 +121,6 @@ RULE 10: CONFIDENCE-AWARE RESPONSES
     - NEVER present unverified data as established fact
     - Prefer verified (confidence ≥ 0.9) sources over unverified ones
 ======================================================================
+
+HYGIENE SYNC: When adding/changing rules, update data/brain/hard_rules_hygiene.json
+so knowledge_hygiene (dream Phase 6.6) can scan the knowledge base for violations.

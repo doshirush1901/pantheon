@@ -110,6 +110,16 @@ class UnifiedGateway:
             resolved = invoke_identity_resolve(request.channel, request.user_id)
             if resolved is not None:
                 context["identity"] = resolved
+                context["lead_id"] = resolved
+                # Phase 5: Populate company for Iris when we have contact identity
+                try:
+                    from openclaw.agents.ira.src.identity.unified_identity import get_identity_service
+                    contact = get_identity_service().get_contact(resolved)
+                    if contact and contact.company:
+                        context["company"] = contact.company
+                        context["lead_id"] = contact.contact_id
+                except Exception:
+                    pass
         except Exception as e:
             logger.debug(f"Identity resolve skipped: {e}")
 
@@ -120,7 +130,7 @@ class UnifiedGateway:
         # Research
         context["research_output"] = await invoke_research(request.message, context)
 
-        # Iris enrichment
+        # Iris enrichment (Phase 5: Now gets company from identity when available)
         context["iris_context"] = await invoke_iris_enrich(context)
 
         # Write

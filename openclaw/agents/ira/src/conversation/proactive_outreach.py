@@ -359,7 +359,7 @@ class OutreachScheduler:
         self._save_state()
     
     def _record_outreach(self, contact_id: str, message: str):
-        """Record that we sent outreach."""
+        """Record that we sent outreach. Phase 4: Log for dream-mode learning (action→learning)."""
         try:
             from .relationship_store import get_relationship_store
             store = get_relationship_store()
@@ -377,6 +377,23 @@ class OutreachScheduler:
             )
         except Exception as e:
             logger.error("Record failed: %s", e)
+
+        # Beyond the Brain Phase 4: Action → Learning - feed outreach to dream mode
+        try:
+            project_root = Path(__file__).parent.parent.parent.parent.parent.parent
+            backlog_path = project_root / "data" / "feedback_backlog.jsonl"
+            backlog_path.parent.mkdir(parents=True, exist_ok=True)
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "source": "outreach_sent",
+                "contact_id": contact_id,
+                "message_preview": message[:200],
+                "message": "Proactive outreach sent - successful action for future pattern learning",
+            }
+            with open(backlog_path, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception as e:
+            logger.debug("Action→learning backlog write failed: %s", e)
     
     def get_stats(self) -> Dict:
         """Get scheduler statistics."""

@@ -126,10 +126,10 @@ BUSINESS_RULES = [
     {
         "id": "am_thickness_limit",
         "name": "AM Series Thickness Limit",
-        "description": "AM Series can ONLY handle material thickness ≤1.5mm",
-        "check_pattern": r"am.*series|am[-\s]?[mvp]",
+        "description": "AM Series can ONLY handle material thickness ≤1.5mm (NOT 2mm)",
+        "check_pattern": r"am.*series|am[-\s]?[mvp]|am[-\s]?5060|am[-\s]?6060|am[-\s]?7080",
         "violation_pattern": r"([2-9]|1[0-9])\s*mm.*thick|thick.*([2-9]|1[0-9])\s*mm",
-        "correct_response": "For material >1.5mm thickness, use PF1 Series instead of AM Series",
+        "correct_response": "AM Series: ≤1.5mm ONLY. For material >1.5mm, use PF1 Series.",
     },
     {
         "id": "pf1_for_heavy_gauge",
@@ -613,6 +613,154 @@ class KnowledgeHealthMonitor:
     # TELEGRAM ALERTS
     # =========================================================================
     
+    # =========================================================================
+    # RECURRING ISSUE REMEDIATION (Immune System: Detection → Resolution)
+    # =========================================================================
+    
+    def analyze_recurring_issues(self, threshold: int = 3) -> List[Dict]:
+        """
+        Group validation_issues by warning type. Return issues that recur >= threshold times.
+        These indicate chronic inflammation - the immune system sees the threat but hasn't cleared it.
+        """
+        issues = self._state.get("validation_issues", [])
+        if not issues:
+            return []
+        
+        # Group by normalized warning signature (same warning = same problem)
+        groups: Dict[str, List[Dict]] = {}
+        for issue in issues:
+            for w in issue.get("warnings", []):
+                # Normalize: "Business rule violation: AM Series ..." -> "am_thickness_limit"
+                sig = self._normalize_warning_signature(w)
+                if sig not in groups:
+                    groups[sig] = []
+                groups[sig].append({**issue, "_warning": w})
+        
+        recurring = []
+        for sig, group in groups.items():
+            if len(group) >= threshold:
+                recurring.append({
+                    "signature": sig,
+                    "count": len(group),
+                    "warning": group[0]["_warning"],
+                    "sample_query": group[0].get("query", "")[:150],
+                    "sample_response": group[0].get("response_preview", "")[:150],
+                })
+        
+        return recurring
+    
+    def _normalize_warning_signature(self, warning: str) -> str:
+        """Extract a stable signature for grouping similar warnings."""
+        w = warning.lower()
+        if "am series thickness" in w or "am series can only handle" in w:
+            return "am_thickness_limit"
+        if "pf1 for heavy gauge" in w or "should mention pf" in w:
+            return "pf1_for_heavy_gauge"
+        if "price" in w and ("specific" in w or "insert" in w):
+            return "price_must_be_specific"
+        if "hallucination" in w or "approximately" in w or "typically" in w:
+            return "hallucination_vague"
+        return warning[:80]
+    
+    def run_remediation_for_recurring(
+        self,
+        threshold: int = 3,
+        send_telegram: bool = True,
+        add_to_dream_backlog: bool = True,
+    ) -> Dict:
+        """
+        For recurring validation issues (>= threshold), escalate from logging to action:
+        1. Add fact corrections to correction_learner where applicable
+        2. Send Telegram alert for human attention
+        3. Add to dream mode backlog for overnight learning
+        """
+        recurring = self.analyze_recurring_issues(threshold)
+        if not recurring:
+            return {"remediated": 0, "recurring": []}
+        
+        results = {"remediated": 0, "recurring": recurring, "actions": []}
+        
+        # Add known fact corrections to correction_learner
+        for r in recurring:
+            if r["signature"] == "am_thickness_limit":
+                try:
+                    sys.path.insert(0, str(SKILL_DIR))
+                    from correction_learner import get_learner, Correction
+                    learner = get_learner()
+                    canonical_id = "immune_am_thickness_1.5mm"
+                    if canonical_id not in learner.corrections:
+                        learner.corrections[canonical_id] = Correction(
+                            id=canonical_id,
+                            correction_type="fact",
+                            original="AM series handles materials up to 2mm",
+                            corrected="AM series handles materials up to 1.5mm ONLY. For >1.5mm use PF1.",
+                            entity="AM Series",
+                            context="material thickness",
+                            timestamp=datetime.now().isoformat(),
+                            confidence=1.0,
+                        )
+                        learner._save()
+                        results["actions"].append("correction_learner:added_am_thickness")
+                        results["remediated"] += 1
+                except Exception as e:
+                    logger.warning(f"Could not add AM correction to learner: {e}")
+        
+        # Add to dream mode backlog for learning
+        if add_to_dream_backlog:
+            try:
+                dream_backlog = PROJECT_ROOT / "data" / "feedback_backlog.jsonl"
+                dream_backlog.parent.mkdir(parents=True, exist_ok=True)
+                for r in recurring:
+                    entry = {
+                        "timestamp": datetime.now().isoformat(),
+                        "source": "immune_remediation",
+                        "recurring_issue": r,
+                        "message": f"Recurring knowledge health issue ({r['count']}x): {r['warning'][:100]}",
+                    }
+                    with open(dream_backlog, "a") as f:
+                        f.write(json.dumps(entry) + "\n")
+                    results["actions"].append(f"dream_backlog:added_{r['signature']}")
+            except Exception as e:
+                logger.warning(f"Could not add to dream backlog: {e}")
+        
+        # Send Telegram alert
+        if send_telegram:
+            self._send_remediation_alert(recurring)
+            results["actions"].append("telegram:sent_remediation_alert")
+        
+        # Prune validation_issues to prevent unbounded growth; keep recent 50
+        issues = self._state.get("validation_issues", [])
+        if len(issues) > 50:
+            self._state["validation_issues"] = issues[-50:]
+            self._save_state()
+        
+        return results
+    
+    def _send_remediation_alert(self, recurring: List[Dict]):
+        """Send Telegram alert when chronic issues need attention."""
+        try:
+            from config import TELEGRAM_BOT_TOKEN, EXPECTED_CHAT_ID
+            import requests
+            
+            msg = "🛡️ *Immune System: Recurring Issues Need Attention*\n\n"
+            msg += f"{len(recurring)} issue type(s) recurring 3+ times:\n\n"
+            for r in recurring[:5]:
+                msg += f"• {r['count']}x: {r['warning'][:60]}...\n"
+            if len(recurring) > 5:
+                msg += f"\n...and {len(recurring) - 5} more"
+            
+            requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": EXPECTED_CHAT_ID,
+                    "text": msg,
+                    "parse_mode": "Markdown",
+                },
+                timeout=10,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send remediation alert: {e}")
+    
     def send_health_alert(self, report: HealthReport):
         """Send health alert via Telegram if critical issues found."""
         critical_issues = [i for i in report.issues if i.severity == "critical"]
@@ -685,34 +833,54 @@ if __name__ == "__main__":
     parser.add_argument("--check", action="store_true", help="Run full health check")
     parser.add_argument("--fix", action="store_true", help="Auto-fix issues")
     parser.add_argument("--alert", action="store_true", help="Send Telegram alert")
+    parser.add_argument("--remediate", action="store_true", help="Run immune remediation for recurring issues (3+ times)")
+    parser.add_argument("--remediate-threshold", type=int, default=3, help="Min occurrences to trigger remediation")
     
     args = parser.parse_args()
     
     monitor = KnowledgeHealthMonitor()
-    report = monitor.run_health_check()
     
-    print("\n" + "=" * 60)
-    print("KNOWLEDGE HEALTH REPORT")
-    print("=" * 60)
-    print(f"Score: {report.overall_score:.0f}/100")
-    print(f"Passed: {report.checks_passed} | Failed: {report.checks_failed}")
-    print()
-    
-    if report.issues:
-        print("Issues:")
-        for issue in report.issues:
-            icon = "❌" if issue.severity == "critical" else "⚠️" if issue.severity == "warning" else "ℹ️"
-            print(f"  {icon} [{issue.category}] {issue.message}")
-            
-            if args.fix and issue.auto_fixable:
-                print(f"      → Attempting auto-fix...")
-                if monitor.auto_fix(issue):
-                    print(f"      → Fixed!")
-                else:
-                    print(f"      → Fix failed")
+    if args.remediate:
+        print("\n🛡️ Immune System: Analyzing recurring issues...")
+        recurring = monitor.analyze_recurring_issues(threshold=args.remediate_threshold)
+        if recurring:
+            print(f"Found {len(recurring)} recurring issue type(s):")
+            for r in recurring:
+                print(f"  • {r['count']}x: {r['signature']}")
+            result = monitor.run_remediation_for_recurring(
+                threshold=args.remediate_threshold,
+                send_telegram=not os.environ.get("IRA_REMEDIATE_NO_ALERT"),
+                add_to_dream_backlog=True,
+            )
+            print(f"Actions: {result.get('actions', [])}")
+            print("✅ Remediation complete")
+        else:
+            print("No recurring issues (all < threshold)")
     else:
-        print("✅ All checks passed!")
-    
-    if args.alert:
-        monitor.send_health_alert(report)
-        print("\n📤 Alert sent to Telegram")
+        report = monitor.run_health_check()
+        
+        print("\n" + "=" * 60)
+        print("KNOWLEDGE HEALTH REPORT")
+        print("=" * 60)
+        print(f"Score: {report.overall_score:.0f}/100")
+        print(f"Passed: {report.checks_passed} | Failed: {report.checks_failed}")
+        print()
+        
+        if report.issues:
+            print("Issues:")
+            for issue in report.issues:
+                icon = "❌" if issue.severity == "critical" else "⚠️" if issue.severity == "warning" else "ℹ️"
+                print(f"  {icon} [{issue.category}] {issue.message}")
+                
+                if args.fix and issue.auto_fixable:
+                    print(f"      → Attempting auto-fix...")
+                    if monitor.auto_fix(issue):
+                        print(f"      → Fixed!")
+                    else:
+                        print(f"      → Fix failed")
+        else:
+            print("✅ All checks passed!")
+        
+        if args.alert:
+            monitor.send_health_alert(report)
+            print("\n📤 Alert sent to Telegram")

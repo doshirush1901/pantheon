@@ -450,6 +450,7 @@ def _identify_agents_used(generation_path: str, agents_used: Optional[List[str]]
     
     Prefers the explicit agents_used list (populated by tool_orchestrator) over
     string-matching on generation_path (legacy fallback).
+    Phase 3 (Endocrine): Ensure Iris and Sophia get scored when used.
     """
     if agents_used:
         return list(set(["athena"] + agents_used))
@@ -462,10 +463,12 @@ def _identify_agents_used(generation_path: str, agents_used: Optional[List[str]]
         agents.append("calliope")
     if "verify" in path_lower or "vera" in path_lower or "fact" in path_lower:
         agents.append("vera")
-    if "iris" in path_lower or "web" in path_lower:
+    if "iris" in path_lower or "web" in path_lower or "lead" in path_lower or "enrich" in path_lower:
         agents.append("iris")
-    if "agent" in path_lower or "tool" in path_lower:
-        agents.extend(["clio", "calliope", "vera"])
+    if "reflect" in path_lower or "sophia" in path_lower or "lesson" in path_lower:
+        agents.append("sophia")
+    if "agent" in path_lower or "tool" in path_lower or "pipeline" in path_lower:
+        agents.extend(["clio", "calliope", "vera", "iris", "sophia"])
     return list(set(agents))
 
 

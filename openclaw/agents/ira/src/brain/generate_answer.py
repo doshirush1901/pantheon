@@ -2573,6 +2573,37 @@ The response should be professional and comprehensive like a formal quotation em
             final_text += "\n\n**⚠️ Clarification:** The PF1 Series is a **heavy-gauge** thermoforming machine for thick sheet materials (2–8mm). It processes ABS, HDPE, PC, PMMA, HIPS, and similar heavy-gauge plastics. It is used for automotive interiors, refrigerator liners, truck bedliners, luggage, EV parts, and industrial enclosures. For thin-gauge or flexible packaging (≤1.5mm), the **AM Series** is the correct choice."
             pipeline_debug_info["pf1_misuse_correction_applied"] = True
 
+    # =========================================================================
+    # VAGUE LANGUAGE FILTER - Beyond the Brain Phase A
+    # Catches "approximately", "around", "typically" in pricing/spec contexts
+    # where we have specific data. The 27x most common hallucination pattern.
+    # =========================================================================
+    import re as regex_module
+    _pricing_context = bool(regex_module.search(
+        r'(?:price|cost|inr|₹|\$|eur|€|usd|gbp|£|brl|czk|ars)\s*[:\s]?\s*[\d,]',
+        final_text, regex_module.IGNORECASE
+    ))
+    _spec_context = bool(regex_module.search(
+        r'\d+\s*(?:mm|kw|kva|bar|psi)\b', final_text, regex_module.IGNORECASE
+    ))
+    if _pricing_context or _spec_context:
+        _vague_subs = [
+            (r'\bapproximately\s+', ''),
+            (r'\baround\s+(?=[\d₹$€£])', ''),
+            (r'\broughly\s+(?=[\d₹$€£])', ''),
+            (r'\babout\s+(?=[\d₹$€£])', ''),
+            (r'\btypically\s+(?=[\d])', ''),
+            (r'\busually\s+(?=[\d])', ''),
+            (r'\bgenerally\s+(?=[\d])', ''),
+        ]
+        _vague_count = 0
+        for pat, repl in _vague_subs:
+            final_text, n = regex_module.subn(pat, repl, final_text, flags=regex_module.IGNORECASE)
+            _vague_count += n
+        if _vague_count:
+            logger.info(f"Vague language filter: removed {_vague_count} hedging words from pricing/spec context")
+            pipeline_debug_info["vague_language_removed"] = _vague_count
+
     # Determine confidence based on grounding and pipeline results
     if truth_hint:
         confidence = ConfidenceLevel.HIGH

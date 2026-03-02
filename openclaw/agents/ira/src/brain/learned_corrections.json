@@ -19,9 +19,19 @@
       "context": "None",
       "timestamp": "2026-03-02T07:58:52.771088",
       "confidence": 1.0
+    },
+    {
+      "id": "immune_am_thickness_1.5mm",
+      "correction_type": "fact",
+      "original": "AM series handles materials up to 2mm",
+      "corrected": "AM series handles materials up to 1.5mm ONLY. For >1.5mm use PF1.",
+      "entity": "AM Series",
+      "context": "material thickness",
+      "timestamp": "2026-03-02T13:05:49.396284",
+      "confidence": 1.0
     }
   ],
   "competitors": [],
   "existing_customers": [],
-  "last_updated": "2026-03-02T07:58:52.771142"
+  "last_updated": "2026-03-02T13:05:49.396292"
 }

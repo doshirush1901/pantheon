@@ -5216,8 +5216,22 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                     "conversation_history": _conv_history,
                     "mem0_context": mem0_context,
                     "identity": full_context.identity if full_context else None,
+                    "message": actual_intent,
                     "_progress_callback": getattr(self, '_current_progress_callback', None),
                 }
+
+                # Beyond the Brain Phase 5: Bridge identity → Iris enrichment
+                try:
+                    from openclaw.agents.ira.src.identity.unified_identity import get_identity_service
+                    _id_svc = get_identity_service()
+                    _contact_id = _id_svc.resolve("telegram", str(chat_id or ""), create_if_missing=False)
+                    if _contact_id:
+                        _contact = _id_svc.get_contact(_contact_id)
+                        if _contact and _contact.company:
+                            _agent_context["company"] = _contact.company
+                            _agent_context["lead_id"] = _contact.contact_id
+                except Exception as _id_err:
+                    logger.debug(f"Identity bridge (non-fatal): {_id_err}")
 
                 _loop = asyncio.new_event_loop()
                 try:
