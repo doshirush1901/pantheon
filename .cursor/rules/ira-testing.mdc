@@ -1,0 +1,50 @@
+---
+description: How to test Ira using benchy_deep and the test-fix-verify loop
+globs: scripts/benchy*.py
+alwaysApply: false
+---
+
+# Testing Ira with Benchy-Deep
+
+## The Loop
+
+1. Run `python3 scripts/benchy_deep.py --quick --telegram` (8 scenarios, ~5 min)
+2. Read `data/benchy_deep/deep_test_report.md` for failures
+3. Trace root cause across layers (system prompt, truth hints, knowledge health, machine_specs)
+4. Fix at the deepest layer possible (data > validation > prompt)
+5. Re-run failing scenario: `python3 scripts/benchy_deep.py --scenario CROSS-01 --telegram`
+6. Run full suite to check regressions
+
+## Architecture: Where Bugs Hide
+
+```
+User message
+  -> _INJECTION_PATTERNS guard (tool_orchestrator.py)
+  -> _is_complex check -> truth_hints shortcut OR full pipeline
+  -> System prompt (RULES, PRICE TABLE, MACHINE RULES)
+  -> GPT-4o tool loop (research_skill, customer_lookup, etc.)
+  -> knowledge_health.validate_response() (regex, business rules, model validation)
+  -> immune_system (recurring issue detection)
+  -> voice_system.reshape() (tone)
+  -> Response
+```
+
+Common failure points:
+- **Truth hints false positive**: Pattern matches wrong query. Fix: tighten regex with `\b` word boundaries, add to `_is_complex` bypass
+- **Missing pricing**: Model exists in `machine_specs.json` but not in system prompt price table. Fix: add to price table
+- **Hallucinated model**: Regex in `validate_response` doesn't capture the pattern. Fix: broaden regex
+- **`_get_valid_models()` broken**: `machine_specs.json` is a dict, not a list. Always use `specs.items()`
+
+## Conversation Scenarios
+
+`--dimension conversation` runs GPT-4o as the customer through 6 stages. These catch issues static probes miss: context loss, tone drift, inability to close, price quoting inconsistency.
+
+## Key Files
+
+| File | What It Controls |
+|------|-----------------|
+| `tool_orchestrator.py` | System prompt, price table, injection guard, truth hint bypass |
+| `truth_hints.py` | Fast-path answers for simple questions |
+| `knowledge_health.py` | Post-response validation (hallucination, business rules, model check) |
+| `machine_specs.json` | Source of truth for all machine models and prices |
+| `hard_rules.txt` | Business rules (loaded by generate_answer, NOT by tool_orchestrator) |

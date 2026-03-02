@@ -1,0 +1,42 @@
+---
+description: Security patterns for Ira — prompt injection defense, data protection, hallucination prevention
+globs: openclaw/agents/ira/src/core/**,openclaw/agents/ira/src/brain/**
+alwaysApply: false
+---
+
+# Ira Security Patterns
+
+## Prompt Injection Defense
+
+Two layers, both in `tool_orchestrator.py`:
+
+1. **Pre-LLM guard** (`_INJECTION_PATTERNS`): Regex catches "ignore instructions", "you are now", "forget everything" etc. Returns polite redirect before GPT-4o ever sees the message. Skipped for `is_internal=True` (Rushabh/benchy).
+
+2. **System prompt IDENTITY section**: Tells Athena to never comply with role overrides or off-topic requests.
+
+When adding new injection patterns, add to `_INJECTION_PATTERNS` regex. Use `(?!...)` negative lookahead for legitimate phrases (e.g. "act as a customer" is OK).
+
+## Hallucination Prevention
+
+Three layers:
+
+1. **System prompt**: "If a model is NOT found in the price table or tool results, say you don't have specs" + explicit product line list (PF1, PF2, AM, IMG, FCS, ATF — no PF3)
+
+2. **`validate_response()` regex**: Catches model numbers in response text. Pattern: `PF\d-[A-Z]*-?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4}|ATF-\d{4}`. If you add a new series, update this regex.
+
+3. **`_get_valid_models()`**: Loads all 46 models from `machine_specs.json`. Any model in the response that's not in this set gets flagged. The function handles both dict and list formats.
+
+## Data Protection
+
+- Internal data (margins, costs) must never be shared with external users
+- `is_internal` flag in context distinguishes Rushabh from external users
+- System prompt has conditional: internal users get full access, external users get filtered info
+
+## Adding New Machine Series
+
+If Machinecraft launches a new series (e.g. ATF-2):
+1. Add models to `machine_specs.json`
+2. Add to price table in `tool_orchestrator.py` system prompt
+3. Update regex in `knowledge_health.py` `validate_response()` if the naming pattern is new
+4. Add to product line list in system prompt RULES section
+5. Run `benchy_deep.py --quick` to verify

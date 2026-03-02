@@ -1,0 +1,134 @@
+---
+description: Knowledge ingestion pattern for adding new documents to Ira's memory
+globs:
+  - "**/brain/*.py"
+  - "**/skills/**/*.py"
+  - "**/data/imports/**"
+alwaysApply: false
+---
+
+# Knowledge Ingestion Architecture
+
+When ingesting new documents or data into Ira's knowledge base, ALWAYS follow this pattern.
+
+## Best Practices (Built-in)
+
+| Practice | How It Works |
+|----------|--------------|
+| **Deduplication** | Content hashes in `data/knowledge/ingested_hashes.json` |
+| **Validation** | Min 10 chars, required fields checked before ingestion |
+| **Chunking** | Large texts (>2000 chars) auto-split with 200 char overlap |
+| **Audit Log** | All operations logged to `data/knowledge/audit.jsonl` |
+| **Source Fingerprinting** | File hashes detect document changes |
+
+## Storage Destinations (ALL FOUR required)
+
+1. **Qdrant Main Collection** (`ira_chunks_v4_voyage`)
+   - Primary semantic search collection
+   - Used by `unified_retriever.py` and `qdrant_retriever.py`
+
+2. **Qdrant Discovered Knowledge** (`ira_discovered_knowledge`)
+   - Dedicated collection for ingested knowledge
+   - Explicitly searched by retrievers
+
+3. **Mem0 Long-term Memory**
+   - User IDs by knowledge type:
+     - `machinecraft_knowledge` - machine specs
+     - `machinecraft_pricing` - pricing data
+     - `machinecraft_customers` - customer info
+     - `machinecraft_processes` - manufacturing processes
+     - `machinecraft_general` - general knowledge
+
+4. **JSON Backup** (`data/knowledge/*.json`)
+   - Disaster recovery
+   - Human-readable reference
+
+## Using the KnowledgeIngestor
+
+```python
+from openclaw.agents.ira.src.brain.knowledge_ingestor import KnowledgeIngestor, ingest_knowledge
+
+# Simple ingestion
+result = ingest_knowledge(
+    text="Full knowledge text here...",
+    knowledge_type="machine_spec",  # or pricing, customer, process, application
+    source_file="source_document.xlsx",
+    entity="PF1-C-2015",  # Primary entity (machine model, customer name, etc.)
+    summary="Short summary for Mem0",
+    metadata={"key": "value"}
+)
+
+# Document ingestion with custom extractor
+def my_extractor(path: Path) -> List[Dict]:
+    # Parse document and return list of items
+    return [{"text": "...", "entity": "...", "metadata": {...}}]
+
+ingestor = KnowledgeIngestor()
+result = ingestor.ingest_document(
+    file_path="path/to/doc.xlsx",
+    extractor_fn=my_extractor,
+    knowledge_type="machine_spec"
+)
+```
+
+## Embedding Configuration
+
+- **Model**: Voyage AI `voyage-3` (1024 dimensions)
+- **Input type**: `document` for ingestion, `query` for retrieval
+
+## Key Files
+
+- `knowledge_ingestor.py` - Main ingestion module
+- `ingest_pf1_specs.py` - Example: PF1-C machine specs ingestion
+- `qdrant_retriever.py` - Retrieval (searches discovered_knowledge)
+- `unified_retriever.py` - Retrieval (searches discovered_knowledge)
+- `config.py` - Collection names in COLLECTIONS dict
+
+## Checklist for New Ingestion Scripts
+
+- [ ] Parse source document correctly
+- [ ] Generate structured knowledge text
+- [ ] Include entity/model identification
+- [ ] Call `KnowledgeIngestor.ingest_batch()` or use convenience function
+- [ ] Verify with test retrieval query
+- [ ] Add to `data/knowledge/` JSON backup
+
+## Example Workflow
+
+```bash
+# 1. Create extractor for new document type
+# 2. Use KnowledgeIngestor to ingest
+# 3. Verify retrieval works:
+python -c "
+from openclaw.agents.ira.src.brain.qdrant_retriever import retrieve
+result = retrieve('your test query', top_k=5)
+print(result.citations[0].text[:200])
+"
+```
+
+## Git Practices for Ingestion Scripts
+
+```bash
+# 1. Feature branch for new ingestion
+git checkout -b feature/ingest-[document-type]
+
+# 2. After successful ingestion, commit with:
+git commit -m "Add ingestion for [document type]
+
+- Extract N items from [source file]
+- Store to Qdrant + Mem0
+- Verified retrieval works"
+```
+
+## Monitoring Commands
+
+```bash
+# View recent audit entries
+tail -20 data/knowledge/audit.jsonl | jq .
+
+# Check dedup hash count  
+cat data/knowledge/ingested_hashes.json | jq '.count'
+
+# List knowledge backups
+ls -la data/knowledge/*.json
+```

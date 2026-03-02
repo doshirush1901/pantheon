@@ -1,0 +1,46 @@
+---
+description: Machinecraft business rules that must never be violated when editing Ira's brain, prompts, or tools
+globs: openclaw/agents/ira/**/*.py,data/brain/**
+alwaysApply: false
+---
+
+# Machinecraft Business Rules
+
+These are hard constraints. Violating any of these in code, prompts, or data will cause Ira to give wrong answers to customers.
+
+## Machine Series Routing
+
+| Condition | Route To | NEVER Route To |
+|-----------|----------|----------------|
+| Thickness <= 1.5mm | AM series | PF1-C/X |
+| Thickness > 1.5mm | PF1-C or PF1-X | AM series |
+| TPO + grain retention + Class-A | IMG series | PF1 alone |
+| Bathtubs / shower trays | PF2 | PF1, AM |
+| Thin + thick on same machine | TWO machines needed | "One machine for both" |
+
+## Pricing
+
+- Every price MUST include "subject to configuration and current pricing"
+- PF1-X prices are in `data/brain/machine_specs.json` — use exact numbers, not "PF1-C + 50-60%"
+- EUR/USD conversions are indicative (1 EUR ~ 90-92 INR, 1 USD ~ 83-84 INR)
+- The full price table is in `tool_orchestrator.py` system prompt — keep it in sync with `machine_specs.json`
+
+## Custom Sizing
+
+Machinecraft can ALWAYS build any size. Never say "we don't make that size." Offer either:
+1. The next larger standard model
+2. A custom build at exact dimensions (price quoted separately)
+
+Reference: Dutch Tides ordered 6400x1900mm (largest in Europe).
+
+## Lead Time
+
+ALWAYS 12-16 weeks from order confirmation. Never promise faster. Never match a competitor's claimed delivery.
+
+## Closed Customers
+
+Batelaan Kunststoffen (Netherlands) is SHUT DOWN. Never suggest outreach.
+
+## Product Lines
+
+Machinecraft's lines are: PF1, PF2, AM, IMG, FCS, ATF, UNO, DUO. There is NO PF3 series. If a model doesn't exist, say so — never fabricate specs.

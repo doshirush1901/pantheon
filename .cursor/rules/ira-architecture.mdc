@@ -1,0 +1,54 @@
+---
+description: Ira's core architecture and how the pieces connect — essential context for any code change
+alwaysApply: true
+---
+
+# Ira Architecture
+
+## Message Flow (Telegram/API -> Response)
+
+The primary path is `process_with_tools()` in `tool_orchestrator.py`:
+
+1. **Input guard**: `_INJECTION_PATTERNS` blocks prompt injection before LLM sees it
+2. **Truth hints**: Simple questions get fast cached answers (bypass tool loop)
+3. **Complexity check**: `_is_complex` decides truth hint vs full pipeline. Model-specific queries (PF1-C-2015) MUST go to full pipeline
+4. **Athena (GPT-4o)**: System prompt + tool loop, max 15 rounds. Calls research_skill, customer_lookup, finance tools, etc.
+5. **Validation**: `knowledge_health.validate_response()` checks hallucinations, business rules, model numbers
+6. **Immune system**: Flags recurring issues
+7. **Voice**: Reshapes tone for channel
+
+## Key Modules
+
+| Module | Role | Owner |
+|--------|------|-------|
+| `tool_orchestrator.py` | LLM-driven pipeline, system prompt, price table | Athena |
+| `ira_skills_tools.py` | Tool schemas + `execute_tool_call()` dispatch | All tools |
+| `truth_hints.py` | Fast-path answers, regex patterns | Simple queries |
+| `knowledge_health.py` | Response validation, model number checking | Safety |
+| `machine_specs.json` | Source of truth for 46 machine models + prices | Data |
+| `hard_rules.txt` | Business rules (used by generate_answer.py) | Rules |
+| `finance_agent/agent.py` | Plutus — order book, cashflow, revenue | Finance |
+
+## Defense in Depth
+
+Every safety check works at multiple layers:
+- **Anti-hallucination**: System prompt rule + `validate_response` regex + `_get_valid_models()` database check
+- **Prompt injection**: Pre-LLM regex guard + system prompt identity defense
+- **Business rules**: System prompt MACHINE RULES + `knowledge_health` business rule patterns + `hard_rules.txt`
+
+## Data Sources
+
+- **Qdrant**: Vector search across documents, emails, knowledge (via `research_skill`)
+- **Mem0**: Long-term semantic memory (via `memory_search`)
+- **Neo4j**: Knowledge graph
+- **CRM DB**: `crm/ira_crm.db` — contacts, leads, conversations, deals
+- **Google**: Sheets, Drive, Calendar, Contacts, Gmail (via google_tools)
+- **machine_specs.json**: All machine models, prices, specs (dict keyed by model name)
+
+## Common Pitfalls When Editing
+
+1. `machine_specs.json` is a **dict**, not a list. Iterate with `.items()`, not bare `for x in specs`
+2. Truth hint regexes can false-positive. Always use `\b` for word boundaries
+3. The price table in `tool_orchestrator.py` must stay in sync with `machine_specs.json`
+4. `hard_rules.txt` is only loaded by `generate_answer.py`, NOT by `tool_orchestrator.py` — rules for the tool pipeline go in the system prompt
+5. After any change, run `python3 scripts/benchy_deep.py --quick --telegram` to verify
