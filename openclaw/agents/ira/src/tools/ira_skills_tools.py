@@ -102,6 +102,63 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "read_spreadsheet",
+            "description": "Read data from a Google Sheet. Use for order books, pricing lists, lead lists, or any tabular data stored in Google Sheets.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "spreadsheet_id": {"type": "string", "description": "The spreadsheet ID from the Google Sheets URL (the long string between /d/ and /edit)"},
+                    "range": {"type": "string", "description": "Sheet name and cell range, e.g. 'Sheet1!A1:Z100' or just 'Sheet1'"},
+                },
+                "required": ["spreadsheet_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_drive",
+            "description": "Search Google Drive for files by name or content. Use when asked to find documents, presentations, spreadsheets, or PDFs.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query (file name, keywords, or content to find)"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_calendar",
+            "description": "Check upcoming calendar events. Use for scheduling questions, meeting lookups, or availability checks.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {"type": "integer", "description": "Number of days to look ahead (default 7)"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_contacts",
+            "description": "Search Google Contacts for a person, company, or email address. Returns names, emails, phone numbers, and organizations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Name, company, or email to search for"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "ask_user",
             "description": "Ask the user a clarifying question when you need more information to complete a task. Use this instead of guessing.",
             "parameters": {
@@ -336,6 +393,47 @@ async def execute_tool_call(
         original_query = arguments.get("original_query", "")
         result = await invoke_verify(draft, original_query, context)
         return result or draft
+
+    elif tool_name == "read_spreadsheet":
+        spreadsheet_id = arguments.get("spreadsheet_id", "")
+        range_name = arguments.get("range", "Sheet1")
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import sheets_read
+            return sheets_read(spreadsheet_id, range_name)
+        except ImportError:
+            return "(Google Sheets not available. Install: pip install google-api-python-client)"
+        except Exception as e:
+            return f"(Spreadsheet error: {e})"
+
+    elif tool_name == "search_drive":
+        query = arguments.get("query", "")
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import drive_list
+            return drive_list(query)
+        except ImportError:
+            return "(Google Drive not available.)"
+        except Exception as e:
+            return f"(Drive error: {e})"
+
+    elif tool_name == "check_calendar":
+        days = arguments.get("days", 7)
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import calendar_upcoming
+            return calendar_upcoming(days)
+        except ImportError:
+            return "(Google Calendar not available.)"
+        except Exception as e:
+            return f"(Calendar error: {e})"
+
+    elif tool_name == "search_contacts":
+        query = arguments.get("query", "")
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import contacts_search
+            return contacts_search(query)
+        except ImportError:
+            return "(Google Contacts not available.)"
+        except Exception as e:
+            return f"(Contacts error: {e})"
 
     elif tool_name == "ask_user":
         question = arguments.get("question", "")

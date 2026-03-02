@@ -7089,6 +7089,19 @@ Total: {len(draft_ids)}""",
         
         _thinking_done.set()
         
+        # DLP guardrail: check for sensitive data before sending
+        if response.text:
+            try:
+                from openclaw.agents.ira.src.tools.google_tools import dlp_inspect
+                is_safe, findings = dlp_inspect(response.text)
+                if not is_safe:
+                    logger.warning(f"[DLP] Sensitive data detected: {findings}")
+                    response.text += "\n\n_[Note: This response may contain sensitive information. Please review before forwarding.]_"
+            except ImportError:
+                pass
+            except Exception:
+                pass
+        
         if response.text:
             if thinking_msg_id:
                 success = self.edit_message(

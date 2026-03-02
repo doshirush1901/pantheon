@@ -80,7 +80,11 @@ YOUR TOOLS
 - memory_search: Search Mem0 long-term memory. Try MULTIPLE user_ids: "machinecraft_customers", "machinecraft_knowledge", "machinecraft_general". Try DIFFERENT search terms.
 - customer_lookup: Search CRM/memory for customer data.
 - research_skill: Search Qdrant knowledge base (documents, specs, emails).
-- web_search: Search the internet for external company info, news, trends.
+- web_search: Search the internet (Tavily AI + Google via Serper) for external company info, news, market data, trends.
+- read_spreadsheet: Read data from Google Sheets (order books, pricing, lead lists). Need the spreadsheet_id from the URL.
+- search_drive: Find files in Google Drive by name or content.
+- check_calendar: See upcoming meetings, events, and scheduled follow-ups.
+- search_contacts: Look up people in Google Contacts by name, company, or email.
 - writing_skill: Draft a polished response AFTER you have gathered data.
 - fact_checking_skill: Verify facts before sending.
 - ask_user: LAST RESORT ONLY. Use only after 2+ tool calls returned nothing.
