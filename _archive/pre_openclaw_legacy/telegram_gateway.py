@@ -901,6 +901,23 @@ class TelegramGateway:
         if not self._download_telegram_file(file_id, dest_path):
             return GatewayResponse(text="❌ Failed to download file from Telegram.", success=False)
 
+        # Check for duplicate: if an older copy with the same original name exists
+        # and has identical content, remove the old one (keep the new timestamped version).
+        import hashlib as _hl
+        new_hash = _hl.sha256(dest_path.read_bytes()).hexdigest()
+        for existing in self.TELEGRAM_DOCS_DIR.iterdir():
+            if existing == dest_path or not existing.is_file():
+                continue
+            if existing.name.endswith(".extracted.txt") or existing.name == ".gitkeep":
+                continue
+            if existing.stat().st_size == dest_path.stat().st_size:
+                if _hl.sha256(existing.read_bytes()).hexdigest() == new_hash:
+                    logger.info(f"[DEDUP] Removing older duplicate: {existing.name}")
+                    existing.unlink()
+                    txt_companion = existing.with_suffix(".extracted.txt")
+                    if txt_companion.exists():
+                        txt_companion.unlink()
+
         is_image = ext in self.IMAGE_EXTENSIONS or is_photo
         extracted_text = None
         text_file_path = None
@@ -945,6 +962,50 @@ class TelegramGateway:
             },
         )
 
+    @staticmethod
+    def _detect_knowledge_type(filename: str, caption: Optional[str]) -> str:
+        """Infer the best knowledge_type from filename + caption for Mem0 routing."""
+        text = f"{filename} {caption or ''}".lower()
+        if any(w in text for w in ("quote", "quotation", "pricing", "price", "offer", "cost", "eur", "usd", "inr", "lakh")):
+            return "pricing"
+        if any(w in text for w in ("customer", "client", "company", "factory", "plant", "purchased", "order")):
+            return "customer"
+        if any(w in text for w in ("spec", "technical", "datasheet", "drawing", "dimension", "heater", "servo")):
+            return "machine_spec"
+        if any(w in text for w in ("process", "forming", "thermoform", "vacuum", "pressure")):
+            return "process"
+        if any(w in text for w in ("application", "automotive", "packaging", "aerospace", "medical")):
+            return "application"
+        return "general"
+
+    @staticmethod
+    def _extract_entities_from_caption(caption: Optional[str], filename: str) -> List[str]:
+        """Extract machine models, company names, and key entities from caption + filename."""
+        if not caption and not filename:
+            return []
+        text = f"{filename} {caption or ''}"
+        entities = []
+
+        # Machine models: PF1-X-1210, AM-1200, IMG-3020, FCS-*, ATF-*
+        models = re.findall(
+            r'(PF[12][-\s]?[A-Z]?[-\s]?\d[\d\-]*|AM[-\s]?\d[\w\-]*|IMG[-\s]?\d[\w\-]*|'
+            r'FCS[-\s]?\w+|ATF[-\s]?\w+|UNO[-\s]?\w+|DUO[-\s]?\w+)',
+            text, re.IGNORECASE,
+        )
+        entities.extend(m.upper().replace(" ", "-") for m in models)
+
+        # Trade shows / events: K2025, K-2025, Plastindia, etc.
+        events = re.findall(r'\b(K[-\s]?\d{4}|Plastindia\s*\d*|Chinaplas\s*\d*|NPE\s*\d*)\b', text, re.IGNORECASE)
+        entities.extend(e.strip() for e in events)
+
+        # Capitalized multi-word names (likely company names), excluding common words
+        skip = {"This", "The", "For", "From", "With", "Please", "Quote", "EUR", "USD", "INR",
+                "PDF", "Doc", "File", "Data", "Ingest", "Machine", "Model", "Series"}
+        cap_phrases = re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b', text)
+        entities.extend(p for p in cap_phrases if p.split()[0] not in skip)
+
+        return list(dict.fromkeys(entities))
+
     def _ingest_uploaded_document(
         self,
         file_path: Path,
@@ -955,6 +1016,26 @@ class TelegramGateway:
     ) -> Optional[str]:
         """Run the ingestion pipeline on an uploaded document. Returns status string."""
         results = []
+        saved_filename = file_path.name
+        knowledge_type = self._detect_knowledge_type(original_name, caption)
+        entities = self._extract_entities_from_caption(caption, original_name)
+        primary_entity = entities[0] if entities else ""
+
+        # --- File Manifest: store the human-written description for NN research ---
+        if caption:
+            try:
+                sys.path.insert(0, str(BRAIN_DIR))
+                from nn_research import get_file_manifest
+                manifest = get_file_manifest()
+                manifest.add_file(
+                    filename=saved_filename,
+                    description=caption,
+                    original_name=original_name,
+                    file_path=str(file_path),
+                )
+                logger.info(f"[MANIFEST] Stored description for {saved_filename}: {caption[:80]}")
+            except Exception as e:
+                logger.warning(f"[MANIFEST] Could not store file description: {e}")
 
         # --- Path 1: KnowledgeIngestor (Qdrant + Mem0 + JSON) for text documents ---
         if not is_image or extracted_text:
@@ -963,22 +1044,23 @@ class TelegramGateway:
                 from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
 
                 ingestor = KnowledgeIngestor()
-                ki_result = None
+                items_to_ingest = []
 
                 if is_image and extracted_text:
-                    item = KnowledgeItem(
+                    items_to_ingest.append(KnowledgeItem(
                         text=extracted_text,
-                        knowledge_type="general",
+                        knowledge_type=knowledge_type,
                         source_file=original_name,
+                        entity=primary_entity,
                         summary=caption or f"Extracted from image: {original_name}",
                         metadata={
                             "source": "telegram_upload",
                             "original_name": original_name,
                             "is_image": True,
                             "caption": caption,
+                            "entities": entities,
                         },
-                    )
-                    ki_result = ingestor.ingest_batch([item])
+                    ))
                 else:
                     from document_extractor import DocumentExtractor
                     extractor = DocumentExtractor()
@@ -991,10 +1073,11 @@ class TelegramGateway:
                         if caption:
                             text_content = f"[Context: {caption}]\n\n{text_content}"
 
-                        item = KnowledgeItem(
+                        items_to_ingest.append(KnowledgeItem(
                             text=text_content,
-                            knowledge_type="general",
+                            knowledge_type=knowledge_type,
                             source_file=original_name,
+                            entity=primary_entity,
                             summary=caption or f"Uploaded via Telegram: {original_name}",
                             metadata={
                                 "source": "telegram_upload",
@@ -1002,15 +1085,70 @@ class TelegramGateway:
                                 "pages": extraction.page_count,
                                 "extractor": extraction.extractor_used,
                                 "caption": caption,
+                                "entities": entities,
                             },
-                        )
-                        ki_result = ingestor.ingest_batch([item])
+                        ))
+
+                # Store the caption itself as a standalone knowledge item so Ira
+                # can retrieve it by semantic search independently of the document.
+                if caption and len(caption) > 10:
+                    items_to_ingest.append(KnowledgeItem(
+                        text=(
+                            f"File upload note for '{original_name}' "
+                            f"(saved as {saved_filename}):\n{caption}"
+                        ),
+                        knowledge_type=knowledge_type,
+                        source_file=original_name,
+                        entity=primary_entity,
+                        summary=f"Upload context: {caption}",
+                        metadata={
+                            "source": "telegram_upload_note",
+                            "original_name": original_name,
+                            "saved_filename": saved_filename,
+                            "is_file_description": True,
+                            "entities": entities,
+                        },
+                    ))
+
+                ki_result = None
+                if items_to_ingest:
+                    ki_result = ingestor.ingest_batch(items_to_ingest)
 
                 if ki_result and ki_result.success:
+                    stores = []
+                    if ki_result.qdrant_main or ki_result.qdrant_discovered:
+                        stores.append("Qdrant")
+                    if ki_result.mem0:
+                        stores.append("Mem0")
+                    if ki_result.json_backup:
+                        stores.append("JSON")
+                    if ki_result.neo4j:
+                        stores.append("Neo4j")
+                    store_str = ", ".join(stores) if stores else "stored"
+                    skipped = f" ({ki_result.items_skipped} duplicates skipped)" if ki_result.items_skipped else ""
                     results.append(
-                        f"✅ **Knowledge ingested:** {ki_result.items_ingested} items → "
-                        f"Qdrant ({ki_result.qdrant_stored}), Mem0 ({ki_result.mem0_stored})"
+                        f"✅ **Knowledge ingested:** {ki_result.items_ingested} items → {store_str}{skipped}"
                     )
+
+                    # Create rich Neo4j relationships between extracted entities
+                    if len(entities) > 1 and ki_result.neo4j:
+                        try:
+                            from neo4j_store import get_neo4j_store
+                            neo4j = get_neo4j_store()
+                            if neo4j.is_connected():
+                                rel_map = {
+                                    "pricing": "QUOTED_FOR",
+                                    "customer": "CUSTOMER_OF",
+                                    "machine_spec": "SPEC_FOR",
+                                }
+                                rel_type = rel_map.get(knowledge_type, "RELATED_TO")
+                                for i, e1 in enumerate(entities[:8]):
+                                    for e2 in entities[i+1:8]:
+                                        neo4j.create_relationship(e1, e2, rel_type, strength=0.8)
+                                results.append(f"🔗 **Graph:** {len(entities)} entities linked")
+                        except Exception as e:
+                            logger.debug(f"[NEO4J] Extra relationship creation: {e}")
+
                 elif ki_result:
                     errors = ", ".join(ki_result.errors[:2]) if ki_result.errors else "unknown"
                     results.append(f"⚠️ Knowledge ingestion partial: {errors}")
@@ -1027,7 +1165,7 @@ class TelegramGateway:
                 from document_ingestor import DocumentIngestor
 
                 fact_ingestor = DocumentIngestor(check_conflicts=True)
-                fact_result = fact_ingestor.ingest(str(file_path))
+                fact_result = fact_ingestor.ingest(str(file_path), context=caption)
 
                 if fact_result.facts_extracted > 0:
                     results.append(
@@ -1042,6 +1180,9 @@ class TelegramGateway:
                 logger.warning(f"[INGEST] DocumentIngestor not available: {e}")
             except Exception as e:
                 logger.error(f"[INGEST] Fact extraction error: {e}")
+
+        if caption:
+            results.append(f"📋 **Upload note stored** for NN research & retrieval (type: {knowledge_type})")
 
         return "\n".join(results) if results else "📥 File saved (ingestion modules not available)"
 
@@ -1075,6 +1216,140 @@ class TelegramGateway:
 
         lines.append(f"\n📁 Path: `data/imports/docs_from_telegram/`")
         return GatewayResponse(text="\n".join(lines))
+
+    def handle_deep_ingest(self, args: str) -> GatewayResponse:
+        """Handle /deep_ingest [filename] — Re-process an uploaded doc with deep research.
+
+        Runs the deep research engine against the document to extract structured
+        knowledge, then stores findings in Qdrant + Mem0.
+        Without args, processes the most recently uploaded file.
+        """
+        docs_dir = self.TELEGRAM_DOCS_DIR
+        if not docs_dir.exists():
+            return GatewayResponse(text="📂 No uploaded documents to process.", success=False)
+
+        files = sorted(
+            [f for f in docs_dir.iterdir()
+             if f.is_file() and not f.name.endswith(".extracted.txt") and f.name != ".gitkeep"],
+            key=lambda f: f.stat().st_mtime, reverse=True,
+        )
+        if not files:
+            return GatewayResponse(text="📂 No uploaded documents to process.", success=False)
+
+        target = None
+        if args.strip():
+            query = args.strip().lower()
+            for f in files:
+                if query in f.name.lower() or query in f.stem.lower():
+                    target = f
+                    break
+            if not target:
+                return GatewayResponse(
+                    text=f"❌ No uploaded file matching `{args.strip()}`.\nUse `/docs` to see available files.",
+                    success=False,
+                )
+        else:
+            target = files[0]
+
+        self.send_typing_action()
+
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from document_extractor import DocumentExtractor
+            from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
+
+            extractor = DocumentExtractor()
+            extraction = extractor.extract(str(target))
+            if not extraction.success:
+                return GatewayResponse(
+                    text=f"❌ Could not extract text from `{target.name}`: {extraction.error}",
+                    success=False,
+                )
+
+            # Get manifest description if available
+            manifest_desc = ""
+            try:
+                from nn_research import get_file_manifest
+                manifest_desc = get_file_manifest().get_all_descriptions(target.name)
+            except Exception:
+                pass
+
+            # Use LLM to do a deep structured extraction
+            import openai
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                try:
+                    from config import OPENAI_API_KEY
+                    api_key = OPENAI_API_KEY
+                except ImportError:
+                    pass
+
+            client = openai.OpenAI(api_key=api_key)
+            doc_text = extraction.text[:80000]
+
+            context_line = f"\nUploader notes: {manifest_desc}" if manifest_desc else ""
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": (
+                        "You are a knowledge extraction expert for Machinecraft Technologies, "
+                        "a vacuum forming machine manufacturer. Extract ALL important knowledge "
+                        "from this document into structured sections. Be thorough and precise."
+                    )},
+                    {"role": "user", "content": (
+                        f"Document: {target.name}{context_line}\n\n"
+                        f"Content:\n{doc_text}\n\n"
+                        "Extract knowledge in these sections:\n"
+                        "1. KEY FACTS — Specific data points (specs, prices, dates, quantities)\n"
+                        "2. ENTITIES — Companies, people, machines mentioned with context\n"
+                        "3. RELATIONSHIPS — Who bought what, who works with whom, deal status\n"
+                        "4. TECHNICAL DETAILS — Specs, configurations, options\n"
+                        "5. BUSINESS INTELLIGENCE — Pricing patterns, market signals, competitive info\n\n"
+                        "For each item, write a clear standalone sentence that Ira can remember."
+                    )},
+                ],
+                max_tokens=4096,
+                temperature=0.2,
+            )
+            deep_knowledge = response.choices[0].message.content
+
+            knowledge_type = self._detect_knowledge_type(target.name, manifest_desc)
+            ingestor = KnowledgeIngestor()
+            item = KnowledgeItem(
+                text=deep_knowledge,
+                knowledge_type=knowledge_type,
+                source_file=target.name,
+                summary=f"Deep extraction from {target.name}",
+                entity=manifest_desc[:100] if manifest_desc else "",
+                metadata={
+                    "source": "deep_ingest",
+                    "original_file": target.name,
+                    "extraction_model": "gpt-4o",
+                    "pages": extraction.page_count,
+                },
+            )
+            result = ingestor.ingest_batch([item])
+
+            preview = deep_knowledge[:500] + "..." if len(deep_knowledge) > 500 else deep_knowledge
+            status = "✅" if result.success else "⚠️"
+            return GatewayResponse(
+                text=(
+                    f"🔬 **Deep Ingest: {target.name}**\n\n"
+                    f"{status} Ingested {result.items_ingested} items "
+                    f"(type: {knowledge_type})\n\n"
+                    f"**Extracted knowledge preview:**\n{preview}"
+                ),
+                log_entry={
+                    "type": "deep_ingest",
+                    "file": target.name,
+                    "knowledge_type": knowledge_type,
+                    "items": result.items_ingested,
+                    "success": result.success,
+                },
+            )
+        except Exception as e:
+            logger.error(f"[DEEP_INGEST] Error: {e}")
+            return GatewayResponse(text=f"❌ Deep ingest failed: {str(e)[:200]}", success=False)
 
     def set_my_commands(self) -> bool:
         """Configure bot menu commands."""
@@ -1918,9 +2193,11 @@ BRAIN TRAINING MODE (Duolingo-style):
   /train reset → Clear all training history
   Wrong answers train Ira. "none" triggers NN research.
 
-NN RESEARCH FEEDBACK:
+NN RESEARCH & METADATA:
   /confirm <id> → Confirm research result, learn it
-  /reject <id> → Reject research result, discard
+  /reject <id> → Wrong answer, search next files
+  /index → Show metadata index status
+  /index build → Build/update LLM metadata for all import files
 
 DEEP RESEARCH (Manus-Style):
   /research <query> → Full research mode (shows work)
@@ -2801,6 +3078,97 @@ Use `/conflicts` to review and resolve them."""
                 success=False
             )
     
+    def _handle_index_status(self) -> GatewayResponse:
+        """Handle /index — show metadata index stats."""
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from imports_metadata_index import get_index_stats, get_index_progress
+            
+            progress = get_index_progress()
+            if progress:
+                return GatewayResponse(
+                    text=(
+                        f"\U0001f504 **Indexing in progress...**\n\n"
+                        f"Progress: {progress['done']}/{progress['total']} ({progress['percent']}%)\n"
+                        f"Current: {progress['current']}"
+                    )
+                )
+            
+            stats = get_index_stats()
+            if stats.get("indexed", 0) == 0:
+                return GatewayResponse(
+                    text=(
+                        "\U0001f4c1 **Metadata Index: Not built yet**\n\n"
+                        f"Files on disk: {stats.get('total_on_disk', '?')}\n\n"
+                        "Run `/index build` to scan all files and build the index.\n"
+                        "This uses GPT-4o-mini to summarize each document (~$5 for 500 files)."
+                    )
+                )
+            
+            doc_types = stats.get("doc_types", {})
+            type_lines = "\n".join(f"  \u2022 {k}: {v}" for k, v in sorted(doc_types.items(), key=lambda x: -x[1])[:8])
+            
+            return GatewayResponse(
+                text=(
+                    f"\U0001f4c1 **Metadata Index**\n\n"
+                    f"Indexed: **{stats['indexed']}** / {stats.get('total_on_disk', '?')} files\n"
+                    f"Unindexed: {stats.get('unindexed', 0)}\n"
+                    f"Unique machines: {stats.get('unique_machines', 0)}\n"
+                    f"Built: {stats.get('built_at', 'N/A')}\n\n"
+                    f"**Document types:**\n{type_lines}\n\n"
+                    f"Run `/index build` to update."
+                ),
+                log_entry={"type": "index_status"}
+            )
+        except ImportError as e:
+            return GatewayResponse(text=f"\u26a0\ufe0f Metadata index module not available: {e}", success=False)
+        except Exception as e:
+            return GatewayResponse(text=f"\u274c Index error: {e}", success=False)
+
+    def _handle_index_build(self) -> GatewayResponse:
+        """Handle /index build — trigger metadata index build in background."""
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from imports_metadata_index import build_index, get_index_stats
+            import threading
+            
+            stats = get_index_stats()
+            total = stats.get("total_on_disk", 0)
+            
+            chat_id = self._current_chat_id or TELEGRAM_CHAT_ID if hasattr(self, '_current_chat_id') else ""
+            
+            def _run():
+                try:
+                    result = build_index(use_llm=True, force=False)
+                    msg = (
+                        f"\u2705 **Index build complete!**\n\n"
+                        f"New: {result['new']}\n"
+                        f"Skipped (unchanged): {result['skipped']}\n"
+                        f"Errors: {result['errors']}\n"
+                        f"Total indexed: {result['new'] + result['skipped']}"
+                    )
+                    self.send_message(msg)
+                except Exception as e:
+                    self.send_message(f"\u274c Index build failed: {e}")
+            
+            thread = threading.Thread(target=_run, daemon=True)
+            thread.start()
+            
+            return GatewayResponse(
+                text=(
+                    f"\U0001f504 **Index build started!**\n\n"
+                    f"Scanning {total} files in data/imports/...\n"
+                    f"This will take ~15-30 minutes (LLM summarization).\n"
+                    f"I'll notify you when it's done.\n\n"
+                    f"Use `/index` to check progress."
+                ),
+                log_entry={"type": "index_build_started"}
+            )
+        except ImportError as e:
+            return GatewayResponse(text=f"\u26a0\ufe0f Metadata index module not available: {e}", success=False)
+        except Exception as e:
+            return GatewayResponse(text=f"\u274c Index build error: {e}", success=False)
+
     def _handle_research_feedback(self, research_id: str, is_positive: bool) -> GatewayResponse:
         """Handle /confirm or /reject for NN research results."""
         try:
@@ -3709,28 +4077,35 @@ I'll use this in future conversations!""",
             )
     
     def handle_brief(self, topic: str) -> GatewayResponse:
-        """Generate topic briefing."""
+        """Generate topic briefing using Qdrant + legacy SQLite."""
+        context_parts = []
+
+        # Primary: Qdrant retrieval (includes uploaded docs)
+        try:
+            qdrant_result = self.retrieve_knowledge(topic, limit=5)
+            if qdrant_result and qdrant_result.get("citations"):
+                for c in qdrant_result["citations"][:3]:
+                    source = getattr(c, "source", "") or getattr(c, "citation", "") or "qdrant"
+                    text = getattr(c, "text", str(c))[:500]
+                    context_parts.append(f"[{source}]\n{text}")
+        except Exception as e:
+            logger.debug(f"Qdrant retrieval for brief failed: {e}")
+
+        # Fallback: legacy SQLite FTS
         try:
             from query import search_chunks
-        except ImportError:
-            return GatewayResponse(text="❌ Query module not available", success=False)
-        
-        if not KNOWLEDGE_DB.exists():
-            return GatewayResponse(text="❌ Knowledge base not found", success=False)
-        
+            if KNOWLEDGE_DB.exists():
+                results = search_chunks(KNOWLEDGE_DB, topic, k=5)
+                for r in (results or [])[:3]:
+                    context_parts.append(f"[{r.citation}]\n{r.text[:500]}")
+        except (ImportError, Exception) as e:
+            logger.debug(f"SQLite brief fallback: {e}")
+
+        if not context_parts:
+            return GatewayResponse(text=f"No knowledge found for: {topic}", success=False)
+
         try:
-            results = search_chunks(KNOWLEDGE_DB, topic, k=5)
-            
-            if not results:
-                return GatewayResponse(
-                    text=f"No knowledge found for: {topic}",
-                    success=False
-                )
-            
-            context = "\n\n".join([
-                f"[{r.citation}]\n{r.text[:500]}"
-                for r in results[:3]
-            ])
+            context = "\n\n".join(context_parts)
             
             try:
                 client = self._get_openai_client()
@@ -5503,6 +5878,21 @@ Total: {len(draft_ids)}""",
         if text_upper in ("/DOCS", "/DOCUMENTS", "/UPLOADS"):
             return self.handle_docs_command()
 
+        # /deep_ingest [filename] - Deep re-process an uploaded document
+        deep_ingest_match = re.match(r'^/deep_ingest\s*(.*)', text, re.IGNORECASE)
+        if deep_ingest_match:
+            return self.handle_deep_ingest(deep_ingest_match.group(1))
+
+        # =====================================================================
+        # METADATA INDEX COMMANDS
+        # =====================================================================
+        
+        if text.lower() in ["/index", "/index status", "/index_status"]:
+            return self._handle_index_status()
+        
+        if text.lower() in ["/index build", "/index_build", "/reindex"]:
+            return self._handle_index_build()
+        
         # =====================================================================
         # NN RESEARCH FEEDBACK COMMANDS
         # =====================================================================

@@ -47,6 +47,17 @@ FILE_MANIFEST_PATH = DATA_BRAIN / "file_manifest.json"
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
+MAX_RESEARCH_ATTEMPTS = 8
+
+_json_lock = threading.Lock()
+
+
+def _tg_escape(text: str) -> str:
+    """Escape Telegram Markdown special characters."""
+    for ch in ("_", "*", "`", "["):
+        text = text.replace(ch, "\\" + ch)
+    return text
+
 
 # ===========================================================================
 # LEARNED SEARCH PATHS — Ira remembers which files answered which queries
@@ -70,8 +81,9 @@ class SearchPathMemory:
         return {"paths": [], "stats": {"total_searches": 0, "total_found": 0}}
 
     def _save(self):
-        DATA_BRAIN.mkdir(parents=True, exist_ok=True)
-        SEARCH_PATHS_PATH.write_text(json.dumps(self._data, indent=2))
+        with _json_lock:
+            DATA_BRAIN.mkdir(parents=True, exist_ok=True)
+            SEARCH_PATHS_PATH.write_text(json.dumps(self._data, indent=2))
 
     def record_success(self, query: str, keywords: List[str], winning_files: List[str],
                        rejected_files: List[str], attempts: int):
@@ -159,19 +171,27 @@ class FileManifest:
 
     def add_file(self, filename: str, description: str, original_name: str = None,
                  file_path: str = None):
-        """Register a file with its human-written description."""
-        entry = self._data["files"].get(filename, {})
-        descriptions = entry.get("descriptions", [])
-        descriptions.append({
+        """Register a file with its human-written description.
+
+        Indexes under both the saved filename and the original name so NN
+        research can match regardless of which name appears on disk.
+        """
+        desc_entry = {
             "text": description,
             "timestamp": datetime.now().isoformat(),
-        })
-        self._data["files"][filename] = {
-            "descriptions": descriptions[-10:],
-            "original_name": original_name or filename,
-            "file_path": file_path,
-            "last_updated": datetime.now().isoformat(),
         }
+
+        for key in {filename, original_name or filename}:
+            entry = self._data["files"].get(key, {})
+            descriptions = entry.get("descriptions", [])
+            descriptions.append(desc_entry)
+            self._data["files"][key] = {
+                "descriptions": descriptions[-10:],
+                "original_name": original_name or filename,
+                "file_path": file_path,
+                "last_updated": datetime.now().isoformat(),
+            }
+
         self._data["stats"]["total_files"] = len(self._data["files"])
         self._save()
 
@@ -264,7 +284,14 @@ def _score_file(filepath: Path, keywords: List[str], boosts: Dict[str, float],
 
 
 def find_relevant_files(query: str, exclude: Set[str] = None, limit: int = 5) -> List[Dict]:
-    """Find relevant files, excluding already-tried ones."""
+    """
+    Find relevant files using a 3-layer scoring system:
+      1. Metadata index (LLM summaries) — strongest signal
+      2. Learned search paths — boosts from past successes
+      3. Filename keyword matching + FileManifest — fallback
+    """
+    if not IMPORTS_DIR.exists():
+        return []
     exclude = exclude or set()
     keywords = _extract_keywords(query)
     if not keywords:
@@ -273,18 +300,54 @@ def find_relevant_files(query: str, exclude: Set[str] = None, limit: int = 5) ->
     memory = _get_search_memory()
     memory.record_search()
     boosts = memory.get_file_boosts(keywords)
+    manifest = get_file_manifest()
 
+    # --- Layer 1: Metadata index (if available) ---
+    metadata_scores: Dict[str, Dict] = {}
+    try:
+        from imports_metadata_index import search_index, get_index_stats
+        stats = get_index_stats()
+        if stats.get("indexed", 0) > 0:
+            indexed_results = search_index(query, limit=limit + len(exclude) + 20)
+            for r in indexed_results:
+                fname = r.get("name", "")
+                if fname not in exclude:
+                    metadata_scores[fname] = {
+                        "path": r["path"], "name": fname,
+                        "meta_score": r["score"],
+                        "summary": r.get("summary", ""),
+                        "doc_type": r.get("doc_type", ""),
+                    }
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.debug("Metadata index unavailable: %s", e)
+
+    # --- Layer 2+3: Filename scoring + manifest + search path boosts ---
     candidates = []
     for fp in IMPORTS_DIR.rglob("*"):
         if not fp.is_file() or fp.name.startswith("."):
             continue
-        if fp.suffix.lower() not in (".pdf", ".xlsx", ".xls", ".csv", ".docx", ".txt", ".pptx", ".json"):
+        if fp.suffix.lower() not in (".pdf", ".xlsx", ".xls", ".csv", ".docx", ".doc", ".txt", ".pptx", ".ppt", ".json", ".md"):
             continue
         if fp.name in exclude:
             continue
-        score = _score_file(fp, keywords, boosts)
-        if score > 0.1:
-            candidates.append({"path": str(fp), "name": fp.name, "score": round(score, 2)})
+
+        filename_score = _score_file(fp, keywords, boosts, manifest)
+        meta_entry = metadata_scores.get(fp.name)
+        meta_score = meta_entry["meta_score"] if meta_entry else 0
+
+        # Combined score: metadata dominates when available
+        combined = meta_score * 2.0 + filename_score
+        if combined > 0.2:
+            entry = {
+                "path": str(fp), "name": fp.name,
+                "score": round(combined, 2),
+            }
+            if meta_entry:
+                entry["summary"] = meta_entry.get("summary", "")
+                entry["doc_type"] = meta_entry.get("doc_type", "")
+            candidates.append(entry)
 
     candidates.sort(key=lambda x: -x["score"])
     return candidates[:limit]
@@ -317,11 +380,16 @@ def _extract_answer_with_llm(query: str, documents: List[Dict]) -> Optional[str]
     if not api_key:
         return None
 
+    manifest = get_file_manifest()
     doc_texts = []
     for doc in documents[:3]:
         text = _extract_text(doc["path"])
         if text:
-            doc_texts.append(f"--- {doc['name']} ---\n{text[:5000]}")
+            header = f"--- {doc['name']} ---"
+            desc = manifest.get_all_descriptions(doc["name"])
+            if desc:
+                header += f"\n[Uploader notes: {desc}]"
+            doc_texts.append(f"{header}\n{text[:5000]}")
 
     if not doc_texts:
         return None
@@ -329,6 +397,7 @@ def _extract_answer_with_llm(query: str, documents: List[Dict]) -> Optional[str]
     prompt = f"""You are a Machinecraft Technologies knowledge assistant.
 Extract the specific answer to this question from the documents below.
 Be precise and factual. If the documents don't contain the answer, say "NOT FOUND".
+Pay special attention to "Uploader notes" — these are human descriptions of what each document contains.
 
 QUESTION: {query}
 
@@ -383,17 +452,19 @@ def _send_telegram(text: str, chat_id: str = ""):
 # ===========================================================================
 
 def _load_pending() -> List[Dict]:
-    if PENDING_FEEDBACK_PATH.exists():
-        try:
-            return json.loads(PENDING_FEEDBACK_PATH.read_text())
-        except (json.JSONDecodeError, IOError):
-            pass
-    return []
+    with _json_lock:
+        if PENDING_FEEDBACK_PATH.exists():
+            try:
+                return json.loads(PENDING_FEEDBACK_PATH.read_text())
+            except (json.JSONDecodeError, IOError):
+                pass
+        return []
 
 
 def _save_pending(pending: List[Dict]):
-    DATA_BRAIN.mkdir(parents=True, exist_ok=True)
-    PENDING_FEEDBACK_PATH.write_text(json.dumps(pending[-50:], indent=2))
+    with _json_lock:
+        DATA_BRAIN.mkdir(parents=True, exist_ok=True)
+        PENDING_FEEDBACK_PATH.write_text(json.dumps(pending[-50:], indent=2))
 
 
 def _save_pending_entry(research_id: str, query: str, answer: str,
@@ -501,63 +572,68 @@ def _retry_research_async(query: str, chat_id: str, tried_files: List[str], atte
 # ===========================================================================
 
 def _do_research(query: str, chat_id: str, exclude: Set[str], attempt: int):
-    """Single research attempt. Finds files, extracts answer, sends to Telegram."""
-    files = find_relevant_files(query, exclude=exclude, limit=5)
+    """Iterative research loop. Keeps trying new file batches until answer found or exhausted."""
+    exclude = set(exclude)
+    q_escaped = _tg_escape(query)
 
-    if not files:
-        _send_telegram(
-            f"\U0001f6d1 **Search exhausted** (attempt {attempt})\n\n"
-            f"Tried {len(exclude)} files, no more candidates for:\n_{query}_\n\n"
-            f"This data might not be in our files. Consider adding the source document to `data/imports/`.",
-            chat_id,
-        )
-        _log_research("exhausted", query, None, [], attempts=attempt, tried_files=list(exclude))
-        return
+    while attempt <= MAX_RESEARCH_ATTEMPTS:
+        files = find_relevant_files(query, exclude=exclude, limit=5)
 
-    new_sources = [f["name"] for f in files[:3]]
-    all_tried = list(exclude) + [f["name"] for f in files]
-
-    if attempt > 1:
-        _send_telegram(
-            f"\U0001f504 **Retry #{attempt}** — trying {len(files)} new files...\n"
-            f"Top candidates: {', '.join(new_sources)}",
-            chat_id,
-        )
-
-    answer = _extract_answer_with_llm(query, files)
-
-    if not answer:
-        # LLM couldn't extract from these files either — auto-retry with next batch
-        if attempt < 8:  # max 8 attempts
+        if not files:
             _send_telegram(
-                f"\U0001f50d No answer in these files. Trying next batch... (attempt {attempt})",
+                f"\U0001f6d1 **Search exhausted** (attempt {attempt})\n\n"
+                f"Tried {len(exclude)} files, no more candidates for:\n{q_escaped}\n\n"
+                f"This data might not be in our files.",
                 chat_id,
             )
-            _do_research(query, chat_id, set(all_tried), attempt + 1)
-        else:
+            _log_research("exhausted", query, None, [], attempts=attempt, tried_files=list(exclude))
+            return
+
+        new_sources = [f["name"] for f in files[:3]]
+        for f in files:
+            exclude.add(f["name"])
+
+        if attempt > 1:
             _send_telegram(
-                f"\U0001f6d1 **Gave up after {attempt} attempts.**\n"
-                f"Searched {len(all_tried)} files for: _{query}_\n"
-                f"The answer might not be in our documents.",
+                f"\U0001f504 **Retry #{attempt}** \u2014 trying {len(files)} new files...\n"
+                f"Top candidates: {', '.join(_tg_escape(s) for s in new_sources)}",
                 chat_id,
             )
-            _log_research("gave_up", query, None, [], attempts=attempt, tried_files=all_tried)
-        return
 
-    research_id = uuid.uuid4().hex[:8]
-    _save_pending_entry(research_id, query, answer, new_sources, all_tried, attempt, chat_id)
-    _log_research("found", query, answer, new_sources, attempts=attempt, tried_files=all_tried)
+        answer = _extract_answer_with_llm(query, files)
 
-    msg = (
-        f"\U0001f50d **NN Research Result** [`{research_id}`] (attempt {attempt})\n\n"
-        f"**Query:** {query}\n\n"
-        f"**Answer:**\n{answer}\n\n"
-        f"**Sources:** {', '.join(new_sources)}\n"
-        f"**Files searched:** {len(all_tried)} total\n\n"
-        f"\u2705 `/confirm {research_id}` \u2014 Correct! Learn this\n"
-        f"\u274c `/reject {research_id}` \u2014 Wrong, try next files"
+        if answer:
+            research_id = uuid.uuid4().hex[:8]
+            _save_pending_entry(research_id, query, answer, new_sources, list(exclude), attempt, chat_id)
+            _log_research("found", query, answer, new_sources, attempts=attempt, tried_files=list(exclude))
+
+            msg = (
+                f"\U0001f50d **NN Research Result** `{research_id}` (attempt {attempt})\n\n"
+                f"**Query:** {q_escaped}\n\n"
+                f"**Answer:**\n{_tg_escape(answer)}\n\n"
+                f"**Sources:** {', '.join(_tg_escape(s) for s in new_sources)}\n"
+                f"**Files searched:** {len(exclude)} total\n\n"
+                f"\u2705 `/confirm {research_id}` \u2014 Correct! Learn this\n"
+                f"\u274c `/reject {research_id}` \u2014 Wrong, try next files"
+            )
+            _send_telegram(msg, chat_id)
+            return
+
+        # No answer from this batch — continue loop
+        _send_telegram(
+            f"\U0001f50d No answer in these files. Trying next batch... (attempt {attempt})",
+            chat_id,
+        )
+        attempt += 1
+
+    # Exhausted all attempts
+    _send_telegram(
+        f"\U0001f6d1 **Gave up after {MAX_RESEARCH_ATTEMPTS} attempts.**\n"
+        f"Searched {len(exclude)} files for: {q_escaped}\n"
+        f"The answer might not be in our documents.",
+        chat_id,
     )
-    _send_telegram(msg, chat_id)
+    _log_research("gave_up", query, None, [], attempts=MAX_RESEARCH_ATTEMPTS, tried_files=list(exclude))
 
 
 def research_and_report(query: str, chat_id: str = "") -> Optional[str]:
@@ -570,9 +646,12 @@ def research_async(query: str, chat_id: str = ""):
     """Run research in a background thread. Non-blocking."""
     def _run():
         try:
+            if not IMPORTS_DIR.exists():
+                _send_telegram("\u26a0\ufe0f data/imports/ directory not found.", chat_id)
+                return
             file_count = sum(1 for f in IMPORTS_DIR.rglob("*") if f.is_file() and not f.name.startswith("."))
             _send_telegram(
-                f"\U0001f50d **Researching...**\n_{query}_\n\n"
+                f"\U0001f50d **Researching...**\n{_tg_escape(query)}\n\n"
                 f"Scanning {file_count} files in data/imports/...",
                 chat_id,
             )
@@ -615,22 +694,23 @@ def _store_in_knowledge(query: str, answer: str, sources: List[str]):
 
 def _log_research(status: str, query: str, answer: Optional[str], sources: List[str],
                   attempts: int = 1, tried_files: List[str] = None):
-    log = []
-    if RESEARCH_LOG_PATH.exists():
-        try:
-            log = json.loads(RESEARCH_LOG_PATH.read_text())
-        except (json.JSONDecodeError, IOError):
-            log = []
+    with _json_lock:
+        log = []
+        if RESEARCH_LOG_PATH.exists():
+            try:
+                log = json.loads(RESEARCH_LOG_PATH.read_text())
+            except (json.JSONDecodeError, IOError):
+                log = []
 
-    log.append({
-        "status": status,
-        "query": query,
-        "answer": answer[:500] if answer else None,
-        "sources": sources,
-        "attempts": attempts,
-        "files_searched": len(tried_files) if tried_files else 0,
-        "timestamp": datetime.now().isoformat(),
-    })
-    log = log[-200:]
-    RESEARCH_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RESEARCH_LOG_PATH.write_text(json.dumps(log, indent=2))
+        log.append({
+            "status": status,
+            "query": query,
+            "answer": answer[:500] if answer else None,
+            "sources": sources,
+            "attempts": attempts,
+            "files_searched": len(tried_files) if tried_files else 0,
+            "timestamp": datetime.now().isoformat(),
+        })
+        log = log[-200:]
+        RESEARCH_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        RESEARCH_LOG_PATH.write_text(json.dumps(log, indent=2))

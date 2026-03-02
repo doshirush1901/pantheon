@@ -1059,6 +1059,32 @@ Here's what you need to know...
         except Exception as _e:
             logger.warning(f"Failed to load training weights: {_e}")
 
+    # =========================================================================
+    # Inject recent document upload notes from file manifest
+    # =========================================================================
+    _manifest_path = Path(__file__).parent.parent.parent.parent.parent.parent / "data" / "brain" / "file_manifest.json"
+    if _manifest_path.exists():
+        try:
+            _manifest = json.loads(_manifest_path.read_text())
+            _files = _manifest.get("files", {})
+            if _files:
+                _recent = sorted(
+                    _files.items(),
+                    key=lambda kv: kv[1].get("last_updated", ""),
+                    reverse=True,
+                )[:8]
+                _doc_lines = ["\nRECENT DOCUMENT UPLOADS (Rushabh uploaded these — use as context):"]
+                for _fname, _fdata in _recent:
+                    _descs = _fdata.get("descriptions", [])
+                    if _descs:
+                        _latest = _descs[-1]["text"][:200]
+                        _doc_lines.append(f"  - {_fname}: {_latest}")
+                if len(_doc_lines) > 1:
+                    base_prompt += "\n".join(_doc_lines)
+                    logger.debug("Injected %d document upload notes", len(_doc_lines) - 1)
+        except Exception as _e:
+            logger.debug(f"File manifest load failed: {_e}")
+
     # P2 Audit: token budget (~128K for gpt-4o)
     _tok = _estimate_tokens(base_prompt)
     if _tok > 90000:

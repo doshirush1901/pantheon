@@ -540,13 +540,17 @@ class DocumentIngestor:
         self.conflict_detector = ConflictDetector()
         self.check_conflicts = check_conflicts
         
-    def ingest(self, document_path: str, source_identity: str = RUSHABH_IDENTITY_ID) -> IngestionResult:
+    def ingest(self, document_path: str, source_identity: str = RUSHABH_IDENTITY_ID,
+               context: str = None) -> IngestionResult:
         """
         Ingest a document into Ira's memory.
         
         Args:
             document_path: Path to the document
             source_identity: Who provided this document
+            context: Optional human-written description of the document contents.
+                     Prepended to extracted text so the LLM fact extractor knows
+                     what to look for.
             
         Returns:
             IngestionResult with stats and any conflicts found
@@ -583,6 +587,9 @@ class DocumentIngestor:
         if not content.strip():
             result.errors.append("No text content extracted")
             return result
+
+        if context:
+            content = f"[UPLOADER CONTEXT: {context}]\n\n{content}"
         
         # 4. Extract facts using LLM
         logger.info(f"Extracting facts from {len(content):,} characters")

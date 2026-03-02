@@ -273,14 +273,16 @@ class AdaptiveRetriever:
             return []
         
         found_docs = []
-        
-        # Search for PDFs matching predicted document names
-        for pdf_path in IMPORTS_DIR.rglob("*.pdf"):
-            filename = pdf_path.stem.lower()
-            
+        _scannable = {".pdf", ".xlsx", ".xls", ".docx", ".doc", ".csv", ".txt", ".pptx", ".md", ".json"}
+
+        for doc_path in IMPORTS_DIR.rglob("*"):
+            if not doc_path.is_file() or doc_path.suffix.lower() not in _scannable:
+                continue
+            filename = doc_path.stem.lower()
+
             for pred in predicted_docs:
                 if pred.lower() in filename:
-                    found_docs.append(pdf_path)
+                    found_docs.append(doc_path)
                     break
         
         # Sort by modification time (most recent first)
