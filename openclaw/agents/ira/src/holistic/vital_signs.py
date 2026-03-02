@@ -26,6 +26,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    from openclaw.agents.ira.config import append_jsonl
+except ImportError:
+    from config import append_jsonl
+
 logger = logging.getLogger("ira.vital_signs")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -324,7 +329,6 @@ def _persist_vitals(report: Dict):
             "alert_count": len(report.get("alerts", [])),
             "recommendation_count": len(report.get("recommendations", [])),
         }
-        with open(VITALS_LOG, "a") as f:
-            f.write(json.dumps(summary) + "\n")
+        append_jsonl(VITALS_LOG, summary)
     except Exception as e:
         logger.warning(f"[VITALS] Failed to persist vitals: {e}")

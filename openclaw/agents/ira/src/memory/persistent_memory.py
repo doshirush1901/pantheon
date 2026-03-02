@@ -31,22 +31,34 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from contextlib import contextmanager
 
 # Import from centralized config
 try:
-    from config import DATABASE_URL, OPENAI_API_KEY, VOYAGE_API_KEY, QDRANT_URL, COLLECTIONS
+    from openclaw.agents.ira.config import (
+        DATABASE_URL, OPENAI_API_KEY, VOYAGE_API_KEY, QDRANT_URL, COLLECTIONS,
+        get_db_connection, get_qdrant_client,
+    )
 except ImportError:
-    import os
-    DATABASE_URL = os.environ.get("DATABASE_URL", "")
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
-    QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
-    COLLECTIONS = {
-        "chunks": "ira_chunks_v4_voyage",
-        "emails": "ira_emails_voyage_v2",
-        "dream": "ira_dream_knowledge_v1",
-        "customers": "ira_customers",
-    }
+    try:
+        from config import (
+            DATABASE_URL, OPENAI_API_KEY, VOYAGE_API_KEY, QDRANT_URL, COLLECTIONS,
+            get_db_connection, get_qdrant_client,
+        )
+    except ImportError:
+        import os
+        DATABASE_URL = os.environ.get("DATABASE_URL", "")
+        OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+        VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
+        QDRANT_URL = os.environ.get("QDRANT_URL", "http://localhost:6333")
+        COLLECTIONS = {
+            "chunks": "ira_chunks_v4_voyage",
+            "emails": "ira_emails_voyage_v2",
+            "dream": "ira_dream_knowledge_v1",
+            "customers": "ira_customers",
+        }
+        get_db_connection = None
+        get_qdrant_client = None
 
 # Embedding configuration - Use Voyage-3 for consistency with retrieval
 EMBEDDING_MODEL = "voyage-3"
@@ -305,6 +317,11 @@ Output JSON (or null):
 JSON:"""
 
 
+# P1-8: Pending embeds for reconciliation when Qdrant write fails after Postgres commit
+# Repo root: memory -> src -> ira -> agents -> openclaw -> workspace
+_PENDING_EMBEDS_PATH = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "data" / "brain" / "pending_qdrant_embeds.jsonl"
+
+
 # =============================================================================
 # MAIN CLASS
 # =============================================================================
@@ -340,14 +357,37 @@ class PersistentMemory:
     # =========================================================================
     
     def _get_db(self):
-        """Get PostgreSQL connection."""
+        """Get PostgreSQL connection (fallback when pool not available)."""
         if self._conn is None or self._conn.closed:
             import psycopg2
             self._conn = psycopg2.connect(DATABASE_URL)
         return self._conn
-    
+
+    @contextmanager
+    def _with_db(self):
+        """P1-11: Use connection pool from config when available."""
+        if get_db_connection:
+            with get_db_connection() as conn:
+                yield conn
+        else:
+            yield self._get_db()
+
+    def _append_pending_embed(self, kind: str, memory_id: int, **kwargs):
+        """P1-8: Record failed embed for later reconciliation (Postgres row exists, Qdrant missing)."""
+        try:
+            _PENDING_EMBEDS_PATH.parent.mkdir(parents=True, exist_ok=True)
+            record = {"kind": kind, "memory_id": memory_id, **kwargs}
+            with open(_PENDING_EMBEDS_PATH, "a") as f:
+                f.write(json.dumps(record, default=str) + "\n")
+        except Exception:
+            pass
+
     def _get_qdrant(self):
-        """Get Qdrant client for semantic search."""
+        """Get Qdrant client for semantic search (P1-10: prefer singleton from config)."""
+        if get_qdrant_client:
+            c = get_qdrant_client()
+            if c is not None:
+                return c
         if self._qdrant is None:
             from qdrant_client import QdrantClient
             self._qdrant = QdrantClient(url=QDRANT_URL)
@@ -373,25 +413,22 @@ class PersistentMemory:
             return True
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("CREATE SCHEMA IF NOT EXISTS ira_memory;")
-            
-            for stmt in PERSISTENT_MEMORY_SCHEMA.split(';'):
-                stmt = stmt.strip()
-                if stmt and not stmt.startswith('--'):
-                    try:
-                        cursor.execute(stmt)
-                    except Exception as e:
-                        if 'already exists' not in str(e).lower():
-                            print(f"[persistent_memory] Schema warning: {e}")
-            
-            conn.commit()
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("CREATE SCHEMA IF NOT EXISTS ira_memory;")
+                for stmt in PERSISTENT_MEMORY_SCHEMA.split(';'):
+                    stmt = stmt.strip()
+                    if stmt and not stmt.startswith('--'):
+                        try:
+                            cursor.execute(stmt)
+                        except Exception as e:
+                            if 'already exists' not in str(e).lower():
+                                print(f"[persistent_memory] Schema warning: {e}")
+                if not get_db_connection:
+                    conn.commit()
             self._schema_initialized = True
             print("[persistent_memory] Schema initialized")
             return True
-            
         except Exception as e:
             print(f"[persistent_memory] Schema error: {e}")
             return False
@@ -444,36 +481,31 @@ class PersistentMemory:
             return None
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                INSERT INTO ira_memory.user_memories
-                (identity_id, memory_text, memory_type, source_channel, 
-                 source_conversation_id, confidence, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
-                identity_id, memory_text, memory_type, source_channel,
-                source_conversation_id, confidence
-            ))
-            
-            memory_id = cursor.fetchone()[0]
-            conn.commit()
-            
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO ira_memory.user_memories
+                    (identity_id, memory_text, memory_type, source_channel,
+                     source_conversation_id, confidence, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                    RETURNING id
+                """, (
+                    identity_id, memory_text, memory_type, source_channel,
+                    source_conversation_id, confidence
+                ))
+                memory_id = cursor.fetchone()[0]
+                if not get_db_connection:
+                    conn.commit()
             if embed:
                 try:
                     self._embed_memory(memory_id, identity_id, memory_text)
                 except Exception as e:
                     print(f"[persistent_memory] Embedding failed (non-fatal): {e}")
-            
+                    self._append_pending_embed("user", memory_id, identity_id=identity_id, memory_text=memory_text)
             print(f"[persistent_memory] Stored [{memory_type}]: {memory_text[:50]}...")
             return memory_id
-            
         except Exception as e:
             print(f"[persistent_memory] Store error: {e}")
-            if self._conn:
-                self._conn.rollback()
             return None
     
     def _embed_memory(self, memory_id: int, identity_id: str, memory_text: str):
@@ -499,15 +531,16 @@ class PersistentMemory:
             )]
         )
         
-        conn = self._get_db()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE ira_memory.user_memories 
-            SET embedding_id = %s 
-            WHERE id = %s
-        """, (point_id, memory_id))
-        conn.commit()
-    
+        with self._with_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE ira_memory.user_memories
+                SET embedding_id = %s
+                WHERE id = %s
+            """, (point_id, memory_id))
+            if not get_db_connection:
+                conn.commit()
+
     def _is_duplicate(self, identity_id: str, memory_text: str) -> bool:
         """Check if a very similar memory already exists."""
         existing = self.list_memories(identity_id, include_inactive=False)
@@ -555,36 +588,31 @@ class PersistentMemory:
             return None
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                INSERT INTO ira_memory.entity_memories
-                (entity_type, entity_name, normalized_name, memory_text, memory_type,
-                 source_channel, source_identity_id, confidence, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-                RETURNING id
-            """, (
-                entity_type, entity_name, normalized_name, memory_text, memory_type,
-                source_channel, source_identity_id, confidence
-            ))
-            
-            memory_id = cursor.fetchone()[0]
-            conn.commit()
-            
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO ira_memory.entity_memories
+                    (entity_type, entity_name, normalized_name, memory_text, memory_type,
+                     source_channel, source_identity_id, confidence, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    RETURNING id
+                """, (
+                    entity_type, entity_name, normalized_name, memory_text, memory_type,
+                    source_channel, source_identity_id, confidence
+                ))
+                memory_id = cursor.fetchone()[0]
+                if not get_db_connection:
+                    conn.commit()
             if embed:
                 try:
                     self._embed_entity_memory(memory_id, entity_type, normalized_name, memory_text)
                 except Exception as e:
                     print(f"[persistent_memory] Entity embedding failed (non-fatal): {e}")
-            
+                    self._append_pending_embed("entity", memory_id, entity_type=entity_type, normalized_name=normalized_name, memory_text=memory_text)
             print(f"[persistent_memory] Stored entity [{entity_type}:{entity_name}]: {memory_text[:50]}...")
             return memory_id
-            
         except Exception as e:
             print(f"[persistent_memory] Entity store error: {e}")
-            if self._conn:
-                self._conn.rollback()
             return None
     
     def _normalize_entity_name(self, name: str) -> str:
@@ -619,15 +647,16 @@ class PersistentMemory:
             )]
         )
         
-        conn = self._get_db()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE ira_memory.entity_memories 
-            SET embedding_id = %s 
-            WHERE id = %s
-        """, (point_id, memory_id))
-        conn.commit()
-    
+        with self._with_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE ira_memory.entity_memories
+                SET embedding_id = %s
+                WHERE id = %s
+            """, (point_id, memory_id))
+            if not get_db_connection:
+                conn.commit()
+
     def _is_entity_duplicate(self, normalized_name: str, memory_text: str) -> bool:
         """Check if entity memory is duplicate."""
         existing = self.get_entity_memories(normalized_name)
@@ -668,33 +697,27 @@ class PersistentMemory:
         self.ensure_schema()
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            # Get existing memory for entity info
-            cursor.execute("""
-                SELECT entity_type, entity_name, normalized_name, embedding_id
-                FROM ira_memory.entity_memories
-                WHERE id = %s
-            """, (memory_id,))
-            
-            row = cursor.fetchone()
-            if not row:
-                print(f"[persistent_memory] Memory {memory_id} not found")
-                return False
-            
-            entity_type, entity_name, normalized_name, old_embedding_id = row
-            
-            # Update the memory text
-            cursor.execute("""
-                UPDATE ira_memory.entity_memories
-                SET memory_text = %s,
-                    last_used_at = NOW()
-                WHERE id = %s
-            """, (new_memory_text, memory_id))
-            
-            conn.commit()
-            
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT entity_type, entity_name, normalized_name, embedding_id
+                    FROM ira_memory.entity_memories
+                    WHERE id = %s
+                """, (memory_id,))
+                row = cursor.fetchone()
+                if not row:
+                    print(f"[persistent_memory] Memory {memory_id} not found")
+                    return False
+                entity_type, entity_name, normalized_name, old_embedding_id = row
+                cursor.execute("""
+                    UPDATE ira_memory.entity_memories
+                    SET memory_text = %s,
+                        last_used_at = NOW()
+                    WHERE id = %s
+                """, (new_memory_text, memory_id))
+                if not get_db_connection:
+                    conn.commit()
+
             # Re-embed if requested
             if re_embed:
                 try:
@@ -719,32 +742,28 @@ class PersistentMemory:
             
         except Exception as e:
             print(f"[persistent_memory] Update error: {e}")
-            if self._conn:
-                self._conn.rollback()
             return False
-    
+
     def delete_entity_memory(self, memory_id: int) -> bool:
         """Delete an entity memory (soft delete - marks inactive)."""
         self.ensure_schema()
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                UPDATE ira_memory.entity_memories
-                SET is_active = FALSE
-                WHERE id = %s
-            """, (memory_id,))
-            
-            conn.commit()
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE ira_memory.entity_memories
+                    SET is_active = FALSE
+                    WHERE id = %s
+                """, (memory_id,))
+                if not get_db_connection:
+                    conn.commit()
             print(f"[persistent_memory] Deleted memory {memory_id}")
             return True
-            
         except Exception as e:
             print(f"[persistent_memory] Delete error: {e}")
             return False
-    
+
     # =========================================================================
     # RETRIEVAL
     # =========================================================================
@@ -902,22 +921,19 @@ class PersistentMemory:
     def _get_entity_memory_by_id(self, memory_id: int) -> Optional[EntityMemory]:
         """Get entity memory by ID."""
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT id, entity_type, entity_name, normalized_name, memory_text,
-                       memory_type, source_channel, source_identity_id, confidence,
-                       is_active, created_at, last_used_at, use_count, embedding_id
-                FROM ira_memory.entity_memories
-                WHERE id = %s AND is_active = TRUE
-            """, (memory_id,))
-            
-            row = cursor.fetchone()
-            if row:
-                return EntityMemory.from_row(row)
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, entity_type, entity_name, normalized_name, memory_text,
+                           memory_type, source_channel, source_identity_id, confidence,
+                           is_active, created_at, last_used_at, use_count, embedding_id
+                    FROM ira_memory.entity_memories
+                    WHERE id = %s AND is_active = TRUE
+                """, (memory_id,))
+                row = cursor.fetchone()
+                if row:
+                    return EntityMemory.from_row(row)
             return None
-            
         except Exception as e:
             print(f"[persistent_memory] Entity lookup error: {e}")
             return None
@@ -928,17 +944,17 @@ class PersistentMemory:
             return
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            ids = [m.id for m in memories if m.id]
-            if ids:
-                cursor.execute("""
-                    UPDATE ira_memory.user_memories
-                    SET last_used_at = NOW(), use_count = use_count + 1
-                    WHERE id = ANY(%s)
-                """, (ids,))
-                conn.commit()
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                ids = [m.id for m in memories if m.id]
+                if ids:
+                    cursor.execute("""
+                        UPDATE ira_memory.user_memories
+                        SET last_used_at = NOW(), use_count = use_count + 1
+                        WHERE id = ANY(%s)
+                    """, (ids,))
+                    if not get_db_connection:
+                        conn.commit()
         except Exception as e:
             print(f"[persistent_memory] Usage update failed: {e}")
     
@@ -952,31 +968,29 @@ class PersistentMemory:
         self.ensure_schema()
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            if include_inactive:
-                cursor.execute("""
-                    SELECT id, identity_id, memory_text, memory_type, source_channel,
-                           source_conversation_id, confidence, is_active,
-                           created_at, last_used_at, use_count, embedding_id
-                    FROM ira_memory.user_memories
-                    WHERE identity_id = %s
-                    ORDER BY created_at DESC
-                    LIMIT %s
-                """, (identity_id, limit))
-            else:
-                cursor.execute("""
-                    SELECT id, identity_id, memory_text, memory_type, source_channel,
-                           source_conversation_id, confidence, is_active,
-                           created_at, last_used_at, use_count, embedding_id
-                    FROM ira_memory.user_memories
-                    WHERE identity_id = %s AND is_active = TRUE
-                    ORDER BY created_at DESC
-                    LIMIT %s
-                """, (identity_id, limit))
-            
-            return [UserMemory.from_row(row) for row in cursor.fetchall()]
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                if include_inactive:
+                    cursor.execute("""
+                        SELECT id, identity_id, memory_text, memory_type, source_channel,
+                               source_conversation_id, confidence, is_active,
+                               created_at, last_used_at, use_count, embedding_id
+                        FROM ira_memory.user_memories
+                        WHERE identity_id = %s
+                        ORDER BY created_at DESC
+                        LIMIT %s
+                    """, (identity_id, limit))
+                else:
+                    cursor.execute("""
+                        SELECT id, identity_id, memory_text, memory_type, source_channel,
+                               source_conversation_id, confidence, is_active,
+                               created_at, last_used_at, use_count, embedding_id
+                        FROM ira_memory.user_memories
+                        WHERE identity_id = %s AND is_active = TRUE
+                        ORDER BY created_at DESC
+                        LIMIT %s
+                    """, (identity_id, limit))
+                return [UserMemory.from_row(row) for row in cursor.fetchall()]
             
         except Exception as e:
             print(f"[persistent_memory] List error: {e}")
@@ -989,25 +1003,22 @@ class PersistentMemory:
         normalized = self._normalize_entity_name(entity_name)
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT id, entity_type, entity_name, normalized_name, memory_text,
-                       memory_type, source_channel, source_identity_id, confidence,
-                       is_active, created_at, last_used_at, use_count, embedding_id
-                FROM ira_memory.entity_memories
-                WHERE normalized_name = %s AND is_active = TRUE
-                ORDER BY created_at DESC
-                LIMIT %s
-            """, (normalized, limit))
-            
-            return [EntityMemory.from_row(row) for row in cursor.fetchall()]
-            
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, entity_type, entity_name, normalized_name, memory_text,
+                           memory_type, source_channel, source_identity_id, confidence,
+                           is_active, created_at, last_used_at, use_count, embedding_id
+                    FROM ira_memory.entity_memories
+                    WHERE normalized_name = %s AND is_active = TRUE
+                    ORDER BY created_at DESC
+                    LIMIT %s
+                """, (normalized, limit))
+                return [EntityMemory.from_row(row) for row in cursor.fetchall()]
         except Exception as e:
             print(f"[persistent_memory] Entity list error: {e}")
             return []
-    
+
     # =========================================================================
     # EXTRACTION
     # =========================================================================
@@ -1205,28 +1216,25 @@ class PersistentMemory:
         self.ensure_schema()
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                UPDATE ira_memory.user_memories
-                SET is_active = FALSE
-                WHERE id = %s AND identity_id = %s
-                RETURNING id
-            """, (memory_id, identity_id))
-            
-            result = cursor.fetchone()
-            conn.commit()
-            
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE ira_memory.user_memories
+                    SET is_active = FALSE
+                    WHERE id = %s AND identity_id = %s
+                    RETURNING id
+                """, (memory_id, identity_id))
+                result = cursor.fetchone()
+                if not get_db_connection:
+                    conn.commit()
             if result:
                 print(f"[persistent_memory] Deleted memory {memory_id}")
                 return True
             return False
-            
         except Exception as e:
             print(f"[persistent_memory] Delete error: {e}")
             return False
-    
+
     def handle_explicit_remember(
         self,
         identity_id: str,
@@ -1355,56 +1363,47 @@ class PersistentMemory:
         self.ensure_schema()
         
         try:
-            conn = self._get_db()
-            cursor = conn.cursor()
-            
-            # User memories
-            if identity_id:
+            with self._with_db() as conn:
+                cursor = conn.cursor()
+                if identity_id:
+                    cursor.execute("""
+                        SELECT memory_type, COUNT(*)
+                        FROM ira_memory.user_memories
+                        WHERE identity_id = %s AND is_active = TRUE
+                        GROUP BY memory_type
+                    """, (identity_id,))
+                else:
+                    cursor.execute("""
+                        SELECT memory_type, COUNT(*)
+                        FROM ira_memory.user_memories
+                        WHERE is_active = TRUE
+                        GROUP BY memory_type
+                    """)
+                user_type_counts = {row[0]: row[1] for row in cursor.fetchall()}
+                cursor.execute("SELECT COUNT(*) FROM ira_memory.user_memories WHERE is_active = TRUE")
+                total_user = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(DISTINCT identity_id) FROM ira_memory.user_memories WHERE is_active = TRUE")
+                users_with_memories = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM ira_memory.entity_memories WHERE is_active = TRUE")
+                total_entity = cursor.fetchone()[0]
                 cursor.execute("""
-                    SELECT memory_type, COUNT(*) 
-                    FROM ira_memory.user_memories
-                    WHERE identity_id = %s AND is_active = TRUE
-                    GROUP BY memory_type
-                """, (identity_id,))
-            else:
-                cursor.execute("""
-                    SELECT memory_type, COUNT(*) 
-                    FROM ira_memory.user_memories
+                    SELECT entity_type, COUNT(*)
+                    FROM ira_memory.entity_memories
                     WHERE is_active = TRUE
-                    GROUP BY memory_type
+                    GROUP BY entity_type
                 """)
-            
-            user_type_counts = {row[0]: row[1] for row in cursor.fetchall()}
-            
-            cursor.execute("SELECT COUNT(*) FROM ira_memory.user_memories WHERE is_active = TRUE")
-            total_user = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(DISTINCT identity_id) FROM ira_memory.user_memories WHERE is_active = TRUE")
-            users_with_memories = cursor.fetchone()[0]
-            
-            # Entity memories
-            cursor.execute("SELECT COUNT(*) FROM ira_memory.entity_memories WHERE is_active = TRUE")
-            total_entity = cursor.fetchone()[0]
-            
-            cursor.execute("""
-                SELECT entity_type, COUNT(*) 
-                FROM ira_memory.entity_memories
-                WHERE is_active = TRUE
-                GROUP BY entity_type
-            """)
-            entity_type_counts = {row[0]: row[1] for row in cursor.fetchall()}
-            
-            return {
-                "user_memories": {
-                    "total": total_user,
-                    "users_with_memories": users_with_memories,
-                    "by_type": user_type_counts
-                },
-                "entity_memories": {
-                    "total": total_entity,
-                    "by_type": entity_type_counts
+                entity_type_counts = {row[0]: row[1] for row in cursor.fetchall()}
+                return {
+                    "user_memories": {
+                        "total": total_user,
+                        "users_with_memories": users_with_memories,
+                        "by_type": user_type_counts
+                    },
+                    "entity_memories": {
+                        "total": total_entity,
+                        "by_type": entity_type_counts
+                    }
                 }
-            }
             
         except Exception as e:
             return {"error": str(e)}

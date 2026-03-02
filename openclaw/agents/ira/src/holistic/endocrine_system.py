@@ -39,6 +39,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.endocrine_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -155,7 +160,7 @@ class EndocrineSystem:
             "last_updated": datetime.now().isoformat(),
         }
         ENDOCRINE_STATE.parent.mkdir(parents=True, exist_ok=True)
-        ENDOCRINE_STATE.write_text(json.dumps(data, indent=2))
+        atomic_write_json(ENDOCRINE_STATE, data)
 
         self._sync_legacy_scores()
 
@@ -170,7 +175,7 @@ class EndocrineSystem:
             }
         try:
             LEGACY_SCORES_FILE.parent.mkdir(parents=True, exist_ok=True)
-            LEGACY_SCORES_FILE.write_text(json.dumps(legacy, indent=2))
+            atomic_write_json(LEGACY_SCORES_FILE, legacy)
         except Exception as e:
             logger.warning(f"[ENDOCRINE] Failed to sync legacy scores: {e}")
 
@@ -404,8 +409,7 @@ class EndocrineSystem:
         }
         HORMONE_LOG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(HORMONE_LOG, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            append_jsonl(HORMONE_LOG, entry)
         except Exception:
             pass
 

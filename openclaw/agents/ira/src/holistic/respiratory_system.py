@@ -37,6 +37,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.respiratory_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -107,7 +112,7 @@ class RespiratorySystem:
 
     def _save_state(self):
         RHYTHM_STATE.parent.mkdir(parents=True, exist_ok=True)
-        RHYTHM_STATE.write_text(json.dumps(self._state, indent=2))
+        atomic_write_json(RHYTHM_STATE, self._state)
 
     def record_heartbeat(self) -> Dict:
         """
@@ -149,7 +154,7 @@ class RespiratorySystem:
             "uptime_heartbeats": self._state["consecutive_heartbeats"],
         }
         HEARTBEAT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        HEARTBEAT_FILE.write_text(json.dumps(heartbeat_data, indent=2))
+        atomic_write_json(HEARTBEAT_FILE, heartbeat_data)
 
         self._ensure_daily_rhythm()
         self._save_state()
@@ -194,8 +199,7 @@ class RespiratorySystem:
         }
         BREATH_LOG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(BREATH_LOG, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            append_jsonl(BREATH_LOG, entry)
         except Exception as e:
             logger.warning(f"[RESPIRATORY] Failed to log breath: {e}")
 

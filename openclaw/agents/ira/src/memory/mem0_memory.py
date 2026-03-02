@@ -198,14 +198,20 @@ class Mem0MemoryService:
             Memory ID or event_id if queued (Mem0 processes async)
         """
         try:
-            result = self.client.add(
-                messages=[{"role": "user", "content": text}],
-                user_id=user_id,
-                metadata=metadata or {},
-            )
+            def do_add():
+                return self.client.add(
+                    messages=[{"role": "user", "content": text}],
+                    user_id=user_id,
+                    metadata=metadata or {},
+                )
+            if RESILIENCE_AVAILABLE:
+                result, used = mem0_breaker.execute(do_add, fallback_result={})
+                if used:
+                    return None
+            else:
+                result = do_add()
             results = result.get("results", [])
             if results:
-                # Mem0 may return immediate ID or queue for async processing
                 first = results[0]
                 return first.get("id") or first.get("event_id") or "queued"
             return None
@@ -233,24 +239,22 @@ class Mem0MemoryService:
             List of relevant memories with scores
         """
         try:
-            # Use v2 API with proper filters
-            results = self.client.search(
-                query=query,
-                version="v2",
-                filters={"user_id": user_id},
-                top_k=limit,
-                threshold=threshold if threshold > 0 else 0.3,
-            )
-            
-            # v2 API returns 'memories' instead of 'results'
+            def do_search():
+                return self.client.search(
+                    query=query,
+                    version="v2",
+                    filters={"user_id": user_id},
+                    top_k=limit,
+                    threshold=threshold if threshold > 0 else 0.3,
+                )
+            if RESILIENCE_AVAILABLE:
+                results, used = mem0_breaker.execute(do_search, fallback_result={"memories": [], "results": []})
+                if used:
+                    return []
+            else:
+                results = do_search()
             memories_data = results.get("memories", results.get("results", []))
-            
-            memories = []
-            for r in memories_data:
-                mem = Memory.from_mem0(r)
-                memories.append(mem)
-            
-            return memories
+            return [Memory.from_mem0(r) for r in memories_data]
         except Exception as e:
             logger.error("Error searching: %s", e)
             return []
@@ -258,11 +262,14 @@ class Mem0MemoryService:
     def get_all(self, user_id: str) -> List[Memory]:
         """Get all memories for a user."""
         try:
-            results = self.client.get_all(
-                version="v2",
-                filters={"user_id": user_id}
-            )
-            # Handle both v1 ('results') and v2 ('memories') response formats
+            def do_get_all():
+                return self.client.get_all(version="v2", filters={"user_id": user_id})
+            if RESILIENCE_AVAILABLE:
+                results, used = mem0_breaker.execute(do_get_all, fallback_result={"memories": [], "results": []})
+                if used:
+                    return []
+            else:
+                results = do_get_all()
             memories_data = results.get("memories", results.get("results", []))
             if isinstance(results, list):
                 memories_data = results
@@ -274,10 +281,15 @@ class Mem0MemoryService:
     def get_memory(self, memory_id: str) -> Optional[Memory]:
         """Get a specific memory by ID."""
         try:
-            result = self.client.get(memory_id=memory_id)
-            if result:
-                return Memory.from_mem0(result)
-            return None
+            def do_get():
+                return self.client.get(memory_id=memory_id)
+            if RESILIENCE_AVAILABLE:
+                result, used = mem0_breaker.execute(do_get, fallback_result=None)
+                if used or result is None:
+                    return None
+            else:
+                result = do_get()
+            return Memory.from_mem0(result) if result else None
         except Exception as e:
             logger.error("Error getting memory: %s", e)
             return None
@@ -285,7 +297,12 @@ class Mem0MemoryService:
     def delete_memory(self, memory_id: str) -> bool:
         """Delete a specific memory."""
         try:
-            self.client.delete(memory_id=memory_id)
+            def do_delete():
+                self.client.delete(memory_id=memory_id)
+            if RESILIENCE_AVAILABLE:
+                mem0_breaker.execute(do_delete, fallback_result=None)
+                return True
+            do_delete()
             return True
         except Exception as e:
             logger.error("Error deleting: %s", e)
@@ -294,7 +311,12 @@ class Mem0MemoryService:
     def delete_all(self, user_id: str) -> bool:
         """Delete all memories for a user."""
         try:
-            self.client.delete_all(user_id=user_id)
+            def do_delete_all():
+                self.client.delete_all(user_id=user_id)
+            if RESILIENCE_AVAILABLE:
+                mem0_breaker.execute(do_delete_all, fallback_result=None)
+            else:
+                do_delete_all()
             return True
         except Exception as e:
             logger.error("Error deleting all: %s", e)
@@ -303,7 +325,12 @@ class Mem0MemoryService:
     def update_memory(self, memory_id: str, text: str) -> bool:
         """Update a memory's text."""
         try:
-            self.client.update(memory_id=memory_id, data=text)
+            def do_update():
+                self.client.update(memory_id=memory_id, data=text)
+            if RESILIENCE_AVAILABLE:
+                mem0_breaker.execute(do_update, fallback_result=None)
+            else:
+                do_update()
             return True
         except Exception as e:
             logger.error("Error updating: %s", e)
@@ -328,18 +355,24 @@ class Mem0MemoryService:
         agent_id = f"{entity_type}:{entity_name.lower().replace(' ', '_')}"
         
         try:
-            result = self.client.add(
-                messages=[{"role": "user", "content": memory_text}],
-                agent_id=agent_id,
-                metadata={
-                    "entity_type": entity_type,
-                    "entity_name": entity_name,
-                    "source_user_id": source_user_id,
-                },
-            )
+            def do_add():
+                return self.client.add(
+                    messages=[{"role": "user", "content": memory_text}],
+                    agent_id=agent_id,
+                    metadata={
+                        "entity_type": entity_type,
+                        "entity_name": entity_name,
+                        "source_user_id": source_user_id,
+                    },
+                )
+            if RESILIENCE_AVAILABLE:
+                result, used = mem0_breaker.execute(do_add, fallback_result={})
+                if used:
+                    return None
+            else:
+                result = do_add()
             results = result.get("results", [])
             if results:
-                # Mem0 may return immediate ID or queue for async processing
                 first = results[0]
                 return first.get("id") or first.get("event_id") or "queued"
             return None
@@ -356,22 +389,27 @@ class Mem0MemoryService:
     ) -> List[Memory]:
         """Search memories about entities."""
         try:
-            if entity_name:
-                agent_id = f"{entity_type or 'entity'}:{entity_name.lower().replace(' ', '_')}"
-                results = self.client.search(
-                    query=query,
-                    version="v2",
-                    filters={"agent_id": agent_id},
-                    top_k=limit,
-                )
-            else:
-                # Search across all - use wildcard
-                results = self.client.search(
+            def do_search_entity():
+                if entity_name:
+                    aid = f"{entity_type or 'entity'}:{entity_name.lower().replace(' ', '_')}"
+                    return self.client.search(
+                        query=query,
+                        version="v2",
+                        filters={"agent_id": aid},
+                        top_k=limit,
+                    )
+                return self.client.search(
                     query=query,
                     version="v2",
                     filters={"agent_id": "*"},
                     top_k=limit,
                 )
+            if RESILIENCE_AVAILABLE:
+                results, used = mem0_breaker.execute(do_search_entity, fallback_result={"memories": [], "results": []})
+                if used:
+                    return []
+            else:
+                results = do_search_entity()
             
             memories_data = results.get("memories", results.get("results", []))
             return [Memory.from_mem0(r) for r in memories_data]

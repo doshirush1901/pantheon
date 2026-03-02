@@ -4,11 +4,13 @@ SCHEDULED TASK RUNNER
 =====================
 
 Runs scheduled tasks for IRA:
+- reconcile_embeds: P2 — process pending Qdrant embeds (Postgres wrote, Qdrant failed)
 - European drip campaign outreach
 - Follow-up automation suggestions
 - Customer health monitoring
 
 Usage (manual):
+    python scripts/run_scheduled_tasks.py --task reconcile_embeds
     python scripts/run_scheduled_tasks.py --task drip
     python scripts/run_scheduled_tasks.py --task followups
     python scripts/run_scheduled_tasks.py --task health
@@ -275,6 +277,33 @@ def run_autonomous_drip():
         return {"status": "error", "error": str(e)}
 
 
+def run_reconcile_pending_embeds():
+    """
+    P2: Reconcile pending Qdrant embeds (Postgres wrote, Qdrant failed).
+    Run after memory-heavy operations so Qdrant catches up.
+    """
+    logger.info("=" * 60)
+    logger.info("RECONCILE PENDING QDRANT EMBEDS")
+    logger.info("=" * 60)
+    try:
+        import subprocess
+        r = subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "scripts" / "reconcile_pending_qdrant_embeds.py")],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        if r.stdout:
+            logger.info(r.stdout.strip())
+        if r.returncode != 0 and r.stderr:
+            logger.warning(r.stderr.strip())
+        return {"status": "success" if r.returncode == 0 else "error", "returncode": r.returncode}
+    except Exception as e:
+        logger.error("Reconcile pending embeds failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
 def run_all_tasks():
     """Run all scheduled tasks."""
     logger.info("\n" + "=" * 70)
@@ -287,6 +316,9 @@ def run_all_tasks():
         "tasks": {}
     }
     
+    # P2: Reconcile pending Qdrant embeds first (no dependency on other tasks)
+    results["tasks"]["reconcile_embeds"] = run_reconcile_pending_embeds()
+    print()
     # Run autonomous drip (Ira sends her own emails)
     results["tasks"]["autonomous_drip"] = run_autonomous_drip()
     print()  # Spacing
@@ -320,7 +352,7 @@ def main():
     parser = argparse.ArgumentParser(description="IRA Scheduled Task Runner")
     parser.add_argument(
         "--task",
-        choices=["drip", "followups", "health", "autonomous_drip"],
+        choices=["drip", "followups", "health", "autonomous_drip", "reconcile_embeds"],
         help="Specific task to run"
     )
     parser.add_argument(
@@ -341,10 +373,13 @@ def main():
         run_health_monitoring()
     elif args.task == "autonomous_drip":
         run_autonomous_drip()
+    elif args.task == "reconcile_embeds":
+        run_reconcile_pending_embeds()
     else:
         parser.print_help()
         print("\nExamples:")
         print("  python scripts/run_scheduled_tasks.py --all")
+        print("  python scripts/run_scheduled_tasks.py --task reconcile_embeds")
         print("  python scripts/run_scheduled_tasks.py --task drip")
         print("  python scripts/run_scheduled_tasks.py --task autonomous_drip")
 

@@ -306,7 +306,7 @@ JINA_API_KEY = os.environ.get("JINA_API_KEY", "")
 # =============================================================================
 
 _connection_pool = None
-_pool_lock = None
+_pool_lock = threading.Lock()
 
 def get_db_pool():
     """Get or create the shared database connection pool.
@@ -331,11 +331,7 @@ def get_db_pool():
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
     """
-    global _connection_pool, _pool_lock
-    
-    if _pool_lock is None:
-        import threading
-        _pool_lock = threading.Lock()
+    global _connection_pool
     
     if _connection_pool is None:
         with _pool_lock:
@@ -711,15 +707,11 @@ RETRIEVAL_CONFIG = {
 _qdrant_client = None
 _voyage_client = None
 _openai_client = None
-_client_lock = None
+_client_lock = threading.Lock()
 
 
 def _get_client_lock():
-    """Get or create the client lock for thread-safe access."""
-    global _client_lock
-    if _client_lock is None:
-        import threading
-        _client_lock = threading.Lock()
+    """Return the client lock for thread-safe singleton access."""
     return _client_lock
 
 

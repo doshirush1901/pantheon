@@ -8,9 +8,49 @@ Enables LLM-driven orchestration: Athena (LLM) chooses which skills to call and 
 import json
 import logging
 import os
+import re
 from typing import Any, Dict, List, Optional
 
+try:
+    import httpx
+except ImportError:
+    httpx = None  # type: ignore
+
+_httpx_client: Optional[Any] = None
+
+
+def _get_httpx_client():
+    """Lazy singleton AsyncClient for non-blocking HTTP in async context (P1-6)."""
+    global _httpx_client
+    if httpx is None:
+        return None
+    if _httpx_client is None:
+        _httpx_client = httpx.AsyncClient(timeout=30)
+    return _httpx_client
+
 logger = logging.getLogger("ira.tools.skills")
+
+# Strict domain label for SSRF safety: only a-z, 0-9, hyphen; no URL metacharacters
+_SAFE_DOMAIN_RE = re.compile(r"^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$", re.IGNORECASE)
+_SSRF_BLOCKLIST = frozenset({"localhost", "local", "127", "0", "metadata", "169.254"})
+
+
+def _safe_domain(company: str) -> Optional[str]:
+    """Return a safe domain fragment for URL construction, or None if invalid (SSRF guard)."""
+    if not company or not isinstance(company, str):
+        return None
+    domain = company.lower().strip().replace(" ", "").replace(",", "")
+    if not domain or len(domain) > 253:
+        return None
+    if domain in _SSRF_BLOCKLIST or domain.startswith(("127.", "10.", "192.168.", "169.254.")):
+        return None
+    if re.match(r"^[\d.]+$", domain):
+        return None
+    if not _SAFE_DOMAIN_RE.match(domain):
+        return None
+    if ".." in domain or domain.startswith(".") or domain.endswith("."):
+        return None
+    return domain
 
 IRA_TOOLS_SCHEMA = [
     {
@@ -396,6 +436,22 @@ IRA_TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "deep_research",
+            "description": "Launch a multi-hop autonomous research mission. Multiple agents collaborate in parallel: Clio researches knowledge base, Iris gathers web intelligence, Mnemosyne checks CRM, Plutus checks finance — then Vera fact-checks everything. Use for complex queries that need cross-referencing across multiple data sources. Much more thorough than calling individual tools.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The research question or topic"},
+                    "company": {"type": "string", "description": "Company name if researching a specific company"},
+                    "country": {"type": "string", "description": "Country for regional context"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 
@@ -410,6 +466,8 @@ async def execute_tool_call(
     context: Dict[str, Any],
 ) -> str:
     """Execute an IRA skill by name. Called when LLM returns tool_calls."""
+    if arguments.get("__parse_error__"):
+        return str(arguments["__parse_error__"])
     validation_err = _validate_tool_args(tool_name, arguments)
     if validation_err:
         logger.warning(f"[Security] Tool arg validation failed for {tool_name}: {validation_err}")
@@ -455,6 +513,7 @@ async def execute_tool_call(
         "send_email": "hermes",
         "draft_email": "hermes",
         "run_analysis": "hephaestus",
+        "deep_research": "athena",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -496,28 +555,29 @@ async def execute_tool_call(
         tavily_key = os.environ.get("TAVILY_API_KEY", "")
         if tavily_key:
             try:
-                import httpx
-                resp = httpx.post(
-                    "https://api.tavily.com/search",
-                    json={
-                        "api_key": tavily_key,
-                        "query": search_query,
-                        "search_depth": "advanced",
-                        "max_results": 5,
-                        "include_answer": True,
-                    },
-                    timeout=20,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("answer"):
-                        results_parts.append(f"[tavily_answer] {data['answer']}")
-                    for r in data.get("results", [])[:5]:
-                        title = r.get("title", "")
-                        content = r.get("content", "")[:400]
-                        url = r.get("url", "")
-                        if content:
-                            results_parts.append(f"[tavily] {title}: {content} ({url})")
+                client = _get_httpx_client()
+                if client:
+                    resp = await client.post(
+                        "https://api.tavily.com/search",
+                        json={
+                            "api_key": tavily_key,
+                            "query": search_query,
+                            "search_depth": "advanced",
+                            "max_results": 5,
+                            "include_answer": True,
+                        },
+                        timeout=20,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("answer"):
+                            results_parts.append(f"[tavily_answer] {data['answer']}")
+                        for r in data.get("results", [])[:5]:
+                            title = r.get("title", "")
+                            content = r.get("content", "")[:400]
+                            url = r.get("url", "")
+                            if content:
+                                results_parts.append(f"[tavily] {title}: {content} ({url})")
             except Exception as e:
                 logger.debug(f"Tavily search failed: {e}")
         
@@ -525,42 +585,44 @@ async def execute_tool_call(
         serper_key = os.environ.get("SERPER_API_KEY", "")
         if serper_key:
             try:
-                import httpx
-                resp = httpx.post(
-                    "https://google.serper.dev/search",
-                    json={"q": search_query, "num": 5},
-                    headers={"X-API-KEY": serper_key},
-                    timeout=15,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    # Knowledge graph
-                    kg = data.get("knowledgeGraph", {})
-                    if kg.get("description"):
-                        results_parts.append(f"[google_kg] {kg.get('title', '')}: {kg['description']}")
-                    # Organic results
-                    for r in data.get("organic", [])[:5]:
-                        title = r.get("title", "")
-                        snippet = r.get("snippet", "")
-                        if snippet:
-                            results_parts.append(f"[google] {title}: {snippet}")
-                    # People Also Ask
-                    for paa in data.get("peopleAlsoAsk", [])[:2]:
-                        results_parts.append(f"[google_paa] Q: {paa.get('question', '')} A: {paa.get('snippet', '')}")
+                client = _get_httpx_client()
+                if client:
+                    resp = await client.post(
+                        "https://google.serper.dev/search",
+                        json={"q": search_query, "num": 5},
+                        headers={"X-API-KEY": serper_key},
+                        timeout=15,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        # Knowledge graph
+                        kg = data.get("knowledgeGraph", {})
+                        if kg.get("description"):
+                            results_parts.append(f"[google_kg] {kg.get('title', '')}: {kg['description']}")
+                        # Organic results
+                        for r in data.get("organic", [])[:5]:
+                            title = r.get("title", "")
+                            snippet = r.get("snippet", "")
+                            if snippet:
+                                results_parts.append(f"[google] {title}: {snippet}")
+                        # People Also Ask
+                        for paa in data.get("peopleAlsoAsk", [])[:2]:
+                            results_parts.append(f"[google_paa] Q: {paa.get('question', '')} A: {paa.get('snippet', '')}")
             except Exception as e:
                 logger.debug(f"Serper search failed: {e}")
         
         # 3. Jina fallback (if Tavily and Serper both unavailable)
         if not results_parts:
             try:
-                import httpx
-                resp = httpx.get(
-                    f"https://s.jina.ai/{search_query}",
-                    timeout=20,
-                    headers={"Accept": "application/json"},
-                )
-                if resp.status_code == 200 and len(resp.text.strip()) > 50:
-                    results_parts.append(f"[jina] {resp.text[:3000]}")
+                client = _get_httpx_client()
+                if client:
+                    resp = await client.get(
+                        f"https://s.jina.ai/{search_query}",
+                        timeout=20,
+                        headers={"Accept": "application/json"},
+                    )
+                    if resp.status_code == 200 and len(resp.text.strip()) > 50:
+                        results_parts.append(f"[jina] {resp.text[:3000]}")
             except Exception:
                 pass
         
@@ -577,18 +639,19 @@ async def execute_tool_call(
             except Exception:
                 pass
         
-        # 5. Website scraping (when company specified)
-        if company and len(results_parts) < 3:
+        # 5. Website scraping (when company specified; SSRF: only safe domain)
+        domain = _safe_domain(company) if company else None
+        if domain and len(results_parts) < 3:
             try:
-                import httpx
-                domain = company.lower().replace(" ", "").replace(",", "")
-                resp = httpx.get(
-                    f"https://r.jina.ai/https://www.{domain}.com",
-                    timeout=15,
-                    headers={"Accept": "text/plain"},
-                )
-                if resp.status_code == 200 and len(resp.text) > 100:
-                    results_parts.append(f"[website:{domain}.com] {resp.text[:2000]}")
+                client = _get_httpx_client()
+                if client:
+                    resp = await client.get(
+                        f"https://r.jina.ai/https://www.{domain}.com",
+                        timeout=15,
+                        headers={"Accept": "text/plain"},
+                    )
+                    if resp.status_code == 200 and len(resp.text) > 100:
+                        results_parts.append(f"[website:{domain}.com] {resp.text[:2000]}")
             except Exception:
                 pass
         
@@ -616,26 +679,27 @@ async def execute_tool_call(
             tavily_key = os.environ.get("TAVILY_API_KEY", "")
             if tavily_key:
                 try:
-                    import httpx
-                    resp = httpx.post(
-                        "https://api.tavily.com/search",
-                        json={
-                            "api_key": tavily_key,
-                            "query": f"{company} latest news expansion manufacturing",
-                            "search_depth": "advanced",
-                            "max_results": 5,
-                            "include_answer": True,
-                        },
-                        timeout=20,
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        if data.get("answer"):
-                            results_parts.append(f"[news_summary] {data['answer']}")
-                        for r in data.get("results", [])[:3]:
-                            content = r.get("content", "")[:300]
-                            if content:
-                                results_parts.append(f"[news] {r.get('title', '')}: {content}")
+                    client = _get_httpx_client()
+                    if client:
+                        resp = await client.post(
+                            "https://api.tavily.com/search",
+                            json={
+                                "api_key": tavily_key,
+                                "query": f"{company} latest news expansion manufacturing",
+                                "search_depth": "advanced",
+                                "max_results": 5,
+                                "include_answer": True,
+                            },
+                            timeout=20,
+                        )
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if data.get("answer"):
+                                results_parts.append(f"[news_summary] {data['answer']}")
+                            for r in data.get("results", [])[:3]:
+                                content = r.get("content", "")[:300]
+                                if content:
+                                    results_parts.append(f"[news] {r.get('title', '')}: {content}")
                 except Exception:
                     pass
 
@@ -663,11 +727,13 @@ async def execute_tool_call(
         except Exception as e:
             logger.debug(f"Mnemosyne lookup failed: {e}")
 
-        # 2. Qdrant ira_customers collection
+        # 2. Qdrant ira_customers collection (singleton client from config)
         try:
-            from qdrant_client import QdrantClient
+            from openclaw.agents.ira.config import get_qdrant_client
             from qdrant_client.models import Filter, FieldCondition, MatchText
-            qdrant = QdrantClient(url=os.environ.get("QDRANT_URL", "http://localhost:6333"))
+            qdrant = get_qdrant_client()
+            if qdrant is None:
+                raise RuntimeError("Qdrant client not available")
             qdrant_filter = Filter(
                 should=[
                     FieldCondition(key="company", match=MatchText(text=query)),
@@ -952,6 +1018,35 @@ async def execute_tool_call(
         question = arguments.get("question", "")
         return f"ASK_USER:{question}"
 
+    elif tool_name == "deep_research":
+        query = arguments.get("query", "")
+        company = arguments.get("company", "")
+        country = arguments.get("country", "")
+        try:
+            from openclaw.agents.ira.src.core.agent_bus import get_bus
+            bus = get_bus()
+            findings = await bus.research_deep(
+                query=query,
+                context={"company": company, "country": country, **context},
+                max_hops=3,
+            )
+            parts = [f"[Deep Research: {len(findings.get('hops', []))} hops, "
+                      f"sources: {', '.join(findings.get('sources', []))}]"]
+            for hop in findings.get("hops", []):
+                hop_num = hop.get("hop", "?")
+                agents = hop.get("agents", [])
+                data = hop.get("data", {})
+                parts.append(f"\n--- Hop {hop_num} ({', '.join(agents)}) ---")
+                for agent, result in data.items():
+                    text = str(result)[:3000]
+                    parts.append(f"[{agent}] {text}")
+            if findings.get("verified"):
+                parts.append("\n[Vera: fact-checked ✓]")
+            return "\n".join(parts)
+        except Exception as e:
+            logger.error(f"[deep_research] Error: {e}")
+            return f"(Deep research error: {e})"
+
     return f"Error: Unknown tool '{tool_name}'"
 
 
@@ -986,11 +1081,13 @@ def _validate_tool_args(tool_name: str, args: Dict[str, Any]) -> Optional[str]:
 
 
 def parse_tool_arguments(arguments: str) -> Dict[str, Any]:
-    """Parse tool arguments from LLM response (JSON string)."""
+    """Parse tool arguments from LLM response (JSON string).
+    On malformed JSON, returns a dict with __parse_error__ so execute_tool_call can return an error to the LLM.
+    """
     if not arguments or not arguments.strip():
         return {}
     try:
         return json.loads(arguments)
     except json.JSONDecodeError as e:
         logger.warning("Failed to parse tool arguments: %s", e)
-        return {}
+        return {"__parse_error__": f"(Error: malformed tool arguments — {e})"}

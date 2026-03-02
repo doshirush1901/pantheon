@@ -39,6 +39,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.voice_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -180,7 +185,7 @@ class VoiceSystem:
         try:
             VOICE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
             self._state["last_updated"] = datetime.now().isoformat()
-            VOICE_STATE_FILE.write_text(json.dumps(self._state, indent=2, default=str))
+            atomic_write_json(VOICE_STATE_FILE, self._state)
         except Exception as e:
             logger.debug(f"Voice state save failed: {e}")
 
@@ -188,8 +193,7 @@ class VoiceSystem:
         try:
             VOICE_LOG.parent.mkdir(parents=True, exist_ok=True)
             event["timestamp"] = datetime.now().isoformat()
-            with open(VOICE_LOG, "a") as f:
-                f.write(json.dumps(event, default=str) + "\n")
+            append_jsonl(VOICE_LOG, event)
         except Exception:
             pass
 

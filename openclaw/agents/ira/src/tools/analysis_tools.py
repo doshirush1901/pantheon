@@ -19,6 +19,7 @@ Security:
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -71,16 +72,22 @@ def run_analysis(code: str, data: str = "") -> str:
         with open(script_path, "w") as f:
             f.write(full_code)
 
+        safe_env = {
+            "HOME": os.environ.get("HOME", "/tmp"),
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "PYTHONPATH": os.environ.get("PYTHONPATH", ""),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "LANG": os.environ.get("LANG", "en_US.UTF-8"),
+            "TMPDIR": os.environ.get("TMPDIR", "/tmp"),
+        }
+
         result = subprocess.run(
             [sys.executable, script_path],
             capture_output=True,
             text=True,
             timeout=TIMEOUT_SECONDS,
             cwd=str(PROJECT_ROOT),
-            env={
-                **os.environ,
-                "PYTHONDONTWRITEBYTECODE": "1",
-            },
+            env=safe_env,
         )
 
         stdout = result.stdout.strip()
@@ -105,7 +112,6 @@ def run_analysis(code: str, data: str = "") -> str:
         return f"(Analysis error: {e})"
     finally:
         try:
-            os.unlink(script_path)
-            os.rmdir(tmp_dir)
-        except OSError:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        except Exception:
             pass

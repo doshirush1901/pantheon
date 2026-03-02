@@ -1,25 +1,33 @@
 """
-Tool-Orchestrator Gateway (P2 Remediation)
+Tool-Orchestrator Gateway — Manus-style Parallel Agent Architecture
 
-LLM-driven pipeline: Athena (LLM) chooses which skills to call via tool use.
-After Athena's tool loop, the response flows through the Pantheon sub-agents:
-  1. Athena (GPT-4o) — research + tool loop
-  2. Vera (fact-checker) — verify accuracy, model numbers, business rules
-  3. Sophia (reflector) — learn from the interaction (fire-and-forget)
+LLM-driven pipeline with true parallel tool execution and agent-to-agent
+communication via the AgentBus.
 
-Proposal Checkpoint (added 2026-03-02):
-After tool rounds on a sales inquiry, Athena is nudged to stop researching
-and commit to a concrete proposal: machine model + price + lead time.
+Key upgrades over sequential pipeline:
+  1. asyncio.gather() for concurrent tool execution within each round
+  2. AgentBus for direct agent-to-agent dispatch (no LLM round-trip)
+  3. Deep research mode with multi-hop autonomous collaboration
+  4. Post-pipeline runs Vera + Sophia concurrently
+
+Flow:
+  1. Athena (GPT-4o) — research + tool loop (parallel execution per round)
+  2. Vera (fact-checker) + Sophia (reflector) — run concurrently in post-pipeline
+  3. Knowledge health → immune system → voice system
 """
 
+import asyncio
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger("ira.tool_orchestrator")
 
 MAX_TOOL_ROUNDS = 25
 PROPOSAL_NUDGE_ROUND = 6
+TOOL_TIMEOUT_SECONDS = 45
+# P1-7: Cap message history to avoid quadratic growth and token blow-up
+MAX_MESSAGE_HISTORY = 35  # system + user + last N exchange pairs (assistant + tools)
 
 _INJECTION_PATTERNS = re.compile(
     r"ignore.*(?:previous|all|above).*instructions|"
@@ -94,6 +102,20 @@ def _is_sales_inquiry(message: str) -> bool:
     return bool(_SALES_SIGNALS.search(message))
 
 
+def _get_hard_rules() -> str:
+    """P2: Load hard_rules.txt so Athena gets same business rules as generate_answer (single source of truth)."""
+    try:
+        from pathlib import Path
+        # Repo root: core -> src -> ira -> agents -> openclaw -> (workspace root)
+        root = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+        path = root / "data" / "brain" / "hard_rules.txt"
+        if path.exists():
+            return "\n\n" + path.read_text().strip()
+    except Exception:
+        pass
+    return ""
+
+
 def _get_training_guidance() -> str:
     """Load training weights and generate a caution note for weak knowledge areas.
     
@@ -116,6 +138,95 @@ def _get_training_guidance() -> str:
         )
     except Exception:
         return ""
+
+
+def _indian_price_fmt(price_inr: int) -> str:
+    """Format INR with Indian lakh/crore style (e.g. 60,00,000). Last 3 digits, then groups of 2."""
+    if not price_inr:
+        return "Contact"
+    s = str(price_inr)
+    if len(s) <= 3:
+        return s
+    last3 = s[-3:]
+    rest = s[:-3]
+    parts = []
+    while rest:
+        parts.append(rest[-2:])
+        rest = rest[:-2]
+    return ",".join(reversed(parts)) + "," + last3
+
+
+def _get_price_table_from_specs() -> str:
+    """P2: Build price table from machine_specs.json so it stays in sync (single source of truth)."""
+    try:
+        from openclaw.agents.ira.src.brain.machine_database import MACHINE_SPECS
+    except ImportError:
+        try:
+            from openclaw.agents.ira.src.brain import machine_database
+            MACHINE_SPECS = getattr(machine_database, "MACHINE_SPECS", {})
+        except Exception:
+            return (
+                "PRICE TABLE: Load from machine_specs failed. Use research_skill for current prices. "
+                "Always add 'subject to configuration and current pricing.'"
+            )
+    if not MACHINE_SPECS:
+        return (
+            "PRICE TABLE: No specs loaded. Use research_skill for current prices. "
+            "Always add 'subject to configuration and current pricing.'"
+        )
+    # Group by sub-series: PF1-C-2015 -> PF1-C, AM-5060 -> AM, AMP-5060 -> AMP
+    groups = {}
+    for spec in MACHINE_SPECS.values():
+        model = getattr(spec, "model", "") or ""
+        parts = model.split("-")
+        if len(parts) >= 2 and parts[0] == "PF1":
+            sub = parts[0] + "-" + parts[1]
+        elif parts:
+            sub = parts[0]
+        else:
+            sub = getattr(spec, "series", "") or "Other"
+        groups.setdefault(sub, []).append(spec)
+    series_labels = {
+        "PF1-C": "PF1-C (pneumatic, heavy gauge sheet-fed):",
+        "PF1-X": "PF1-X (all-servo, premium — exact prices):",
+        "PF1-XL": "PF1-XL:",
+        "PF1-R": "PF1-R (roll-fed, thin gauge on PF1 frame):",
+        "AM": "AM Series (thin gauge ≤1.5mm):",
+        "AMP": "AM Series (pressure forming):",
+        "FCS": "FCS Series (form-cut-stack, thin gauge):",
+        "IMG": "IMG Series (in-mold graining, automotive):",
+        "PF2": "PF2 Series (bath industry — bathtubs, shower trays):",
+        "UNO": "UNO/DUO (compact export machines):",
+        "DUO": "UNO/DUO (compact export machines):",
+    }
+    series_order = ["PF1-C", "PF1-X", "PF1-XL", "PF1-R", "AM", "AMP", "FCS", "IMG", "PF2", "UNO", "DUO"]
+    lines = []
+    done_uno_duo = False
+    for series in series_order:
+        machines = groups.get(series, [])
+        if not machines:
+            continue
+        if series in ("UNO", "DUO"):
+            if done_uno_duo:
+                continue
+            done_uno_duo = True
+            machines = groups.get("UNO", []) + groups.get("DUO", [])
+        label = series_labels.get(series, f"{series}:")
+        lines.append(label)
+        for m in sorted(machines, key=lambda x: (x.forming_area_raw or (0, 0), x.model)):
+            area = (getattr(m, "forming_area_mm", None) or "").replace(" x ", "×")
+            price_inr = getattr(m, "price_inr", None)
+            price_str = _indian_price_fmt(price_inr) if price_inr else "Contact"
+            line = f"  {m.model} ({area}): INR {price_str}"
+            if price_inr and price_inr >= 7_000_000 and series in ("PF1-X", "PF1-XL", "UNO", "DUO"):
+                line += f"  / ~${price_inr // 83000}K"
+            lines.append(line)
+    if not lines:
+        return (
+            "PRICE TABLE: No models with prices. Use research_skill for current prices. "
+            "Always add 'subject to configuration and current pricing.'"
+        )
+    return "\n".join(lines) + "\n\nModel number = forming area: PF1-C-XXYY means XX00 × YY00 mm.\nALWAYS include \"subject to configuration and current pricing\" with any price.\nFor EUR/USD conversion, use approximate rates (1 EUR ≈ 90-92 INR, 1 USD ≈ 83-84 INR) and note they are indicative."
 
 
 def _get_user_memories(context: Dict) -> str:
@@ -146,19 +257,18 @@ async def _run_pantheon_post_pipeline(
     tool_call_log: List[str],
 ) -> str:
     """
-    Guaranteed sub-agent chain after Athena's tool loop.
+    Manus-style post-pipeline: Vera and Sophia run concurrently.
 
-    Runs Vera (fact-check) and Sophia (reflect) on every substantive response,
-    regardless of whether GPT-4o chose to call them during the tool loop.
-    This restores the Research -> Verify -> Reflect pipeline that was removed
-    during the v3 remediation.
+    Vera fact-checks while Sophia reflects — no reason to wait for one
+    before starting the other. Vera's output replaces the response;
+    Sophia's is fire-and-forget.
     """
     progress_fn = context.get("_progress_callback")
-
-    # Skip Vera if Athena already called fact_checking_skill in this request
     already_verified = "fact_checking_skill" in tool_call_log
 
-    if not already_verified and len(raw_response) > 80:
+    async def _vera_task() -> str:
+        if already_verified or len(raw_response) <= 80:
+            return raw_response
         if progress_fn:
             try:
                 progress_fn("vera_verify")
@@ -168,31 +278,34 @@ async def _run_pantheon_post_pipeline(
             from openclaw.agents.ira.src.skills.invocation import invoke_verify
             verified = await invoke_verify(raw_response, message, context)
             if verified and len(verified) > 30:
-                logger.info("[Pantheon] Vera verified response (%d -> %d chars)",
+                logger.info("[Pantheon] Vera verified (%d -> %d chars)",
                             len(raw_response), len(verified))
-                raw_response = verified
+                return verified
         except Exception as e:
-            logger.warning("[Pantheon] Vera verification failed (non-fatal): %s", e)
+            logger.warning("[Pantheon] Vera failed (non-fatal): %s", e)
+        return raw_response
 
-    # Sophia: reflect and learn (fire-and-forget)
-    if progress_fn:
+    async def _sophia_task():
+        if progress_fn:
+            try:
+                progress_fn("sophia_reflect")
+            except Exception:
+                pass
         try:
-            progress_fn("sophia_reflect")
-        except Exception:
-            pass
-    try:
-        from openclaw.agents.ira.src.skills.invocation import invoke_reflect
-        await invoke_reflect({
-            "user_message": message,
-            "response": raw_response,
-            "tools_used": tool_call_log,
-            "channel": context.get("channel", "api"),
-        })
-        logger.info("[Pantheon] Sophia reflection complete")
-    except Exception as e:
-        logger.debug("[Pantheon] Sophia reflection skipped: %s", e)
+            from openclaw.agents.ira.src.skills.invocation import invoke_reflect
+            await invoke_reflect({
+                "user_message": message,
+                "response": raw_response,
+                "tools_used": tool_call_log,
+                "channel": context.get("channel", "api"),
+            })
+            logger.info("[Pantheon] Sophia reflection complete")
+        except Exception as e:
+            logger.debug("[Pantheon] Sophia skipped: %s", e)
 
-    return raw_response
+    # Run Vera and Sophia concurrently
+    vera_result, _ = await asyncio.gather(_vera_task(), _sophia_task())
+    return vera_result
 
 
 async def process_with_tools(
@@ -211,6 +324,7 @@ async def process_with_tools(
     """
     import openai
     import os
+    import uuid
 
     from openclaw.agents.ira.src.tools.ira_skills_tools import (
         execute_tool_call,
@@ -227,8 +341,13 @@ async def process_with_tools(
         return "Error: OPENAI_API_KEY not set."
 
     context = context or {}
+    request_id = context.get("request_id") or uuid.uuid4().hex[:12]
+    context.setdefault("request_id", request_id)
     context.setdefault("channel", channel)
     context.setdefault("user_id", user_id)
+
+    log_prefix = f"[req={request_id}]"
+    logger.info("%s [Athena] process_with_tools start channel=%s user_id=%s", log_prefix, channel, user_id)
 
     conversation_history = context.get("conversation_history", "")
     is_internal = context.get("is_internal", False)
@@ -237,7 +356,7 @@ async def process_with_tools(
 
     _normalized_msg = _normalize_for_injection_check(message)
     if not is_internal and _INJECTION_PATTERNS.search(_normalized_msg):
-        logger.warning(f"[Athena] Prompt injection attempt detected, blocking")
+        logger.warning("%s [Athena] Prompt injection attempt detected, blocking", log_prefix)
         return ("I'm Ira, Machinecraft's Intelligent Revenue Assistant. "
                 "I can help with thermoforming machines, pricing, orders, and sales. "
                 "How can I assist you today?")
@@ -330,6 +449,7 @@ COMPOSITION & VERIFICATION:
 COMPUTATION & DISCOVERY:
 - run_analysis (Hephaestus): Forge and execute Python code. Two modes: TASK (describe in English) or CODE (pass Python). Pass data from earlier tools via 'data'. INTERNAL ONLY.
 - discovery_scan (Prometheus): Scan emerging industries for vacuum forming opportunities.
+- deep_research: 🔬 MULTI-HOP AUTONOMOUS RESEARCH. Launches multiple agents in parallel: Clio + Iris + Mnemosyne + Plutus all research simultaneously, then Vera fact-checks. Use for complex queries needing cross-referencing. Returns combined findings from all agents. MUCH more thorough than individual tool calls.
 - ask_user: Ask the user a clarifying question when tools can't provide the info.
 
 IMPORTANT — PLUTUS FINANCE REPORTS:
@@ -524,70 +644,7 @@ A well-researched proposal after 5-6 rounds is better than a hasty one after 2.
 ═══════════════════════════════════════════════════
 PRICE TABLE (use these EXACT prices — no need to research)
 ═══════════════════════════════════════════════════
-PF1-C (pneumatic, heavy gauge sheet-fed):
-  PF1-C-1008 (1000×800mm):  INR 33,00,000
-  PF1-C-1208 (1200×800mm):  INR 35,00,000
-  PF1-C-1212 (1200×1200mm): INR 38,00,000
-  PF1-C-1309 (1300×900mm):  INR 36,00,000
-  PF1-C-1510 (1500×1000mm): INR 40,00,000
-  PF1-C-1812 (1800×1200mm): INR 45,00,000
-  PF1-C-2010 (2000×1000mm): INR 50,00,000
-  PF1-C-2015 (2000×1500mm): INR 60,00,000
-  PF1-C-2020 (2000×2000mm): INR 65,00,000
-  PF1-C-2412 (2400×1200mm): INR 55,00,000
-  PF1-C-2515 (2500×1500mm): INR 70,00,000
-  PF1-C-2520 (2500×2000mm): INR 72,00,000
-  PF1-C-3015 (3000×1500mm): INR 75,00,000
-  PF1-C-3020 (3000×2000mm): INR 80,00,000
-
-PF1-X (all-servo, premium — exact prices):
-  PF1-X-1006 (1000×600mm):  INR 70,55,000  / ~$85K
-  PF1-X-1208 (1200×800mm):  INR 83,00,000  / ~$100K
-  PF1-X-1210 (1200×1000mm): INR 1,16,20,000 / ~$140K / ~€140K
-  PF1-X-1510 (1500×1000mm): INR 1,32,80,000 / ~$160K
-  PF1-X-1520 (1500×2000mm): INR 1,57,70,000 / ~$190K
-  PF1-X-2020 (2000×2000mm): INR 2,07,50,000 / ~$250K
-  PF1-X-2116 (2100×1600mm): INR 1,82,60,000 / ~$220K
-  PF1-X-2412 (2400×1200mm): INR 1,99,20,000 / ~$240K
-  PF1-X-2515 (2500×1500mm): INR 2,07,50,000 / ~$250K
-  PF1-X-2520 (2500×2000mm): INR 2,24,10,000 / ~$270K
-  PF1-XL-3020 (3000×2000mm):INR 2,49,00,000 / ~$300K
-
-PF1-R (roll-fed, thin gauge on PF1 frame):
-  PF1-R-1510 (1500×1000mm): INR 55,00,000
-
-AM Series (thin gauge ≤1.5mm):
-  AM-5060 (500×600mm):      INR 7,50,000
-  AM-6060 (600×600mm):      INR 9,00,000
-  AM-7080-CM (700×800mm):   INR 28,00,000
-  AM-5060-P (with press):   INR 15,00,000
-  AMP-5060 (pressure form): INR 35,00,000
-
-FCS Series (form-cut-stack, thin gauge):
-  FCS-6050-3ST (600×500mm, 3-station): INR 1,00,00,000
-  FCS-6050-4ST (600×500mm, 4-station): INR 1,25,00,000
-  FCS-7060-3ST (700×600mm, 3-station): INR 1,50,00,000
-  FCS-7060-4ST (700×600mm, 4-station): INR 1,75,00,000
-
-IMG Series (in-mold graining, automotive):
-  IMG-1205 (1200×500mm):    INR 1,25,00,000
-  IMG-1350 (1350×500mm):    INR 1,40,00,000
-  IMG-2012 (2000×1200mm):   INR 1,75,00,000
-
-PF2 Series (bath industry — bathtubs, shower trays):
-  PF2-P2010 (2000×1000mm):  INR 35,00,000
-  PF2-P2020 (2000×2000mm):  INR 52,00,000
-  PF2-P2424 (2400×2400mm):  INR 60,00,000
-
-UNO/DUO (compact export machines):
-  UNO-0806 (800×600mm):     INR 50,00,000 / ~$60K
-  UNO-1208 (1200×800mm):    INR 55,00,000 / ~$66K
-  DUO-0806 (800×600mm):     INR 55,00,000 / ~$66K
-  DUO-1208 (1200×800mm):    INR 65,00,000 / ~$78K
-
-Model number = forming area: PF1-C-XXYY means XX00 × YY00 mm.
-ALWAYS include "subject to configuration and current pricing" with any price.
-For EUR/USD conversion, use approximate rates (1 EUR ≈ 90-92 INR, 1 USD ≈ 83-84 INR) and note they are indicative.
+{_get_price_table_from_specs()}
 
 ═══════════════════════════════════════════════════
 PERSONALITY & VOICE (this is who you ARE — not just what you do)
@@ -645,7 +702,8 @@ or option from your previous response. Resolve the reference and act on it.
 {f"WHAT I REMEMBER ABOUT THIS USER:{chr(10)}{mem0_context}" if mem0_context else ""}
 {_get_training_guidance()}
 {_get_user_memories(context)}
-{f"EMOTIONAL & RELATIONSHIP CONTEXT:{chr(10)}{personality_context}" if personality_context else ""}"""
+{f"EMOTIONAL & RELATIONSHIP CONTEXT:{chr(10)}{personality_context}" if personality_context else ""}
+{_get_hard_rules()}"""
 
     # Check truth hints for simple, short questions only.
     # Complex multi-part requests must go through the full agentic pipeline.
@@ -663,14 +721,14 @@ or option from your previous response. Resolve the reference and act on it.
             from openclaw.agents.ira.src.brain.truth_hints import get_truth_hint
             hint = get_truth_hint(message)
             if hint and hint.confidence >= 0.9:
-                logger.info(f"[Athena] Truth hint matched: {hint.id} (conf={hint.confidence})")
+                logger.info("%s [Athena] Truth hint matched: %s (conf=%s)", log_prefix, hint.id, hint.confidence)
                 return hint.answer
         except ImportError:
             pass
         except Exception:
             pass
     else:
-        logger.info(f"[Athena] Complex request detected ({len(message)} chars, {message.count(chr(10))} lines) — skipping truth hints, using full pipeline")
+        logger.info("%s [Athena] Complex request detected (%d chars, %d lines) — skipping truth hints, using full pipeline", log_prefix, len(message), message.count(chr(10)))
 
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": system},
@@ -681,10 +739,15 @@ or option from your previous response. Resolve the reference and act on it.
     is_sales = _is_sales_inquiry(message)
     proposal_nudged = False
 
-    client = openai.OpenAI(api_key=api_key)
+    client = openai.AsyncOpenAI(api_key=api_key)
     tool_call_log = []
 
     for round_num in range(MAX_TOOL_ROUNDS):
+        # P1-7: Trim older exchanges so messages list doesn't grow unbounded
+        if len(messages) > MAX_MESSAGE_HISTORY:
+            messages = [messages[0], messages[1]] + messages[-(MAX_MESSAGE_HISTORY - 2):]
+            logger.debug("[Athena] Trimmed message history to last %d entries", MAX_MESSAGE_HISTORY)
+
         if is_sales and round_num == PROPOSAL_NUDGE_ROUND and not proposal_nudged:
             messages.append({
                 "role": "system",
@@ -693,12 +756,10 @@ or option from your previous response. Resolve the reference and act on it.
             proposal_nudged = True
             logger.info("[Athena] Proposal checkpoint injected at round %d", round_num + 1)
 
-        # Only force tool_choice="none" for ONE round after the nudge, then let Athena
-        # decide freely again — she may need more tools to finalize the proposal.
         force_no_tools = proposal_nudged and round_num == PROPOSAL_NUDGE_ROUND
 
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
                 tools=tools,
@@ -730,8 +791,8 @@ or option from your previous response. Resolve the reference and act on it.
             if final.startswith("ASK_USER:"):
                 return final[9:]
 
-            logger.info("[Athena] Tool loop complete after %d rounds. Tools: %s",
-                        round_num + 1, tool_call_log)
+            logger.info("%s [Athena] Tool loop complete after %d rounds. Tools: %s",
+                        log_prefix, round_num + 1, tool_call_log)
 
             # --- Pantheon Post-Pipeline ---
             # Vera: fact-check before validation
@@ -751,10 +812,11 @@ or option from your previous response. Resolve the reference and act on it.
                         if action.blocked and action.override_response:
                             logger.warning("[Athena] Immune system blocked response, using safe fallback")
                             final = action.override_response
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    except Exception as e:
+                        logger.error("[Athena] Immune system failed (response still sent): %s", e)
+            except Exception as e:
+                logger.error("[Athena] SAFETY: knowledge_health validation failed — "
+                             "response sent UNVALIDATED: %s", e)
 
             # Voice: reshape for channel tone
             try:
@@ -762,20 +824,32 @@ or option from your previous response. Resolve the reference and act on it.
                 final = get_voice_system().reshape(
                     final, channel=channel, message=message,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("[Athena] Voice reshape failed (raw response sent): %s", e)
 
             return final
 
         messages.append(msg)
-        for tc in msg.tool_calls or []:
+
+        # --- Manus-style: execute ALL tool calls in this round concurrently ---
+        tool_calls = msg.tool_calls or []
+        n_tools = len(tool_calls)
+
+        if n_tools == 1:
+            tc = tool_calls[0]
             fn = tc.function
             name = fn.name
             args = parse_tool_arguments(fn.arguments)
             logger.info(f"[Athena] Round {round_num+1}: calling {name}({list(args.keys())})")
             tool_call_log.append(name)
             try:
-                result = await execute_tool_call(name, args, context)
+                result = await asyncio.wait_for(
+                    execute_tool_call(name, args, context),
+                    timeout=TOOL_TIMEOUT_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                logger.error(f"[Athena] Tool {name} timed out after {TOOL_TIMEOUT_SECONDS}s")
+                result = f"(Tool {name} timed out after {TOOL_TIMEOUT_SECONDS}s)"
             except Exception as e:
                 logger.error(f"[Athena] Tool {name} raised: {e}")
                 result = f"(Tool error: {type(e).__name__} — {e})"
@@ -786,9 +860,47 @@ or option from your previous response. Resolve the reference and act on it.
                 "tool_call_id": tc.id,
                 "content": result[:16000],
             })
+        else:
+            # Multiple tools — fire all concurrently with asyncio.gather
+            parsed: List[Tuple[Any, str, Dict]] = []
+            for tc in tool_calls:
+                fn = tc.function
+                name = fn.name
+                args = parse_tool_arguments(fn.arguments)
+                parsed.append((tc, name, args))
+                tool_call_log.append(name)
+
+            tool_names = [name for _, name, _ in parsed]
+            logger.info(f"[Athena] Round {round_num+1}: {n_tools} tools in PARALLEL: {tool_names}")
+
+            async def _exec_one(tc_ref, tool_name, tool_args):
+                try:
+                    return await asyncio.wait_for(
+                        execute_tool_call(tool_name, tool_args, context),
+                        timeout=TOOL_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(f"[Athena] Tool {tool_name} timed out after {TOOL_TIMEOUT_SECONDS}s")
+                    return f"(Tool {tool_name} timed out after {TOOL_TIMEOUT_SECONDS}s)"
+                except Exception as e:
+                    logger.error(f"[Athena] Tool {tool_name} raised: {e}")
+                    return f"(Tool error: {type(e).__name__} — {e})"
+
+            results = await asyncio.gather(
+                *[_exec_one(tc, name, args) for tc, name, args in parsed]
+            )
+
+            for (tc, name, args), result in zip(parsed, results):
+                if isinstance(result, str) and result.startswith("ASK_USER:"):
+                    return result[9:]
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": (result if isinstance(result, str) else str(result))[:16000],
+                })
 
     # Max rounds reached — ask the LLM to summarize what it found so far
-    logger.warning(f"[Athena] Hit max rounds ({MAX_TOOL_ROUNDS}). Tools used: {tool_call_log}")
+    logger.warning("%s [Athena] Hit max rounds (%d). Tools used: %s", log_prefix, MAX_TOOL_ROUNDS, tool_call_log)
     final = None
     try:
         messages.append({
@@ -799,7 +911,7 @@ or option from your previous response. Resolve the reference and act on it.
                 "is still missing, tell the user what you couldn't find and suggest next steps."
             ),
         })
-        summary_resp = client.chat.completions.create(
+        summary_resp = await client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
             tools=tools,
@@ -821,7 +933,7 @@ or option from your previous response. Resolve the reference and act on it.
     try:
         from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
         final = get_voice_system().reshape(final, channel=channel, message=message)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("[Athena] Voice reshape failed (raw response sent): %s", e)
 
     return final

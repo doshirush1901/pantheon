@@ -37,6 +37,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.immune_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -143,7 +148,7 @@ class ImmuneSystem:
             for k, v in self._chronic_issues.items()
         }
         IMMUNE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        IMMUNE_STATE_FILE.write_text(json.dumps(self._state, indent=2))
+        atomic_write_json(IMMUNE_STATE_FILE, self._state)
 
     def _load_chronic_issues(self):
         for key, data in self._state.get("chronic_issues", {}).items():
@@ -366,8 +371,7 @@ class ImmuneSystem:
             "alert_sent": action.alert_sent,
         }
         REMEDIATION_LOG.parent.mkdir(parents=True, exist_ok=True)
-        with open(REMEDIATION_LOG, "a") as f:
-            f.write(json.dumps(entry) + "\n")
+        append_jsonl(REMEDIATION_LOG, entry)
 
     def mark_resolved(self, issue_key: str, note: str = ""):
         """Manually mark an issue as resolved."""

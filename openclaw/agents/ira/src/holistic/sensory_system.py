@@ -34,6 +34,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.sensory_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -155,7 +160,7 @@ class SensoryIntegrator:
             }
         self._state["contact_summaries"] = contact_summaries
         SENSORY_STATE.parent.mkdir(parents=True, exist_ok=True)
-        SENSORY_STATE.write_text(json.dumps(self._state, indent=2, default=str))
+        atomic_write_json(SENSORY_STATE, self._state)
 
     def _load_contexts(self):
         for cid, summary in self._state.get("contact_summaries", {}).items():
@@ -214,8 +219,7 @@ class SensoryIntegrator:
         }
         PERCEPTION_LOG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(PERCEPTION_LOG, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            append_jsonl(PERCEPTION_LOG, entry)
         except Exception:
             pass
 

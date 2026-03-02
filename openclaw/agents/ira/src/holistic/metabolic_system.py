@@ -37,6 +37,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.metabolic_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -95,7 +100,7 @@ class MetabolicSystem:
 
     def _save_state(self):
         METABOLIC_STATE.parent.mkdir(parents=True, exist_ok=True)
-        METABOLIC_STATE.write_text(json.dumps(self._state, indent=2))
+        atomic_write_json(METABOLIC_STATE, self._state)
 
     def run_cleanup_cycle(self) -> Dict[str, CleanupResult]:
         """
@@ -180,12 +185,11 @@ class MetabolicSystem:
             if archived:
                 archive_file = KNOWLEDGE_AUDIT_DIR / "archived_validation_issues.jsonl"
                 archive_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(archive_file, "a") as f:
-                    for item in archived:
-                        f.write(json.dumps(item) + "\n")
+                for item in archived:
+                    append_jsonl(archive_file, item)
 
             state["validation_issues"] = recent
-            health_state_file.write_text(json.dumps(state, indent=2))
+            atomic_write_json(health_state_file, state)
 
             result.details.append(
                 f"Deduplicated {result.items_flagged} issues, "
@@ -325,8 +329,7 @@ class MetabolicSystem:
         }
         CLEANUP_LOG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(CLEANUP_LOG, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            append_jsonl(CLEANUP_LOG, entry)
         except Exception as e:
             logger.warning(f"[METABOLIC] Failed to log cleanup: {e}")
 

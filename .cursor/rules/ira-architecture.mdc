@@ -21,12 +21,12 @@ The primary path is `process_with_tools()` in `tool_orchestrator.py`:
 
 | Module | Role | Owner |
 |--------|------|-------|
-| `tool_orchestrator.py` | LLM-driven pipeline, system prompt, price table | Athena |
+| `tool_orchestrator.py` | LLM-driven pipeline, system prompt, price table (from specs), hard_rules | Athena |
 | `ira_skills_tools.py` | Tool schemas + `execute_tool_call()` dispatch | All tools |
 | `truth_hints.py` | Fast-path answers, regex patterns | Simple queries |
 | `knowledge_health.py` | Response validation, model number checking | Safety |
-| `machine_specs.json` | Source of truth for 46 machine models + prices | Data |
-| `hard_rules.txt` | Business rules (used by generate_answer.py) | Rules |
+| `machine_specs.json` | Source of truth for 46 machine models + prices (price table built at runtime) | Data |
+| `hard_rules.txt` | Business rules (loaded by generate_answer.py and tool_orchestrator.py) | Rules |
 | `finance_agent/agent.py` | Plutus — order book, cashflow, revenue | Finance |
 
 ## Defense in Depth
@@ -49,6 +49,7 @@ Every safety check works at multiple layers:
 
 1. `machine_specs.json` is a **dict**, not a list. Iterate with `.items()`, not bare `for x in specs`
 2. Truth hint regexes can false-positive. Always use `\b` for word boundaries
-3. The price table in `tool_orchestrator.py` must stay in sync with `machine_specs.json`
-4. `hard_rules.txt` is only loaded by `generate_answer.py`, NOT by `tool_orchestrator.py` — rules for the tool pipeline go in the system prompt
-5. After any change, run `python3 scripts/benchy_deep.py --quick --telegram` to verify
+3. Price table is built at runtime from `machine_specs.json` in `tool_orchestrator.py` — no manual sync needed.
+4. `hard_rules.txt` is loaded by both `generate_answer.py` and `tool_orchestrator.py` (P2).
+5. After any change, run `python3 scripts/benchy_deep.py --quick --telegram` to verify.
+6. Pending Qdrant embeds: run `python3 scripts/reconcile_pending_qdrant_embeds.py` or `run_scheduled_tasks.py --task reconcile_embeds` / `--all`.

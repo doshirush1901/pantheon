@@ -31,6 +31,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    from openclaw.agents.ira.config import atomic_write_json, append_jsonl
+except ImportError:
+    from config import atomic_write_json, append_jsonl
+
 logger = logging.getLogger("ira.musculoskeletal_system")
 
 HOLISTIC_DIR = Path(__file__).parent
@@ -133,7 +138,7 @@ class MusculoskeletalSystem:
             for a in self._pending_actions.values()
         ]
         MUSCLE_STATE.parent.mkdir(parents=True, exist_ok=True)
-        MUSCLE_STATE.write_text(json.dumps(self._state, indent=2))
+        atomic_write_json(MUSCLE_STATE, self._state)
 
     def _load_pending(self):
         for item in self._state.get("pending_outcomes", []):
@@ -191,8 +196,7 @@ class MusculoskeletalSystem:
         }
         ACTION_LOG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(ACTION_LOG, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            append_jsonl(ACTION_LOG, entry)
         except Exception:
             pass
 
@@ -294,8 +298,7 @@ class MusculoskeletalSystem:
         }
         MYOKINE_LOG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(MYOKINE_LOG, "a") as f:
-                f.write(json.dumps(entry) + "\n")
+            append_jsonl(MYOKINE_LOG, entry)
         except Exception:
             pass
 
