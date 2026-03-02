@@ -353,53 +353,58 @@ class HybridSearcher:
         return self._bm25_index
     
     def _build_bm25_index(self, max_docs: int = 10000):
-        """Build BM25 index from Qdrant documents."""
+        """Build BM25 index from Qdrant documents (main chunks + discovered knowledge)."""
         logger.info("Building BM25 keyword index...")
         
         qdrant = self._get_qdrant()
-        collection = COLLECTIONS.get("chunks_voyage", "ira_chunks_v4_voyage")
+        collections_to_index = [
+            COLLECTIONS.get("chunks_voyage", "ira_chunks_v4_voyage"),
+            "ira_discovered_knowledge",
+        ]
         
         try:
-            # Get documents from Qdrant
-            offset = None
             documents = []
             
-            while len(documents) < max_docs:
-                result = qdrant.scroll(
-                    collection_name=collection,
-                    limit=500,
-                    offset=offset,
-                    with_payload=True,
-                    with_vectors=False,
-                )
-                
-                points, next_offset = result
-                if not points:
-                    break
-                
-                for point in points:
-                    payload = point.payload or {}
-                    text = payload.get("raw_text") or payload.get("text") or ""
-                    if text:
-                        documents.append((
-                            str(point.id),
-                            text[:2000],  # Limit text length
-                            {
-                                "filename": payload.get("filename", ""),
-                                "doc_type": payload.get("doc_type", ""),
-                                "machines": payload.get("machines", []),
-                            }
-                        ))
-                
-                offset = next_offset
-                if offset is None:
-                    break
+            for collection in collections_to_index:
+                offset = None
+                try:
+                    while len(documents) < max_docs:
+                        result = qdrant.scroll(
+                            collection_name=collection,
+                            limit=500,
+                            offset=offset,
+                            with_payload=True,
+                            with_vectors=False,
+                        )
+                        
+                        points, next_offset = result
+                        if not points:
+                            break
+                        
+                        for point in points:
+                            payload = point.payload or {}
+                            text = payload.get("raw_text") or payload.get("text") or ""
+                            if text:
+                                documents.append((
+                                    f"{collection}:{point.id}",
+                                    text[:2000],
+                                    {
+                                        "filename": payload.get("filename", ""),
+                                        "doc_type": payload.get("doc_type", ""),
+                                        "machines": payload.get("machines", []),
+                                    }
+                                ))
+                        
+                        offset = next_offset
+                        if offset is None:
+                            break
+                except Exception as e:
+                    logger.debug(f"Failed to index collection {collection}: {e}")
             
             if documents:
                 self._bm25_index.add_documents_bulk(documents)
-                logger.info(f"Built BM25 index with {len(documents)} documents")
+                logger.info(f"Built BM25 index with {len(documents)} documents from {len(collections_to_index)} collections")
                 
-                # Save to cache
                 try:
                     self._index_path.parent.mkdir(parents=True, exist_ok=True)
                     self._bm25_index.save(str(self._index_path))

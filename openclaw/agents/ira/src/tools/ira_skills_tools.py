@@ -324,14 +324,14 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "draft_email",
-            "description": "Draft an email using Ira's voice and Machinecraft brand guidelines. Returns a draft for review — does NOT send. Use when asked to compose, write, or draft an email.",
+            "description": "Draft an email using Ira's voice, auto-enriched with real data from CRM, knowledge base, Google Contacts, and Mem0. Returns a draft for review — does NOT send. IMPORTANT: Before calling this, you SHOULD call customer_lookup and/or search_contacts to resolve the recipient's email address if you only have a name. Also call research_skill to gather relevant product/company data, then pass those results as 'context'. The tool also does its own enrichment, but explicit context from prior tool calls produces much better drafts.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "to": {"type": "string", "description": "Recipient email address"},
+                    "to": {"type": "string", "description": "Recipient email address (or name if email unknown — tool will try to resolve via Google Contacts)"},
                     "subject": {"type": "string", "description": "Email subject"},
                     "intent": {"type": "string", "description": "What the email should convey (e.g. 'follow up on PF1 quote', 'introduce Machinecraft')"},
-                    "context": {"type": "string", "description": "Additional context for the draft (e.g. previous conversation, specific details to include)"},
+                    "context": {"type": "string", "description": "IMPORTANT: Pass results from prior tool calls here (customer_lookup, research_skill, search_contacts results). This grounds the email in real data instead of hallucinating."},
                 },
                 "required": ["to", "subject", "intent"],
             },
@@ -826,11 +826,15 @@ async def execute_tool_call(
         try:
             from openclaw.agents.ira.tools.email import ira_email_draft
             draft = ira_email_draft(to=to, subject=subject, intent=intent, context=email_context)
+            sources_note = ""
+            if draft.context_used:
+                sources_note = f"\n[Data sources used: {', '.join(draft.context_used)}]"
             return (
                 f"DRAFT EMAIL (not sent — needs Rushabh's approval):\n\n"
                 f"To: {draft.to}\n"
                 f"Subject: {draft.subject}\n\n"
                 f"{draft.body}"
+                f"{sources_note}"
             )
         except ImportError:
             return "(Email drafting not available.)"

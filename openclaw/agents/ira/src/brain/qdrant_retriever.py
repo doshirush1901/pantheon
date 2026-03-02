@@ -87,8 +87,10 @@ GOOD_SCORE_THRESHOLD = 0.35  # Above this, results are reliable
 QUERY_EXPANSIONS = {
     r'\bpf[-\s]?1\b': ['PF1', 'PF-1', 'pressure forming', 'single station thermoforming'],
     r'\bpf[-\s]?2\b': ['PF2', 'PF-2', 'twin sheet forming'],
-    r'\bam\b': ['AM series', 'twin sheet', 'automotive'],
+    r'\bam[-\s]?p\b': ['AM-P', 'AMP', 'AM pressure forming', 'AM series pressure'],
+    r'\bam\b': ['AM series', 'twin sheet', 'automotive', 'AM-P', 'AM-V', 'AM-M'],
     r'\bre\b': ['RE series', 'rotary'],
+    r'\bformpack\b': ['Formpack', 'Machinecraft sister company', 'Formpack packaging', 'Formpack sales'],
     r'\bthermoform': ['thermoforming', 'vacuum forming', 'pressure forming'],
     r'\bprice\b': ['price', 'cost', 'quotation', 'quote', 'pricing'],
     r'\bspec\b': ['specification', 'specs', 'technical', 'dimensions'],

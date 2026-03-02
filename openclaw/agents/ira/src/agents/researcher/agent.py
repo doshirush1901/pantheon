@@ -116,6 +116,7 @@ class ResearchResult:
 MACHINE_PATTERNS = [
     (r'(PF1)[-\s]?([A-Z])[-\s]?(\d{4})', lambda m: f"{m[0]}-{m[1]}-{m[2]}"),
     (r'(PF2)[-\s]?([A-Z])?[-\s]?(\d{4})', lambda m: f"{m[0]}-{m[1]}-{m[2]}"),
+    (r'(AM)[-\s]?([A-Z])[-\s]?(\d{4})', lambda m: f"{m[0]}-{m[1]}-{m[2]}"),
     (r'(AM)[-\s]?(\d{4})', lambda m: f"{m[0]}-{m[1]}"),
     (r'(ATF)[-\s]?(\d+)', lambda m: f"{m[0]}-{m[1]}"),
     (r'(IMG)[-\s]?(\d{4})', lambda m: f"{m[0]}-{m[1]}"),

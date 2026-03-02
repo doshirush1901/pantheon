@@ -254,6 +254,17 @@ For data analysis ("top companies by email volume", "rank leads", "aggregate ord
     Round 2: run_analysis(task="Parse these emails, group by sender company, count messages per company, rank by engagement", data=<email results>)
     Round 3: Deliver the computed result to the user
 
+For drafting/sending emails ("send email to X", "draft email about Y", "write to Z"):
+  1. FIRST resolve the recipient: search_contacts(name) + customer_lookup(name) in PARALLEL
+  2. THEN gather context: research_skill(topic) + memory_search(topic) in PARALLEL
+  3. ONLY THEN call draft_email with the REAL email address and pass ALL gathered data as 'context'
+  4. NEVER call draft_email without first resolving the recipient and gathering context
+  5. If you cannot find the recipient's email, use ask_user to request it — do NOT invent placeholder emails
+  Example workflow:
+    Round 1: search_contacts("Alok Doshi") + customer_lookup("Alok Doshi") + research_skill("Formpack sales strategy") — all in parallel
+    Round 2: draft_email(to=<resolved email>, subject=..., intent=..., context=<all gathered data>)
+    Round 3: Present draft to user for approval
+
 IMPORTANT: If the user asks for N items (e.g. "10 names") and you only found fewer, say how many you found and offer to search more. Do NOT pad with made-up names.
 
 DATA QUALITY: When tool results mention companies, VERIFY the relationship:

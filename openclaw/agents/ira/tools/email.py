@@ -67,6 +67,76 @@ class IraEmailTool:
                 self._polisher = None
         return self._polisher
     
+    def _gather_context(self, to: str, subject: str, intent: str) -> Dict[str, Any]:
+        """Auto-enrich email draft with CRM, knowledge base, and Google Contacts data."""
+        gathered: Dict[str, Any] = {"sources": []}
+
+        recipient_name = to if "@" not in to else ""
+        search_terms = [t for t in [recipient_name, subject, intent] if t]
+
+        # 1. Google Contacts lookup (resolves names to emails)
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import contacts_search
+            for term in search_terms[:2]:
+                result = contacts_search(term)
+                if result and "not available" not in result.lower() and "no contacts" not in result.lower():
+                    gathered["contacts"] = result
+                    gathered["sources"].append("google_contacts")
+                    break
+        except Exception:
+            pass
+
+        # 2. CRM lookup
+        try:
+            from openclaw.agents.ira.src.crm.ira_crm import IraCRM
+            crm = IraCRM()
+            for term in search_terms[:2]:
+                contacts = crm.search_contacts(term, limit=3)
+                if contacts:
+                    crm_lines = []
+                    for c in contacts:
+                        parts = [c.name or ""]
+                        if c.company:
+                            parts.append(f"at {c.company}")
+                        if c.email:
+                            parts.append(f"({c.email})")
+                        crm_lines.append(" ".join(p for p in parts if p))
+                    gathered["crm"] = "\n".join(crm_lines)
+                    gathered["sources"].append("crm")
+                    break
+        except Exception:
+            pass
+
+        # 3. Knowledge base (Qdrant) for subject/intent context
+        try:
+            from openclaw.agents.ira.src.brain.qdrant_retriever import retrieve as qdrant_retrieve
+            knowledge_query = f"{subject} {intent}".strip()
+            rag = qdrant_retrieve(knowledge_query, top_k=5)
+            if hasattr(rag, 'citations') and rag.citations:
+                kb_parts = []
+                for c in rag.citations[:3]:
+                    kb_parts.append(f"[{c.filename}] {c.text[:500]}")
+                gathered["knowledge"] = "\n\n".join(kb_parts)
+                gathered["sources"].append("knowledge_base")
+        except Exception:
+            pass
+
+        # 4. Mem0 memory
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            mem0 = get_mem0_service()
+            for uid in ["machinecraft_customers", "machinecraft_knowledge"]:
+                memories = mem0.search(f"{subject} {intent}", uid, limit=5)
+                if memories:
+                    mem_parts = [m.memory for m in memories[:3]]
+                    gathered.setdefault("memory", "")
+                    gathered["memory"] += "\n".join(mem_parts) + "\n"
+                    gathered["sources"].append(f"mem0:{uid}")
+        except Exception:
+            pass
+
+        return gathered
+
     def draft(
         self,
         to: str,
@@ -76,17 +146,8 @@ class IraEmailTool:
         tone: str = "professional",
     ) -> EmailDraft:
         """
-        Draft an email using Ira's voice.
-        
-        Args:
-            to: Recipient email
-            subject: Email subject
-            intent: What the email should convey
-            context: Additional context
-            tone: Tone of the email
-            
-        Returns:
-            EmailDraft ready for review/send
+        Draft an email using Ira's voice, auto-enriched with real data from
+        CRM, knowledge base, Google Contacts, and Mem0.
         """
         import os
         
@@ -94,33 +155,56 @@ class IraEmailTool:
             import openai
             client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
             
+            enrichment = self._gather_context(to, subject, intent)
+            
+            context_sections = []
+            if context:
+                context_sections.append(f"USER-PROVIDED CONTEXT:\n{context}")
+            if enrichment.get("contacts"):
+                context_sections.append(f"GOOGLE CONTACTS (recipient info):\n{enrichment['contacts']}")
+            if enrichment.get("crm"):
+                context_sections.append(f"CRM DATA:\n{enrichment['crm']}")
+            if enrichment.get("knowledge"):
+                context_sections.append(f"KNOWLEDGE BASE (relevant documents):\n{enrichment['knowledge']}")
+            if enrichment.get("memory"):
+                context_sections.append(f"MEMORY (past interactions):\n{enrichment['memory']}")
+            
+            enriched_context = "\n\n".join(context_sections) if context_sections else "(No additional context found)"
+            
             system_prompt = """You are Ira, the AI assistant for Machinecraft Technologies.
-Draft a professional email with these characteristics:
-- Warm but professional tone
-- Clear and concise
-- Include relevant technical details
-- End with a clear call to action"""
+Draft a professional email grounded in the REAL DATA provided below.
+
+RULES:
+- Use ONLY facts from the provided context. NEVER invent statistics, percentages, or claims.
+- If the context has specific numbers, specs, or details, use them verbatim.
+- If context is thin, keep the email short and factual rather than padding with made-up data.
+- Warm but professional tone (Machinecraft brand voice).
+- Clear and concise — 3-5 short paragraphs max.
+- End with a clear call to action.
+- Do NOT include greeting line (that will be added separately)."""
             
             user_prompt = f"""Draft an email:
 To: {to}
 Subject: {subject}
 Intent: {intent}
-{"Context: " + context if context else ""}
 
-Write only the email body, no greeting line (that will be added)."""
+═══ ENRICHED CONTEXT (use this data — do NOT invent facts) ═══
+{enriched_context}
+═══════════════════════════════════════════════════════════════
+
+Write only the email body. Ground every claim in the context above."""
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.7,
+                temperature=0.4,
             )
             
             body = response.choices[0].message.content
             
-            # Polish if available
             polisher = self._get_polisher()
             if polisher:
                 polish_result = polisher.polish(body, use_llm=False)
@@ -130,6 +214,7 @@ Write only the email body, no greeting line (that will be added)."""
                 to=to,
                 subject=subject,
                 body=body,
+                context_used=enrichment.get("sources", []),
                 tone=tone,
             )
             
