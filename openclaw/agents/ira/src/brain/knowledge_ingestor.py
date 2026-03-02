@@ -258,14 +258,21 @@ class KnowledgeIngestor:
         return self._mem0
     
     def _embed(self, texts: List[str]) -> List[List[float]]:
-        """Generate Voyage embeddings for texts."""
+        """Generate Voyage embeddings for texts in safe-sized batches.
+        
+        Voyage API limits: 128 texts or ~120K tokens per call.
+        We use batches of 32 to stay well within limits and bound memory.
+        """
+        EMBED_BATCH = int(os.environ.get("EMBEDDING_BATCH_SIZE", "32"))
         voyage = self._get_voyage()
-        result = voyage.embed(
-            texts,
-            model="voyage-3",
-            input_type="document"
-        )
-        return result.embeddings
+        all_embeddings: List[List[float]] = []
+
+        for start in range(0, len(texts), EMBED_BATCH):
+            batch = texts[start : start + EMBED_BATCH]
+            result = voyage.embed(batch, model="voyage-3", input_type="document")
+            all_embeddings.extend(result.embeddings)
+
+        return all_embeddings
     
     def _load_ingested_hashes(self):
         """Load previously ingested content hashes for deduplication."""
@@ -283,9 +290,9 @@ class KnowledgeIngestor:
             data = {
                 "updated_at": datetime.now().isoformat(),
                 "count": len(self._ingested_hashes),
-                "hashes": list(self._ingested_hashes)
+                "hashes": sorted(self._ingested_hashes),
             }
-            INGESTED_HASHES_FILE.write_text(json.dumps(data, indent=2))
+            INGESTED_HASHES_FILE.write_text(json.dumps(data, separators=(",", ":")))
         except Exception as e:
             self._log(f"Warning: Could not save hashes: {e}")
     
@@ -324,10 +331,12 @@ class KnowledgeIngestor:
             end = start + MAX_CHUNK_SIZE
             
             if end < len(text):
-                break_point = text.rfind("\n\n", start, end)
+                # Only use a natural break if it's in the back half of the window
+                midpoint = start + MAX_CHUNK_SIZE // 2
+                break_point = text.rfind("\n\n", midpoint, end)
                 if break_point == -1:
-                    break_point = text.rfind(". ", start, end)
-                if break_point > start:
+                    break_point = text.rfind(". ", midpoint, end)
+                if break_point > midpoint:
                     end = break_point + 1
             
             chunk = text[start:end].strip()
@@ -336,15 +345,25 @@ class KnowledgeIngestor:
                 chunks.append(prefix + chunk)
                 chunk_num += 1
             
-            start = end - CHUNK_OVERLAP if end < len(text) else end
+            new_start = end - CHUNK_OVERLAP if end < len(text) else end
+            # Guarantee forward progress
+            if new_start <= start:
+                new_start = start + MAX_CHUNK_SIZE // 2
+            start = new_start
         
         return chunks
     
     def _get_source_fingerprint(self, file_path: Path) -> str:
-        """Get hash of source file for change detection."""
+        """Get hash of source file for change detection using chunked reads."""
         try:
-            content = file_path.read_bytes()
-            return hashlib.sha256(content).hexdigest()[:16]
+            h = hashlib.sha256()
+            with open(file_path, "rb") as f:
+                while True:
+                    chunk = f.read(1 << 20)  # 1 MB chunks
+                    if not chunk:
+                        break
+                    h.update(chunk)
+            return h.hexdigest()[:16]
         except Exception:
             return ""
     
@@ -553,6 +572,8 @@ class KnowledgeIngestor:
                         "source_group": "knowledge",
                         "filename": item.source_file,
                         "machines": [item.entity] if item.entity else [],
+                        "confidence": item.confidence,
+                        "verified": item.confidence >= 0.9,
                         "ingested_at": datetime.now().isoformat(),
                         "source": "knowledge_ingestor",
                         **item.metadata,
@@ -591,6 +612,8 @@ class KnowledgeIngestor:
                         "entity": item.entity,
                         "machines": [item.entity] if item.entity else [],
                         "summary": item.summary,
+                        "confidence": item.confidence,
+                        "verified": item.confidence >= 0.9,
                         "ingested_at": datetime.now().isoformat(),
                         "source": "knowledge_ingestor",
                         **item.metadata,

@@ -177,8 +177,12 @@ class QdrantRetriever:
     
     def _get_qdrant(self):
         if self._qdrant is None:
-            from qdrant_client import QdrantClient
-            self._qdrant = QdrantClient(url=QDRANT_URL, timeout=30)
+            try:
+                from config import get_qdrant_client
+                self._qdrant = get_qdrant_client()
+            except ImportError:
+                from qdrant_client import QdrantClient
+                self._qdrant = QdrantClient(url=QDRANT_URL, timeout=30)
         return self._qdrant
     
     def _safe_qdrant_query(self, collection_name: str, query: list, limit: int):
@@ -389,10 +393,17 @@ class QdrantRetriever:
                 
                 doc_type_counts[doc_type] = doc_type_counts.get(doc_type, 0) + 1
                 
+                # Apply confidence-aware scoring: demote unverified/low-confidence items
+                item_confidence = payload.get("confidence", 1.0)
+                if isinstance(item_confidence, (int, float)):
+                    adjusted_score = p.score * (0.7 + 0.3 * item_confidence)
+                else:
+                    adjusted_score = p.score
+
                 citations.append(Citation(
                     text=payload.get("raw_text", payload.get("text", ""))[:1500],
                     filename=payload.get("filename", ""),
-                    score=p.score,
+                    score=adjusted_score,
                     source_group=payload.get("source_group", "business"),
                     doc_type=doc_type,
                     chunk_id=str(p.id),

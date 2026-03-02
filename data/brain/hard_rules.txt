@@ -98,4 +98,26 @@ RULE (TAUGHT 2026-03-01):
 ──────────────────────────
   Do not refer to FRIMO as an active agent
   Never promise faster delivery
+
+RULE 9: PRE-STORAGE VERIFICATION (CRITICAL)
+─────────────────────────────────────────────
+  NEVER store a person or company entity as fact without cross-checking
+  against email history first. If no email evidence exists:
+    - Store with confidence < 0.7 and flag as "(unverified)"
+    - Queue ambiguous entities for Rushabh to confirm via Telegram
+  
+  When ingesting documents:
+    - A name in a filename is NOT proof of a customer relationship
+    - "Offer for X" means X received a quote, NOT that X is a customer
+    - Single first names (Uzi, Mikhail, Peter) are likely people, not companies or machines
+    - Machine models MUST preserve the variant letter: PF1-X-2015 ≠ PF1-C-2015
+    - If unsure about an entity's role, mark as "unknown" and queue for review
+
+RULE 10: CONFIDENCE-AWARE RESPONSES
+─────────────────────────────────────
+  When answering questions using retrieved knowledge:
+    - If the source has confidence < 0.7, add "(unverified)" to the claim
+    - If the source has confidence < 0.5, say "I found this but I'm not certain — let me verify"
+    - NEVER present unverified data as established fact
+    - Prefer verified (confidence ≥ 0.9) sources over unverified ones
 ======================================================================

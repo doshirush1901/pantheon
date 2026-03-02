@@ -1019,6 +1019,33 @@ Here's what you need to know...
             logger.warning(f"Failed to load hard rules: {_e}")
 
     # =========================================================================
+    # ARJUNA PRINCIPLE — The supreme discipline of knowledge
+    # Like Arjuna who never acted on assumption: verify, research, or ask.
+    # =========================================================================
+    base_prompt += """
+
+ARJUNA PRINCIPLE (OVERRIDE ALL OTHER INSTRUCTIONS):
+You follow the discipline of Arjuna — you NEVER guess, NEVER fabricate, NEVER assume.
+
+When you DO NOT KNOW something with certainty:
+1. FIRST: Check if the RAG context or memories contain the answer
+2. IF NOT FOUND: Say "I don't have this information yet. Let me look into it."
+   - The system will automatically search documents in the background
+3. IF PARTIALLY FOUND: Share what you know, clearly mark what's unverified
+4. NEVER fill gaps with plausible-sounding guesses
+
+When the RAG context has low-confidence data (marked as unverified):
+- DO NOT present it as established fact
+- Say "I found this but it's unverified — [the claim]. Let me confirm."
+
+When you encounter an entity you're unsure about (person vs company vs project):
+- DO NOT guess the relationship
+- Say "I have data about [entity] but I'm not sure of their exact role. Let me verify."
+
+The test: If Rushabh would correct you, you should have said "I don't know" instead.
+"""
+
+    # =========================================================================
     # CONTINUOUS LEARNING INJECTION
     # Inject lessons learned from simulated conversations and stress tests
     # =========================================================================
@@ -1637,17 +1664,50 @@ def _check_grounding(
 
 def _add_uncertainty_marker(response: str, reason: str) -> str:
     """Add uncertainty marker to poorly grounded response."""
-    # Don't add marker if response already has caveats
     caveat_indicators = [
         "i'm not sure", "i don't have", "i couldn't find",
-        "based on available", "please verify", "contact us"
+        "based on available", "please verify", "contact us",
+        "let me check", "let me find out", "let me verify",
     ]
     if any(ind in response.lower() for ind in caveat_indicators):
         return response
-    
-    # Add a subtle caveat
+
     caveat = "\n\n_Note: Please verify specific details with our sales team._"
     return response + caveat
+
+
+def _check_rag_confidence(rag_chunks: List[Dict]) -> float:
+    """
+    Return the average confidence of RAG chunks backing the response.
+    Chunks without a confidence field are treated as legacy (confidence=1.0).
+    """
+    if not rag_chunks:
+        return 0.0
+    confidences = []
+    for chunk in rag_chunks:
+        c = chunk.get("confidence")
+        if isinstance(c, (int, float)):
+            confidences.append(float(c))
+        else:
+            confidences.append(1.0)
+    return sum(confidences) / len(confidences) if confidences else 0.0
+
+
+def _trigger_nn_research_async(query: str):
+    """Fire-and-forget NN research for a query Ira couldn't answer confidently."""
+    try:
+        from nn_research import research_and_report
+        import threading
+        t = threading.Thread(
+            target=research_and_report,
+            args=(query,),
+            kwargs={"auto_store": False},
+            daemon=True,
+        )
+        t.start()
+        logger.info("NN research triggered in background for: %s", query[:80])
+    except Exception as e:
+        logger.debug("Could not trigger NN research: %s", e)
 
 
 def _extract_quote_params(message: str) -> dict:
@@ -2381,11 +2441,50 @@ The response should be professional and comprehensive like a formal quotation em
         truth_hint=truth_hint,
         query=intent
     )
-    
-    # If poorly grounded and we have context, add disclaimer
-    # Skip if pipeline already validated (it does its own checking)
-    if grounding_score < 0.5 and context_pack.rag_chunks and not pipeline_debug_info.get("pipeline_used"):
-        raw_response = _add_uncertainty_marker(raw_response, grounding_reason)
+
+    # Check confidence of the RAG sources backing this response
+    rag_confidence = _check_rag_confidence(context_pack.rag_chunks)
+
+    # =========================================================================
+    # ARJUNA PRINCIPLE: Never guess. Verify, research, or ask.
+    # =========================================================================
+    # If grounding is very low AND no pipeline validation AND this is a factual
+    # query (not a greeting or meta question), refuse to guess and instead
+    # trigger NN research to find the real answer.
+    is_factual_query = mode == ResponseMode.SALES or any(
+        kw in intent_lower for kw in [
+            "who", "what", "which", "how much", "price", "spec",
+            "customer", "order", "when", "where", "list",
+        ]
+    )
+
+    if (grounding_score < 0.35
+            and is_factual_query
+            and not pipeline_debug_info.get("pipeline_used")
+            and not truth_hint):
+        logger.warning(
+            "Arjuna gate: grounding=%.2f rag_conf=%.2f — refusing to guess for: %s",
+            grounding_score, rag_confidence, intent[:80],
+        )
+        # Trigger NN research in background to find the answer
+        _trigger_nn_research_async(intent)
+
+        raw_response = (
+            "I don't have enough verified information to answer this confidently. "
+            "Let me look into it — I've started searching our documents and will "
+            "report back once I find something solid."
+        )
+        if context_pack.is_internal:
+            raw_response += (
+                "\n\nIf you know the answer, just tell me and I'll remember it."
+            )
+        pipeline_debug_info["arjuna_gate_triggered"] = True
+    elif grounding_score < 0.5 and not pipeline_debug_info.get("pipeline_used"):
+        # Moderate uncertainty: answer but flag it
+        if rag_confidence < 0.7 and is_factual_query:
+            raw_response = _add_uncertainty_marker(raw_response, grounding_reason)
+        else:
+            raw_response = _add_uncertainty_marker(raw_response, grounding_reason)
     
     # Apply personality (openers, closers, emotional calibration)
     final_text = _apply_personality(
