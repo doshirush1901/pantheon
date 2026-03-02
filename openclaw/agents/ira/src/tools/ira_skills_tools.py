@@ -247,6 +247,99 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "read_inbox",
+            "description": "Read Rushabh's Gmail inbox. Returns recent or unread emails with sender, subject, date, and preview. Use when asked about new emails, unread messages, or 'what's in my inbox'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "max_results": {"type": "integer", "description": "Number of emails to fetch (default 10, max 20)"},
+                    "unread_only": {"type": "boolean", "description": "If true, only return unread emails (default true)"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_email",
+            "description": "Search Rushabh's Gmail using Gmail search syntax. Use for finding specific emails by sender, subject, date range, attachments, etc. Examples: 'from:john@example.com', 'subject:invoice after:2026/01/01', 'has:attachment from:customer'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Gmail search query (same syntax as Gmail search bar)"},
+                    "max_results": {"type": "integer", "description": "Max results to return (default 10, max 20)"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_email_message",
+            "description": "Read the full content of a specific email by its message ID. Use after read_inbox or search_email to get the complete email body.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {"type": "string", "description": "The Gmail message ID (from read_inbox or search_email results)"},
+                },
+                "required": ["message_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_email_thread",
+            "description": "Read a full email conversation thread. Use to see the complete back-and-forth in a conversation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "thread_id": {"type": "string", "description": "The Gmail thread ID"},
+                    "max_messages": {"type": "integer", "description": "Max messages to include (default 10)"},
+                },
+                "required": ["thread_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_email",
+            "description": "Send an email from Rushabh's Gmail. IMPORTANT: Always confirm with Rushabh before sending. Never send without explicit approval.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string", "description": "Recipient email address"},
+                    "subject": {"type": "string", "description": "Email subject line"},
+                    "body": {"type": "string", "description": "Email body (plain text)"},
+                    "thread_id": {"type": "string", "description": "Optional: thread ID to reply in an existing conversation"},
+                },
+                "required": ["to", "subject", "body"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "draft_email",
+            "description": "Draft an email using Ira's voice and Machinecraft brand guidelines. Returns a draft for review — does NOT send. Use when asked to compose, write, or draft an email.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string", "description": "Recipient email address"},
+                    "subject": {"type": "string", "description": "Email subject"},
+                    "intent": {"type": "string", "description": "What the email should convey (e.g. 'follow up on PF1 quote', 'introduce Machinecraft')"},
+                    "context": {"type": "string", "description": "Additional context for the draft (e.g. previous conversation, specific details to include)"},
+                },
+                "required": ["to", "subject", "intent"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "discovery_scan",
             "description": "Ask Prometheus (the market discovery agent) to find new products and industries where vacuum forming can be applied. Scans emerging sectors like battery storage, EV, drones, renewable energy, medical devices, modular construction. Can scan a specific industry, evaluate a product idea, or run a full sweep across all tracked industries.",
             "parameters": {
@@ -314,6 +407,12 @@ async def execute_tool_call(
         "order_book_status": "plutus",
         "cashflow_forecast": "plutus",
         "revenue_history": "plutus",
+        "read_inbox": "hermes",
+        "search_email": "hermes",
+        "read_email_message": "hermes",
+        "read_email_thread": "hermes",
+        "send_email": "hermes",
+        "draft_email": "hermes",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -637,6 +736,89 @@ async def execute_tool_call(
             return "(Google Contacts not available.)"
         except Exception as e:
             return f"(Contacts error: {e})"
+
+    elif tool_name == "read_inbox":
+        max_results = arguments.get("max_results", 10)
+        unread_only = arguments.get("unread_only", True)
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import gmail_read_inbox
+            return gmail_read_inbox(max_results=max_results, unread_only=unread_only)
+        except ImportError:
+            return "(Gmail not available. Install: pip install google-api-python-client google-auth-oauthlib)"
+        except Exception as e:
+            return f"(Inbox error: {e})"
+
+    elif tool_name == "search_email":
+        query = arguments.get("query", "")
+        max_results = arguments.get("max_results", 10)
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import gmail_search
+            return gmail_search(query=query, max_results=max_results)
+        except ImportError:
+            return "(Gmail not available.)"
+        except Exception as e:
+            return f"(Email search error: {e})"
+
+    elif tool_name == "read_email_message":
+        message_id = arguments.get("message_id", "")
+        if not message_id:
+            return "(Error: message_id is required)"
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import gmail_read_message
+            return gmail_read_message(message_id=message_id)
+        except ImportError:
+            return "(Gmail not available.)"
+        except Exception as e:
+            return f"(Read message error: {e})"
+
+    elif tool_name == "read_email_thread":
+        thread_id = arguments.get("thread_id", "")
+        max_messages = arguments.get("max_messages", 10)
+        if not thread_id:
+            return "(Error: thread_id is required)"
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import gmail_get_thread
+            return gmail_get_thread(thread_id=thread_id, max_messages=max_messages)
+        except ImportError:
+            return "(Gmail not available.)"
+        except Exception as e:
+            return f"(Thread read error: {e})"
+
+    elif tool_name == "send_email":
+        to = arguments.get("to", "")
+        subject = arguments.get("subject", "")
+        body = arguments.get("body", "")
+        thread_id = arguments.get("thread_id", "")
+        if not to or not subject or not body:
+            return "(Error: to, subject, and body are all required)"
+        try:
+            from openclaw.agents.ira.src.tools.google_tools import gmail_send
+            return gmail_send(to=to, subject=subject, body=body, thread_id=thread_id)
+        except ImportError:
+            return "(Gmail not available.)"
+        except Exception as e:
+            return f"(Send email error: {e})"
+
+    elif tool_name == "draft_email":
+        to = arguments.get("to", "")
+        subject = arguments.get("subject", "")
+        intent = arguments.get("intent", "")
+        email_context = arguments.get("context", "")
+        if not to or not subject or not intent:
+            return "(Error: to, subject, and intent are all required)"
+        try:
+            from openclaw.agents.ira.tools.email import ira_email_draft
+            draft = ira_email_draft(to=to, subject=subject, intent=intent, context=email_context)
+            return (
+                f"DRAFT EMAIL (not sent — needs Rushabh's approval):\n\n"
+                f"To: {draft.to}\n"
+                f"Subject: {draft.subject}\n\n"
+                f"{draft.body}"
+            )
+        except ImportError:
+            return "(Email drafting not available.)"
+        except Exception as e:
+            return f"(Draft email error: {e})"
 
     elif tool_name == "discovery_scan":
         query = arguments.get("query", "")

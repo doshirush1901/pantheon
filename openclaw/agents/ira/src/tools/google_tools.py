@@ -313,6 +313,273 @@ def contacts_search(query: str) -> str:
 
 
 # =============================================================================
+# GMAIL (Read / Search / Thread)
+# =============================================================================
+
+def _get_gmail_service():
+    """Build a Gmail API service using shared OAuth credentials."""
+    creds = _get_oauth_creds()
+    if not creds:
+        return None
+    try:
+        from googleapiclient.discovery import build
+        return build("gmail", "v1", credentials=creds)
+    except Exception as e:
+        logger.error(f"Gmail service build error: {e}")
+        return None
+
+
+def _extract_email_body(payload: Dict) -> str:
+    """Extract plain-text body from a Gmail message payload."""
+    import base64
+
+    if "body" in payload and payload["body"].get("data"):
+        return base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8", errors="ignore")
+
+    for part in payload.get("parts", []):
+        if part["mimeType"] == "text/plain" and part["body"].get("data"):
+            return base64.urlsafe_b64decode(part["body"]["data"]).decode("utf-8", errors="ignore")
+        if "parts" in part:
+            result = _extract_email_body(part)
+            if result:
+                return result
+    return ""
+
+
+def gmail_read_inbox(max_results: int = 10, unread_only: bool = True) -> str:
+    """Fetch recent emails from Rushabh's Gmail inbox.
+
+    Args:
+        max_results: Number of emails to return (max 20).
+        unread_only: If True, only return unread messages.
+
+    Returns:
+        Formatted summary of inbox messages.
+    """
+    service = _get_gmail_service()
+    if not service:
+        return "(Gmail not available. Check OAuth token.)"
+
+    try:
+        q = "is:unread" if unread_only else ""
+        max_results = min(max_results, 20)
+
+        results = service.users().messages().list(
+            userId="me", q=q, maxResults=max_results,
+        ).execute()
+
+        messages = results.get("messages", [])
+        if not messages:
+            return "Inbox is clean — no unread emails." if unread_only else "No recent emails found."
+
+        lines = [f"{'Unread' if unread_only else 'Recent'} emails ({len(messages)}):"]
+        lines.append("")
+
+        for msg_ref in messages:
+            try:
+                msg = service.users().messages().get(
+                    userId="me", id=msg_ref["id"], format="metadata",
+                    metadataHeaders=["From", "Subject", "Date"],
+                ).execute()
+                headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                snippet = msg.get("snippet", "")[:120]
+                labels = msg.get("labelIds", [])
+                starred = " *" if "STARRED" in labels else ""
+
+                lines.append(
+                    f"  From: {headers.get('from', '?')}\n"
+                    f"  Subject: {headers.get('subject', '(no subject)')}{starred}\n"
+                    f"  Date: {headers.get('date', '?')}\n"
+                    f"  Preview: {snippet}\n"
+                    f"  [id:{msg_ref['id']}]\n"
+                )
+            except Exception as e:
+                logger.debug(f"Skipping message {msg_ref['id']}: {e}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        logger.error(f"Gmail read inbox error: {e}")
+        return f"(Gmail inbox error: {e})"
+
+
+def gmail_search(query: str, max_results: int = 10) -> str:
+    """Search Gmail using the same syntax as the Gmail search bar.
+
+    Args:
+        query: Gmail search query (e.g. "from:john subject:invoice", "has:attachment after:2026/01/01").
+        max_results: Max messages to return (max 20).
+
+    Returns:
+        Formatted search results with sender, subject, date, and preview.
+    """
+    service = _get_gmail_service()
+    if not service:
+        return "(Gmail not available. Check OAuth token.)"
+
+    try:
+        max_results = min(max_results, 20)
+        results = service.users().messages().list(
+            userId="me", q=query, maxResults=max_results,
+        ).execute()
+
+        messages = results.get("messages", [])
+        if not messages:
+            return f"No emails found for: {query}"
+
+        total_estimate = results.get("resultSizeEstimate", len(messages))
+        lines = [f"Search results for '{query}' ({len(messages)} shown, ~{total_estimate} total):"]
+        lines.append("")
+
+        for msg_ref in messages:
+            try:
+                msg = service.users().messages().get(
+                    userId="me", id=msg_ref["id"], format="metadata",
+                    metadataHeaders=["From", "To", "Subject", "Date"],
+                ).execute()
+                headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                snippet = msg.get("snippet", "")[:150]
+
+                lines.append(
+                    f"  From: {headers.get('from', '?')}\n"
+                    f"  To: {headers.get('to', '?')}\n"
+                    f"  Subject: {headers.get('subject', '(no subject)')}\n"
+                    f"  Date: {headers.get('date', '?')}\n"
+                    f"  Preview: {snippet}\n"
+                    f"  [id:{msg_ref['id']}]\n"
+                )
+            except Exception as e:
+                logger.debug(f"Skipping message {msg_ref['id']}: {e}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        logger.error(f"Gmail search error: {e}")
+        return f"(Gmail search error: {e})"
+
+
+def gmail_read_message(message_id: str) -> str:
+    """Read the full content of a specific email by its message ID.
+
+    Args:
+        message_id: The Gmail message ID (returned by read_inbox or search_email).
+
+    Returns:
+        Full email with headers and body text.
+    """
+    service = _get_gmail_service()
+    if not service:
+        return "(Gmail not available. Check OAuth token.)"
+
+    try:
+        msg = service.users().messages().get(
+            userId="me", id=message_id, format="full",
+        ).execute()
+
+        headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+        body = _extract_email_body(msg.get("payload", {}))
+        labels = msg.get("labelIds", [])
+
+        parts = [
+            f"From: {headers.get('from', '?')}",
+            f"To: {headers.get('to', '?')}",
+        ]
+        if headers.get("cc"):
+            parts.append(f"CC: {headers['cc']}")
+        parts.extend([
+            f"Subject: {headers.get('subject', '(no subject)')}",
+            f"Date: {headers.get('date', '?')}",
+            f"Labels: {', '.join(labels)}",
+            "",
+            body[:6000] if body else "(no text body)",
+        ])
+
+        return "\n".join(parts)
+    except Exception as e:
+        logger.error(f"Gmail read message error: {e}")
+        return f"(Gmail read message error: {e})"
+
+
+def gmail_get_thread(thread_id: str, max_messages: int = 10) -> str:
+    """Fetch a full email conversation thread.
+
+    Args:
+        thread_id: The Gmail thread ID.
+        max_messages: Max messages to include from the thread.
+
+    Returns:
+        Formatted conversation thread with all messages.
+    """
+    service = _get_gmail_service()
+    if not service:
+        return "(Gmail not available. Check OAuth token.)"
+
+    try:
+        thread = service.users().threads().get(
+            userId="me", id=thread_id, format="full",
+        ).execute()
+
+        messages = thread.get("messages", [])
+        if not messages:
+            return f"(Thread {thread_id} is empty)"
+
+        first_headers = {h["name"].lower(): h["value"] for h in messages[0].get("payload", {}).get("headers", [])}
+        subject = first_headers.get("subject", "(no subject)")
+
+        lines = [f"Thread: {subject} ({len(messages)} messages)"]
+        lines.append("=" * 50)
+
+        for msg in messages[-max_messages:]:
+            headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
+            body = _extract_email_body(msg.get("payload", {}))
+
+            lines.append(f"\nFrom: {headers.get('from', '?')}")
+            lines.append(f"Date: {headers.get('date', '?')}")
+            lines.append(f"{'-' * 30}")
+            lines.append(body[:3000] if body else "(no text body)")
+            lines.append("")
+
+        return "\n".join(lines)
+    except Exception as e:
+        logger.error(f"Gmail thread error: {e}")
+        return f"(Gmail thread error: {e})"
+
+
+def gmail_send(to: str, subject: str, body: str, thread_id: str = "") -> str:
+    """Send an email via Gmail API.
+
+    Args:
+        to: Recipient email address.
+        subject: Email subject.
+        body: Email body (plain text).
+        thread_id: Optional thread ID to reply in.
+
+    Returns:
+        Success/failure message.
+    """
+    service = _get_gmail_service()
+    if not service:
+        return "(Gmail not available. Check OAuth token.)"
+
+    try:
+        import base64
+        from email.mime.text import MIMEText
+
+        message = MIMEText(body)
+        message["to"] = to
+        message["subject"] = subject
+
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+        send_body: Dict[str, Any] = {"raw": raw}
+        if thread_id:
+            send_body["threadId"] = thread_id
+
+        result = service.users().messages().send(userId="me", body=send_body).execute()
+        return f"Email sent to {to} (message id: {result.get('id', '?')})"
+    except Exception as e:
+        logger.error(f"Gmail send error: {e}")
+        return f"(Gmail send error: {e})"
+
+
+# =============================================================================
 # GOOGLE DOCUMENT AI
 # =============================================================================
 
@@ -444,6 +711,7 @@ def get_available_google_tools() -> Dict[str, bool]:
 
     creds = _get_oauth_creds()
     oauth_ok = creds is not None
+    available["gmail"] = oauth_ok
     available["sheets"] = oauth_ok
     available["drive"] = oauth_ok
     available["calendar"] = oauth_ok
