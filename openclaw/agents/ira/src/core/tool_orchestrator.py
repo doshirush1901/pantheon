@@ -94,6 +94,19 @@ def _is_sales_inquiry(message: str) -> bool:
     return bool(_SALES_SIGNALS.search(message))
 
 
+def _is_followup(context: Dict[str, Any]) -> bool:
+    """True when this is mid-conversation (multiple prior turns). Sphinx only gates first or sparse-context messages."""
+    history = (context.get("conversation_history") or "")
+    if len(history) < 300:
+        return False
+    # Multiple assistant or user turns suggest ongoing conversation — don't re-trigger Sphinx
+    assistant_mentions = history.lower().count("assistant:") + history.lower().count("ira:")
+    return assistant_mentions >= 2
+
+
+_SPHINX_SKIP_PHRASES = ("skip", "just do it", "no", "never mind", "nevermind", "go ahead", "proceed")
+
+
 def _get_training_guidance() -> str:
     """Load training weights and generate a caution note for weak knowledge areas.
     
@@ -114,6 +127,15 @@ def _get_training_guidance() -> str:
             f"\nCAUTION: You have historically been weak on: {', '.join(weak_areas)}. "
             f"Double-check any claims in these areas against the knowledge base."
         )
+    except Exception:
+        return ""
+
+
+def _get_nemesis_guidance() -> str:
+    """Load Nemesis correction guidance — learned corrections from sleep training."""
+    try:
+        from openclaw.agents.ira.src.agents.nemesis.sleep_trainer import get_training_guidance_for_prompt
+        return get_training_guidance_for_prompt()
     except Exception:
         return ""
 
@@ -229,6 +251,35 @@ async def process_with_tools(
     context = context or {}
     context.setdefault("channel", channel)
     context.setdefault("user_id", user_id)
+
+    # --- Sphinx: if user is replying to our clarification questions, merge into enriched brief ---
+    try:
+        from openclaw.agents.ira.src.agents.sphinx import (
+            get_sphinx_pending,
+            clear_sphinx_pending,
+            merge_brief,
+        )
+        sphinx_state = get_sphinx_pending(user_id)
+        if sphinx_state:
+            raw_reply = message.strip().lower()
+            if any(skip in raw_reply for skip in _SPHINX_SKIP_PHRASES) and len(message.strip()) < 80:
+                clear_sphinx_pending(user_id)
+                message = sphinx_state["original"]
+                context["sphinx_answered"] = True
+                logger.info("[Sphinx] User skipped clarification, using original message")
+            else:
+                enriched = merge_brief(
+                    sphinx_state["original"],
+                    sphinx_state["questions"],
+                    message,
+                )
+                context["sphinx_enriched_brief"] = enriched
+                context["sphinx_answered"] = True
+                clear_sphinx_pending(user_id)
+                message = enriched
+                logger.info("[Sphinx] Merged user answers into enriched brief (%d chars)", len(enriched))
+    except Exception as e:
+        logger.warning("[Sphinx] Pending-state check failed: %s", e)
 
     conversation_history = context.get("conversation_history", "")
     is_internal = context.get("is_internal", False)
@@ -644,6 +695,7 @@ or option from your previous response. Resolve the reference and act on it.
 {f"RECENT CONVERSATION:{chr(10)}{conversation_history}" if conversation_history else ""}
 {f"WHAT I REMEMBER ABOUT THIS USER:{chr(10)}{mem0_context}" if mem0_context else ""}
 {_get_training_guidance()}
+{_get_nemesis_guidance()}
 {_get_user_memories(context)}
 {f"EMOTIONAL & RELATIONSHIP CONTEXT:{chr(10)}{personality_context}" if personality_context else ""}"""
 
@@ -671,6 +723,27 @@ or option from your previous response. Resolve the reference and act on it.
             pass
     else:
         logger.info(f"[Athena] Complex request detected ({len(message)} chars, {message.count(chr(10))} lines) — skipping truth hints, using full pipeline")
+
+    # --- Sphinx gate: for complex vague requests, ask clarifying questions before Athena ---
+    if _is_complex and not context.get("sphinx_answered") and not _is_followup(context):
+        try:
+            from openclaw.agents.ira.src.agents.sphinx import (
+                should_clarify,
+                generate_questions,
+                detect_task_type,
+                format_questions_for_user,
+                store_sphinx_pending,
+            )
+            if await should_clarify(message, conversation_history):
+                task_type = detect_task_type(message)
+                questions = await generate_questions(message, task_type)
+                if questions:
+                    store_sphinx_pending(user_id, message, questions, channel)
+                    formatted = format_questions_for_user(questions)
+                    logger.info("[Sphinx] Gating with %d questions (task_type=%s)", len(questions), task_type)
+                    return formatted
+        except Exception as e:
+            logger.warning("[Sphinx] Gate failed (non-fatal): %s", e)
 
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": system},

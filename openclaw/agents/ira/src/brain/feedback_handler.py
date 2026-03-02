@@ -302,10 +302,39 @@ def handle_negative_feedback(
     # STEP 1: Extract specific corrections and store in Mem0 IMMEDIATELY
     corrections_stored = _extract_and_store_corrections(user_message, previous_response)
 
+    # STEP 1.5: Feed Nemesis — she's hungry for every correction
+    nemesis_result = {}
+    try:
+        from openclaw.agents.ira.src.agents.nemesis.agent import get_nemesis
+        nemesis = get_nemesis()
+        nemesis_result = nemesis.ingest_telegram_feedback(
+            user_message=user_message,
+            previous_response=previous_response,
+            coach_note=None,  # coach runs below; Nemesis does her own extraction
+        )
+        logger.info(f"[FEEDBACK] Nemesis ingested {nemesis_result.get('corrections_count', 0)} corrections")
+    except Exception as e:
+        logger.debug(f"[FEEDBACK] Nemesis ingestion failed (non-fatal): {e}")
+
     # STEP 2: Get coach analysis
     coach_analysis = _get_coach_analysis(user_message, previous_response)
     if coach_analysis:
         feedback_entry["coach_analysis"] = coach_analysis
+
+    # Feed coach analysis back to Nemesis for richer context
+    if coach_analysis and nemesis_result.get("corrections"):
+        try:
+            from openclaw.agents.ira.src.agents.nemesis.agent import get_nemesis
+            for corr in nemesis_result["corrections"]:
+                from openclaw.agents.ira.src.agents.nemesis.correction_store import _get_conn
+                conn = _get_conn()
+                conn.execute(
+                    "UPDATE corrections SET coach_note = ? WHERE id = ?",
+                    (coach_analysis[:500], corr.get("correction_id", "")),
+                )
+                conn.commit()
+        except Exception:
+            pass
 
     _append_jsonl(FEEDBACK_LOG, feedback_entry)
 
@@ -317,6 +346,7 @@ def handle_negative_feedback(
         "ira_response": previous_response[:1000],
         "coach_analysis": coach_analysis or "",
         "corrections_stored": corrections_stored,
+        "nemesis_corrections": nemesis_result.get("corrections_count", 0),
         "status": "pending",
     }
     _append_jsonl(DREAM_BACKLOG, dream_entry)

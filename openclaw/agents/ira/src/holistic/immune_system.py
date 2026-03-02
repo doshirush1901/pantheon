@@ -205,6 +205,21 @@ class ImmuneSystem:
 
         action = self._determine_action(issue, query, response)
 
+        # Feed Nemesis with immune system escalations (count >= 2)
+        if issue.occurrence_count >= 2:
+            try:
+                from openclaw.agents.ira.src.agents.nemesis.agent import get_nemesis
+                get_nemesis().ingest_failure(
+                    query=query[:500],
+                    response=response[:1000],
+                    source="immune_system",
+                    issues=warnings,
+                    quality_score=None,
+                    coach_note=f"Recurring issue: {issue_key} (x{issue.occurrence_count})",
+                )
+            except Exception:
+                pass
+
         self._log_remediation(issue, action)
         self._save_state()
 

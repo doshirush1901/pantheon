@@ -14,8 +14,10 @@ The primary path is `process_with_tools()` in `tool_orchestrator.py`:
 3. **Complexity check**: `_is_complex` decides truth hint vs full pipeline. Model-specific queries (PF1-C-2015) MUST go to full pipeline
 4. **Athena (GPT-4o)**: System prompt + tool loop, max 15 rounds. Calls research_skill, customer_lookup, finance tools, etc.
 5. **Validation**: `knowledge_health.validate_response()` checks hallucinations, business rules, model numbers
-6. **Immune system**: Flags recurring issues
-7. **Voice**: Reshapes tone for channel
+6. **Immune system**: Flags recurring issues (feeds Nemesis on recurrence)
+7. **Sophia (reflect)**: Post-response reflection; feeds Nemesis on failures
+8. **Nemesis**: Corrections from Telegram (/correct, natural language) and from Sophia/immune → stored in correction_store; during nap Phase 0.5 she applies them to truth hints, Qdrant, Mem0, system prompt
+9. **Voice**: Reshapes tone for channel
 
 ## Key Modules
 
@@ -28,6 +30,7 @@ The primary path is `process_with_tools()` in `tool_orchestrator.py`:
 | `machine_specs.json` | Source of truth for 46 machine models + prices | Data |
 | `hard_rules.txt` | Business rules (used by generate_answer.py) | Rules |
 | `finance_agent/agent.py` | Plutus — order book, cashflow, revenue | Finance |
+| `agents/nemesis/` | Correction store, sleep trainer; ingests from feedback_handler, Sophia, immune | Nemesis |
 
 ## Defense in Depth
 

@@ -6,15 +6,16 @@ NAP MODE — Ira's Sleep-and-Learn Cycle
 Run this before closing your PC. Ira will:
 1. Send a "going to sleep" message to Telegram
 2. Process feedback backlog + error logs (Phase 0)
-3. Run document & interaction dream (Phase 1)
-4. Consolidate episodic memories (Phase 2)
-5. Consolidate knowledge graph (Phase 3)
-6. Clean up stale memories (Phase 4)
-7. Run neuroscience + advanced + experimental dream (Phases 5-7)
-8. Reflect on drip campaigns (Phase 8)
-9. Run Benchy self-improvement loop (the "lucid dream")
-10. Resolve unresolved conflicts
-11. Send a dream journal to Telegram
+3. Nemesis correction training — apply corrections to truth hints, Qdrant, Mem0, system prompt (Phase 0.5)
+4. Run document & interaction dream (Phase 1)
+5. Consolidate episodic memories (Phase 2)
+6. Consolidate knowledge graph (Phase 3)
+7. Clean up stale memories (Phase 4)
+8. Run neuroscience + advanced + experimental dream (Phases 5-7)
+9. Reflect on drip campaigns (Phase 8)
+10. Run Benchy self-improvement loop (the "lucid dream")
+11. Resolve unresolved conflicts
+12. Send a dream journal to Telegram
 
 Usage:
     python scripts/nap.py                  # Full nap (all phases)
@@ -134,6 +135,15 @@ class NapJournal:
         p0 = self.phases.get("feedback", {})
         if p0:
             lines.append(f"📋 <b>Feedback:</b> {p0.get('corrections', 0)} corrections, {p0.get('gaps', 0)} gaps")
+
+        nem = self.phases.get("nemesis", {})
+        if nem:
+            lines.append(
+                f"⚡ <b>Nemesis Training:</b> {nem.get('corrections_processed', 0)} corrections → "
+                f"{nem.get('truth_hints_added', 0)} hints, "
+                f"{nem.get('qdrant_indexed', 0)} qdrant, "
+                f"{nem.get('guidance_rules', 0)} rules"
+            )
 
         p1 = self.phases.get("dream", {})
         if p1:
@@ -269,6 +279,27 @@ def run_phase_feedback(journal: NapJournal):
 
     _log(f"  Result: {corrections} corrections, {gaps} new gaps")
     journal.record("feedback", {"corrections": corrections, "gaps": gaps})
+
+
+def run_phase_nemesis(journal: NapJournal, dry_run: bool = False):
+    """Phase 0.5: Nemesis sleep training — apply accumulated corrections."""
+    _log("⚡ Phase 0.5: Nemesis correction training...")
+    try:
+        sys.path.insert(0, str(PROJECT_ROOT / "openclaw" / "agents" / "ira" / "src" / "agents" / "nemesis"))
+        from openclaw.agents.ira.src.agents.nemesis.sleep_trainer import run_sleep_training
+
+        results = run_sleep_training(dry_run=dry_run)
+        _log(
+            f"  Result: {results['corrections_processed']} corrections → "
+            f"{results['truth_hints_added']} hints, "
+            f"{results['qdrant_indexed']} qdrant, "
+            f"{results['mem0_reinforced']} mem0, "
+            f"{results['guidance_rules']} prompt rules"
+        )
+        journal.record("nemesis", results)
+    except Exception as e:
+        _log(f"  Error: {e}")
+        journal.error("nemesis", str(e))
 
 
 def run_phase_dream(journal: NapJournal):
@@ -543,6 +574,11 @@ async def nap(
             run_phase_feedback(journal)
         else:
             _log(f"⏰ Skipping feedback{time_status()}")
+
+        if has_time(2):
+            run_phase_nemesis(journal, dry_run=dry_run)
+        else:
+            _log(f"⏰ Skipping Nemesis training{time_status()}")
 
         if has_time(3):
             run_phase_dream(journal)

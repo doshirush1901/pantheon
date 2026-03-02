@@ -162,6 +162,7 @@ data/audit_logs/
 data/simulations/
 data/learning_sessions/
 data/training/
+data/nemesis/
 
 # =============================================================================
 # Sensitive Runtime Data (PII, chat logs, memory state)

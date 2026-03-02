@@ -113,6 +113,21 @@ async def reflect(interaction_data: Dict[str, Any]) -> ReflectionResult:
     if lessons:
         _log_lessons(lessons, interaction_data)
     
+    # Feed Nemesis — she wants every failure, every issue
+    if issues and quality.overall < 0.8:
+        try:
+            from openclaw.agents.ira.src.agents.nemesis.agent import get_nemesis
+            nemesis = get_nemesis()
+            nemesis.ingest_failure(
+                query=user_message[:500],
+                response=response[:1000],
+                source="sophia_reflection",
+                issues=issues,
+                quality_score=quality.overall,
+            )
+        except Exception:
+            pass
+    
     logger.info({
         "agent": "Sophia",
         "event": "reflection_complete",
