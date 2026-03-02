@@ -40,3 +40,4 @@
 {"type": "reshape", "channel": "benchy_deep", "user_id": "", "complexity": "quick", "original_len": 1895, "shaped_len": 1511, "actions": ["trimmed_for_quick_lookup", "cleaned_formatting"], "timestamp": "2026-03-03T02:10:37.818142"}
 {"type": "reshape", "channel": "benchy_deep", "user_id": "", "complexity": "quick", "original_len": 1422, "shaped_len": 964, "actions": ["trimmed_for_quick_lookup", "cleaned_formatting", "trimmed_filler_urgent"], "timestamp": "2026-03-03T02:11:27.755621"}
 {"type": "reshape", "channel": "benchy_deep", "user_id": "", "complexity": "quick", "original_len": 1513, "shaped_len": 698, "actions": ["trimmed_for_quick_lookup", "cleaned_formatting"], "timestamp": "2026-03-03T02:13:03.983452"}
+{"type": "reshape", "channel": "telegram", "user_id": "", "complexity": "quick", "original_len": 1200, "shaped_len": 1199, "actions": ["trimmed_for_quick_lookup", "cleaned_formatting", "trimmed_filler_urgent"], "timestamp": "2026-03-03T03:17:38.655000"}

@@ -1,0 +1,39 @@
+{
+  "total_perceptions": 3,
+  "channel_stats": {
+    "email": {
+      "total_perceptions": 3,
+      "last_active": "2026-03-03T03:16:54.932735"
+    }
+  },
+  "contact_summaries": {
+    "noreply@ic.africa": {
+      "channels": [
+        "email"
+      ],
+      "interaction_count": 1,
+      "last_interaction": "2026-03-03T03:10:42.615898",
+      "topics": [],
+      "sentiment_trajectory": []
+    },
+    "notifications@github.com": {
+      "channels": [
+        "email"
+      ],
+      "interaction_count": 1,
+      "last_interaction": "2026-03-03T03:13:48.346645",
+      "topics": [],
+      "sentiment_trajectory": []
+    },
+    "editors-noreply@linkedin.com": {
+      "channels": [
+        "email"
+      ],
+      "interaction_count": 1,
+      "last_interaction": "2026-03-03T03:16:54.932735",
+      "topics": [],
+      "sentiment_trajectory": []
+    }
+  },
+  "cross_channel_events": 0
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "file": "/Users/rushabhdoshi/Desktop/Ira/data/simulations/sim_jean-fran\u00e7ois_deltenre_20260228_210500.json",
+    "persona": "Jean-Fran\u00e7ois Deltenre",
+    "company": "Plastiform Belgium NV",
+    "turns": 3,
+    "scores": {
+      "relevance": 5,
+      "technical_accuracy": 5,
+      "sales_effectiveness": 4,
+      "tone": 5,
+      "conciseness": 5
+    },
+    "overall_score": 5,
+    "strengths": [
+      "IRA provided relevant and specific responses to the customer's inquiries.",
+      "Technical accuracy was maintained throughout the conversation, with correct details about the PF series.",
+      "The tone was professional, warm, and consultative, making the customer feel valued."
+    ],
+    "improvements": [
+      "IRA could have been more proactive in proposing a specific next step, such as scheduling a follow-up call after sending the technical data sheet."
+    ],
+    "deal_likelihood": "high",
+    "observations": "IRA effectively addressed the customer's questions with accurate and relevant information, maintained a professional and helpful tone, and showed a good understanding of the customer's needs. However, there was an opportunity to be more assertive in moving the deal forward by suggesting concrete next steps."
+  },
+  {
+    "file": "/Users/rushabhdoshi/Desktop/Ira/data/simulations/sim_rajesh_sharma_20260228_210531.json",
+    "persona": "Rajesh Sharma",
+    "company": "AutoPlast Components Pvt Ltd",
+    "turns": 3,
+    "scores": {
+      "relevance": 5,
+      "technical_accuracy": 5,
+      "sales_effectiveness": 4,
+      "tone": 5,
+      "conciseness": 5
+    },
+    "overall_score": 5,
+    "strengths": [
+      "IRA provided detailed and relevant information directly addressing the customer's queries.",
+      "Technical details and specifications were accurate and well-presented.",
+      "The tone was professional, warm, and consultative, making the customer feel valued and understood."
+    ],
+    "improvements": [
+      "IRA could have been more proactive in proposing a specific next step or call-to-action to further advance the sales process."
+    ],
+    "deal_likelihood": "high",
+    "observations": "IRA effectively addressed all of Rajesh's questions with precise and relevant information, demonstrating a strong understanding of the product and its benefits. The conversation maintained a professional and helpful tone throughout, which likely contributed to a positive customer experience. However, a more explicit call-to-action could enhance the likelihood of closing the deal."
+  }
+]

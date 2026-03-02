@@ -306,3 +306,12 @@
 - PRICING_DISCLAIMER_MISSING: Response contains price without disclaimer
 
 ---
+
+## 2026-03-03 03:17:41
+
+**Query:** LAST CHANCE: Storytelling for Presentations for $9.99!: <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01
+
+**Issues:**
+- AM_WARNING_MISSING: 55.0mm material query without AM series guidance
+
+---

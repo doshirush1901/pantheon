@@ -1,0 +1,168 @@
+{
+  "started_at": "2026-02-28T21:13:43.901954",
+  "ended_at": "2026-02-28T21:18:33.164534",
+  "config": {
+    "personas": [
+      "european",
+      "indian_auto",
+      "startup",
+      "us_distributor",
+      "large_project",
+      "tough_negotiator"
+    ],
+    "turns": 5,
+    "use_real_ira": true
+  },
+  "summary": {
+    "total_simulations": 6,
+    "avg_score": 4.433333333333334,
+    "high_likelihood": 5,
+    "medium_likelihood": 1,
+    "low_likelihood": 0
+  },
+  "evaluations": [
+    {
+      "persona": "Jean-Fran\u00e7ois Deltenre",
+      "company": "Plastiform Belgium NV",
+      "turns": 5,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 4,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 5
+      },
+      "overall_score": 4,
+      "strengths": [
+        "IRA consistently provides relevant and detailed responses to the customer's inquiries.",
+        "The tone is warm, professional, and consultative, making the customer feel valued and understood.",
+        "IRA maintains conciseness, delivering complete information without overwhelming the customer."
+      ],
+      "improvements": [
+        "Provide more specific comparative data when discussing energy efficiency against the ILLIG UA 100g.",
+        "Clarify the pricing in EUR consistently throughout the conversation to avoid confusion."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA effectively addresses the customer's technical and commercial concerns, demonstrating a strong understanding of the product and the customer's needs. The conversation is likely to move towards closing the deal, given the high level of engagement and responsiveness to the customer's queries."
+    },
+    {
+      "persona": "Rajesh Sharma",
+      "company": "AutoPlast Components Pvt Ltd",
+      "turns": 5,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 5,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 4
+      },
+      "overall_score": 5,
+      "strengths": [
+        "IRA consistently provides relevant and detailed responses to the customer's inquiries.",
+        "Technical information provided by IRA is accurate and aligns with the customer's requirements.",
+        "IRA maintains a professional and warm tone throughout the conversation, enhancing customer engagement."
+      ],
+      "improvements": [
+        "IRA could be more proactive in proposing specific next steps or scheduling a follow-up meeting to discuss the proposal in detail.",
+        "Providing more immediate details on the expedited delivery conditions and leasing options could improve sales effectiveness."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA effectively addresses the customer's questions with precision and maintains a consultative tone, which is likely to build trust and move the deal forward. However, there is room for improvement in terms of proactively guiding the customer towards closing the deal by suggesting concrete next steps or follow-up actions."
+    },
+    {
+      "persona": "Mike Chen",
+      "company": "PackForm Solutions",
+      "turns": 5,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 5,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 5
+      },
+      "overall_score": 5,
+      "strengths": [
+        "IRA consistently provides relevant and detailed responses to the customer's inquiries.",
+        "All technical specifications and features mentioned are accurate and align with the customer's needs.",
+        "The tone is warm, professional, and consultative, making the customer feel supported and valued."
+      ],
+      "improvements": [
+        "While IRA is effective in providing information, it could enhance sales effectiveness by more proactively suggesting next steps or scheduling a follow-up call."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA effectively addresses all of Mike's questions with accurate and relevant information, maintaining a professional and supportive tone. The conversation is concise and focused, with IRA demonstrating a good understanding of the customer's needs and offering potential solutions. The likelihood of closing the deal is high, given the positive engagement and alignment with the customer's requirements."
+    },
+    {
+      "persona": "Josh Szabo",
+      "company": "Plastics Machinery Group LLC",
+      "turns": 5,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 4,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 4
+      },
+      "overall_score": 4,
+      "strengths": [
+        "IRA provides relevant and detailed responses to customer queries.",
+        "The tone is professional, warm, and consultative, fostering a positive interaction.",
+        "IRA effectively outlines the unique features and benefits of the products."
+      ],
+      "improvements": [
+        "Ensure all technical details, such as energy consumption and cycle times, are consistently accurate and clear.",
+        "Provide more proactive suggestions for next steps, such as scheduling a call earlier in the conversation."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA demonstrates a strong understanding of the customer's needs and provides comprehensive information. The conversation is well-structured, with IRA addressing most of the customer's concerns effectively. However, there is room for improvement in technical accuracy and proactive sales strategies to further enhance deal closure likelihood."
+    },
+    {
+      "persona": "Dr. Ahmed Al-Rashid",
+      "company": "Gulf Industrial Solutions",
+      "turns": 5,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 4,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 5
+      },
+      "overall_score": 4.6,
+      "strengths": [
+        "IRA consistently provides relevant and detailed responses to the customer's inquiries.",
+        "The tone is warm, professional, and consultative, which helps build rapport with the customer.",
+        "Responses are concise and well-structured, making it easy for the customer to understand the information."
+      ],
+      "improvements": [
+        "Ensure all technical details, such as pricing in USD, are accurate and consistent with the customer's budget constraints.",
+        "Provide compliance documentation and client references more promptly to avoid delays in the decision-making process."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA effectively addresses the customer's queries and provides detailed information on the product's specifications, energy efficiency, and customization options. The AI assistant maintains a professional and helpful tone throughout the conversation, which positively influences the customer's perception. However, there is a slight delay in providing compliance documentation and client references, which could be improved to expedite the sales process."
+    },
+    {
+      "persona": "Viktor Petrov",
+      "company": "EuroPack Industries",
+      "turns": 5,
+      "scores": {
+        "relevance": 4,
+        "technical_accuracy": 3,
+        "sales_effectiveness": 4,
+        "tone": 4,
+        "conciseness": 4
+      },
+      "overall_score": 4,
+      "strengths": [
+        "IRA provides relevant information and addresses customer inquiries promptly.",
+        "The tone is professional and consultative, maintaining a warm and helpful demeanor.",
+        "IRA effectively highlights unique features and offers financial incentives to move the deal forward."
+      ],
+      "improvements": [
+        "Ensure all technical details, such as pricing conversions and warranty specifics, are accurate and clearly communicated.",
+        "Provide more detailed and specific comparisons between the PF1-C-1812 and the Kiefel KMD 78 to better address customer concerns."
+      ],
+      "deal_likelihood": "medium",
+      "observations": "IRA effectively engages with the customer and addresses most of their concerns. However, there are minor inaccuracies in the pricing conversion and a need for more detailed technical comparisons to fully satisfy the customer's requirements and concerns. The likelihood of closing the deal is medium, contingent on providing the requested detailed comparison and addressing pricing concerns."
+    }
+  ]
+}

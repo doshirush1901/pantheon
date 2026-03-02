@@ -1,16 +1,18 @@
 {
   "profiles": {
     "clio": {
-      "score": 0.68,
-      "successes": 3,
+      "score": 0.83,
+      "successes": 6,
       "failures": 2,
-      "total_invocations": 212,
-      "last_invoked": "2026-03-03T02:12:26.374856",
-      "last_success": null,
+      "total_invocations": 215,
+      "last_invoked": "2026-03-03T03:16:54.931469",
+      "last_success": "2026-03-03T03:16:54.931469",
       "last_failure": "2026-03-02T21:56:17.910544",
-      "streak": -1,
-      "stress_level": 0.15,
-      "specialties": {}
+      "streak": 3,
+      "stress_level": 0,
+      "specialties": {
+        "email_extraction": 0.65
+      }
     },
     "calliope": {
       "score": 0.68,
@@ -121,5 +123,5 @@
       "specialties": {}
     }
   },
-  "last_updated": "2026-03-03T02:12:38.427680"
+  "last_updated": "2026-03-03T03:16:54.931888"
 }

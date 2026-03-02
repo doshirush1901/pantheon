@@ -1,0 +1,15 @@
+{
+  "total_actions": 3,
+  "actions_by_type": {
+    "knowledge_ingested": 3
+  },
+  "actions_by_muscle_group": {
+    "learning": 3
+  },
+  "total_myokines": 3,
+  "muscle_fitness": {
+    "learning": 0.5
+  },
+  "pending_outcomes": [],
+  "last_exercise": "2026-03-03T03:16:54.929806"
+}

@@ -1,0 +1,44 @@
+{
+  "type": "real_email_simulation",
+  "persona": {
+    "name": "Mike Chen",
+    "company": "PackForm Solutions",
+    "email": "mike@packform.io",
+    "role": "Founder",
+    "industry": "Sustainable Packaging Startup",
+    "location": "Toronto, Canada",
+    "currency": "USD",
+    "budget": "60,000",
+    "current_machine": "None (first machine)",
+    "requirements": {
+      "forming_area": "600 x 900 mm",
+      "depth": "300 mm",
+      "thickness": "up to 3mm",
+      "materials": "PETG, rPET"
+    },
+    "personality": "Enthusiastic, budget-conscious, needs guidance",
+    "pain_points": "Limited capital, no thermoforming experience"
+  },
+  "subject": "[TRAINING-02282204] Mike Chen from PackForm Solutions",
+  "thread_id": "19ca51a29ca729e1",
+  "turns": 2,
+  "conversation": [
+    {
+      "turn": 1,
+      "customer": "Subject: Inquiry About Thermoforming Machines\n\nHi,\n\nI'm Mike Chen from PackForm Solutions, a sustainable packaging startup based in Toronto. We're looking to invest in our first thermoforming machine and came across your company, Machinecraft Technologies, while researching our options.\n\nWe don't have any thermoforming experience and want to make sure we invest wisely. Could you please provide more information on your thermoforming machines that suit our needs? Specifically, we're looking for a machine that can handle a forming area of 600 x 900 mm, a depth of 300 mm, and a material thickness of up to 3mm. We plan to use materials like PETG and rPET.\n\nAlso, can you give us an idea of the pricing for machines that fit these specifications? Our budget is around USD 60,000, so we want to ensure we stay within that range.\n\nLooking forward to your guidance.\n\nBest regards,\nMike Chen\nFounder, PackForm Solutions",
+      "ira": "[No reply received - IRA auto-reply may not be running]",
+      "subject": "[TRAINING-02282204] Mike Chen from PackForm Solutions",
+      "sent_at": "2026-02-28T22:04:40.304161",
+      "thread_id": "19ca51a29ca729e1"
+    },
+    {
+      "turn": 2,
+      "customer": "Subject: Follow-up on Thermoforming Machine Inquiry\n\nHi,\n\nI'm following up on my previous email regarding our interest in thermoforming machines. We are eager to understand what options Machinecraft Technologies can offer for our specifications: a forming area of 600 x 900 mm, a depth of 300 mm, and handling materials like PETG and rPET with a thickness of up to 3mm.\n\nGiven our budget constraints, I would appreciate it if you could also provide specific pricing details for machines that might fit our needs. We are keen on making a decision soon and would appreciate your prompt response.\n\nThank you and looking forward to hearing from you.\n\nBest regards,\nMike Chen  \nFounder, PackForm Solutions",
+      "ira": "[No reply received - IRA auto-reply may not be running]",
+      "subject": "[TRAINING-02282204] Mike Chen from PackForm Solutions",
+      "sent_at": "2026-02-28T22:06:15.333387",
+      "thread_id": "19ca51a29ca729e1"
+    }
+  ],
+  "generated_at": "2026-02-28T22:07:46.914679"
+}

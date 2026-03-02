@@ -10,6 +10,15 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/machinecraft/ira/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://github.com/machinecraft/ira/actions/workflows/ci.yml"><img src="https://github.com/machinecraft/ira/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/machinecraft/ira"><img src="https://codecov.io/gh/machinecraft/ira/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/machinecraft/ira"><img src="https://img.shields.io/badge/GPT--4o-powered-74aa9c?logo=openai&logoColor=white" alt="GPT-4o"></a>
+  <a href="https://github.com/machinecraft/ira/stargazers"><img src="https://img.shields.io/github/stars/machinecraft/ira?style=social" alt="GitHub Stars"></a>
+</p>
+
+<p align="center">
   <a href="#so-what-is-ira">What Is Ira</a> · <a href="#the-pantheon">The Pantheon</a> · <a href="#how-a-question-actually-gets-answered">How It Works</a> · <a href="#the-body">The Body</a> · <a href="#quick-start">Quick Start</a> · <a href="#everything-we-built">Everything We Built</a>
 </p>
 

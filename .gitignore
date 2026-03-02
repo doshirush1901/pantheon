@@ -51,9 +51,12 @@ credentials.json
 credentials_*.json
 token.json
 token_*.json
+token*.bak*
 *_oauth_gmail.json
 *_outh_gmail.json
 rushabh_*.json
+service_account.json
+service_account_*.json
 *.pem
 *.key
 secrets/
@@ -177,3 +180,9 @@ crm/logs/telegram_activity_log.json
 # =============================================================================
 openclaw/agents/ira/workspace/*.json
 !openclaw/agents/ira/workspace/.gitkeep
+
+# Credential backups
+_archive/backup_files/credentials_*
+_archive/backup_files/token_*
+_archive/dead_code_2026_03_03/token.*
+token.json.bak.*

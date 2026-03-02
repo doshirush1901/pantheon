@@ -1,0 +1,92 @@
+{
+  "started_at": "2026-02-28T21:06:58.819853",
+  "ended_at": "2026-02-28T21:08:37.730991",
+  "config": {
+    "personas": [
+      "european",
+      "indian_auto",
+      "startup"
+    ],
+    "turns": 4,
+    "use_real_ira": true
+  },
+  "summary": {
+    "total_simulations": 3,
+    "avg_score": 4.666666666666667,
+    "high_likelihood": 3,
+    "medium_likelihood": 0,
+    "low_likelihood": 0
+  },
+  "evaluations": [
+    {
+      "persona": "Jean-Fran\u00e7ois Deltenre",
+      "company": "Plastiform Belgium NV",
+      "turns": 4,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 5,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 5
+      },
+      "overall_score": 5,
+      "strengths": [
+        "IRA provides highly relevant and detailed responses to all customer inquiries.",
+        "Technical information is accurate and well-aligned with customer requirements.",
+        "The tone is warm, professional, and consultative, enhancing customer engagement."
+      ],
+      "improvements": [
+        "IRA could improve sales effectiveness by proactively suggesting a follow-up meeting or call to discuss the case studies and benchmarking data in more detail."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA effectively addresses the customer's specific technical and operational concerns, providing detailed and relevant information. The AI maintains a professional and helpful tone throughout the conversation, which likely builds trust and confidence in the potential purchase. The conversation is concise yet comprehensive, ensuring all customer queries are answered without overwhelming them with excessive information."
+    },
+    {
+      "persona": "Rajesh Sharma",
+      "company": "AutoPlast Components Pvt Ltd",
+      "turns": 4,
+      "scores": {
+        "relevance": 5,
+        "technical_accuracy": 5,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 5
+      },
+      "overall_score": 5,
+      "strengths": [
+        "IRA provided detailed and relevant information that directly addressed the customer's specifications and questions.",
+        "Technical details and pricing were accurate and clearly communicated.",
+        "Tone was professional, warm, and consultative, making the customer feel valued and understood."
+      ],
+      "improvements": [
+        "IRA could have been more proactive in proposing a specific next step or call-to-action to further advance the sales process."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA effectively addressed the customer's needs and questions, providing a clear and detailed response. The conversation was well-handled, with IRA maintaining a professional and helpful tone throughout. The likelihood of closing the deal is high, given the alignment of the product with the customer's requirements and the positive interaction."
+    },
+    {
+      "persona": "Mike Chen",
+      "company": "PackForm Solutions",
+      "turns": 4,
+      "scores": {
+        "relevance": 4,
+        "technical_accuracy": 4,
+        "sales_effectiveness": 4,
+        "tone": 5,
+        "conciseness": 4
+      },
+      "overall_score": 4,
+      "strengths": [
+        "IRA provides detailed and relevant information about the PF1 Series, addressing the customer's specific needs and concerns.",
+        "The tone is warm, professional, and consultative, making the customer feel supported and valued.",
+        "IRA effectively highlights the benefits of the PF1 Series, including automation and sustainability features, which align with the customer's priorities."
+      ],
+      "improvements": [
+        "Clarify the discrepancy in material thickness handling between the AM and PF1 Series earlier in the conversation to avoid confusion.",
+        "Provide more specific data on power consumption and operational costs to enhance technical accuracy."
+      ],
+      "deal_likelihood": "high",
+      "observations": "IRA successfully addresses the customer's inquiries and provides valuable insights into the PF1 Series, which aligns well with the customer's requirements and budget. The conversation is likely to progress towards a deal, given the customer's interest and IRA's effective handling of the discussion."
+    }
+  ]
+}

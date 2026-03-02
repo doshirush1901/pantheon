@@ -1,0 +1,44 @@
+{
+  "type": "real_email_simulation",
+  "persona": {
+    "name": "Mike Chen",
+    "company": "PackForm Solutions",
+    "email": "mike@packform.io",
+    "role": "Founder",
+    "industry": "Sustainable Packaging Startup",
+    "location": "Toronto, Canada",
+    "currency": "USD",
+    "budget": "60,000",
+    "current_machine": "None (first machine)",
+    "requirements": {
+      "forming_area": "600 x 900 mm",
+      "depth": "300 mm",
+      "thickness": "up to 3mm",
+      "materials": "PETG, rPET"
+    },
+    "personality": "Enthusiastic, budget-conscious, needs guidance",
+    "pain_points": "Limited capital, no thermoforming experience"
+  },
+  "subject": "[TRAINING-02282131] Mike Chen from PackForm Solutions",
+  "thread_id": "19ca4fb81025387e",
+  "turns": 2,
+  "conversation": [
+    {
+      "turn": 1,
+      "customer": "Subject: Inquiry About Thermoforming Machines for PackForm Solutions\n\nHi there,\n\nMy name is Mike Chen, and I am the founder of PackForm Solutions, a sustainable packaging startup based in Toronto, Canada. We are currently exploring options to acquire our first thermoforming machine and came across Machinecraft Technologies in our search. \n\nWe have a budget of USD 60,000 and are looking for a machine that suits our requirements, which include a forming area of 600 x 900 mm, a depth of 300 mm, and the ability to handle material thicknesses up to 3 mm. The materials we primarily work with are PETG and rPET.\n\nCould you please provide more information on what machines you have available that fit these specifications? Additionally, I would appreciate if you could share the pricing details and any relevant specifications.\n\nThank you for your assistance. I look forward to your response.\n\nBest regards,\nMike Chen  \nPackForm Solutions",
+      "ira": "[No reply received - IRA auto-reply may not be running]",
+      "subject": "[TRAINING-02282131] Mike Chen from PackForm Solutions",
+      "sent_at": "2026-02-28T21:31:11.492177",
+      "thread_id": "19ca4fb81025387e"
+    },
+    {
+      "turn": 2,
+      "customer": "Subject: Follow-up on Thermoforming Machine Inquiry\n\nHi,\n\nI hope this message finds you well. I wanted to follow up on my previous email regarding our interest in acquiring a thermoforming machine for PackForm Solutions. We are eager to understand what options Machinecraft Technologies can offer us that align with our specifications and budget.\n\nCould you please let me know if you have any machines that meet our requirements? We're particularly interested in learning more about the features, pricing, and any additional benefits your machines can provide, especially for a startup like ours with no prior thermoforming experience.\n\nLooking forward to your reply.\n\nBest regards,\nMike Chen  \nPackForm Solutions",
+      "ira": "[No reply received - IRA auto-reply may not be running]",
+      "subject": "[TRAINING-02282131] Mike Chen from PackForm Solutions",
+      "sent_at": "2026-02-28T21:33:18.168434",
+      "thread_id": "19ca4fb81025387e"
+    }
+  ],
+  "generated_at": "2026-02-28T21:35:22.700466"
+}

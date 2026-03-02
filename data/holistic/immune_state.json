@@ -4,22 +4,45 @@
       "issue_key": "am_thickness",
       "category": "rule_violation",
       "first_seen": "2026-03-03T02:13:03.981740",
-      "last_seen": "2026-03-03T02:13:03.982306",
-      "occurrence_count": 2,
-      "remediation_attempts": 0,
+      "last_seen": "2026-03-03T03:17:38.737157",
+      "occurrence_count": 4,
+      "remediation_attempts": 2,
       "resolved": false,
       "resolution_note": "",
       "sample_queries": [
         "Thank you for the detailed cycle time information, Ira. With a cycle time of approximately 152 seconds, it seems comparable to our current setup, though we would need to test it with our 4mm ABS sheet",
-        "Thank you for the detailed cycle time information, Ira. With a cycle time of approximately 152 seconds, it seems comparable to our current setup, though we would need to test it with our 4mm ABS sheet"
+        "Thank you for the detailed cycle time information, Ira. With a cycle time of approximately 152 seconds, it seems comparable to our current setup, though we would need to test it with our 4mm ABS sheet",
+        "LAST CHANCE: Storytelling for Presentations for $9.99!: <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\r\n<html lang=\"en-gb\">\r\n    <head>\r\n        <meta http-",
+        "LAST CHANCE: Storytelling for Presentations for $9.99!: <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\r\n<html lang=\"en-gb\">\r\n    <head>\r\n        <meta http-"
       ],
       "sample_warnings": [
         "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)",
+        "Possible hallucination detected: approximately|around|roughly|about",
         "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    "vague_pricing": {
+      "issue_key": "vague_pricing",
+      "category": "quality",
+      "first_seen": "2026-03-03T03:07:20.524035",
+      "last_seen": "2026-03-03T03:14:12.682353",
+      "occurrence_count": 4,
+      "remediation_attempts": 2,
+      "resolved": false,
+      "resolution_note": "",
+      "sample_queries": [
+        "New Physical Card Program: <!DOCTYPE html>\r\n<html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">\r\n<head>\r\n<me",
+        "New Physical Card Program: <!DOCTYPE html>\r\n<html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">\r\n<head>\r\n<me",
+        "Rushabh, make tough calls without losing your team's trust: <p style=\"margin: 0; font-weight: 400; text-align: center;\"><a href=\"https://www.linkedin.com/events/7433954919704973312/?campaignId=5e9d700",
+        "Rushabh, make tough calls without losing your team's trust: <p style=\"margin: 0; font-weight: 400; text-align: center;\"><a href=\"https://www.linkedin.com/events/7433954919704973312/?campaignId=5e9d700"
+      ],
+      "sample_warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
       ]
     }
   },
-  "total_remediations": 4,
+  "total_remediations": 8,
   "total_blocks": 0,
   "last_sweep": null
 }

@@ -1,0 +1,27 @@
+[
+  {
+    "file": "/Users/rushabhdoshi/Desktop/Ira/data/simulations/sim_viktor_petrov_20260228_211321.json",
+    "persona": "Viktor Petrov",
+    "company": "EuroPack Industries",
+    "turns": 7,
+    "scores": {
+      "relevance": 4,
+      "technical_accuracy": 3,
+      "sales_effectiveness": 3,
+      "tone": 4,
+      "conciseness": 3
+    },
+    "overall_score": 3.4,
+    "strengths": [
+      "IRA provides relevant information and addresses most of the customer's questions.",
+      "The tone is professional and consultative, maintaining a warm and helpful demeanor."
+    ],
+    "improvements": [
+      "IRA should ensure technical accuracy, particularly with pricing and warranty details, as there were inconsistencies in the pricing mentioned.",
+      "Sales effectiveness could be improved by providing more proactive solutions and creating a stronger sense of urgency.",
+      "Conciseness could be improved by avoiding repetition and ensuring responses are more direct and to the point."
+    ],
+    "deal_likelihood": "medium",
+    "observations": "IRA is responsive and maintains a professional tone, but there are inconsistencies in pricing and warranty details that could affect the customer's trust. Additionally, the sales approach could be more proactive in addressing the competitive pricing from Kiefel and providing compelling reasons to choose Machinecraft."
+  }
+]

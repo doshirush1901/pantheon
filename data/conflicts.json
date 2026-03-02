@@ -776,5 +776,50 @@
     "source": "telegram",
     "timestamp": "2026-03-02T22:42:23.250095",
     "resolved": false
+  },
+  {
+    "id": "2544f93c1dae",
+    "new_content": "Here's the list of European customers for Machinecraft:\n1. **Batelaan** - Note: Batelaan Kunststoffen is closed and should be removed from the active customer list.\n2. **FRIMO** - Currently not actively selling Machinecraft machines in Europe.\n3. **Dezet** - Confirmed customer.\n4. **HETRONIK GmbH** - Confirmed customer.\n5. **Soehner** - Confirmed customer.\n6. **Plasmotec** - Confirmed customer.\n7. **Autocomponents Russia** - Listed as a customer, although geographically not in Europe.\n8. **Machi",
+    "existing_id": "06fac030-84f9-4ff0-83d5-6e7dae1b512d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-03T01:42:35.214389",
+    "resolved": false
+  },
+  {
+    "id": "374ae00c4674",
+    "new_content": "Heatronik is a supplier \nLlasmkrec not\nAutocomp russia not \nMachinecraft is my own company",
+    "existing_id": "33744c47-9c06-4de7-a6e3-2ed4b39d5051",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-03T01:44:07.958415",
+    "resolved": false
+  },
+  {
+    "id": "5533cfedaf77",
+    "new_content": "Here's the updated list of confirmed Machinecraft customers in Europe:\n\n1. **Dezet** - Confirmed customer.\n2. **Soehner** - Confirmed customer.\n3. **Plasmotec** - Confirmed customer.\n4. **Imatex (Belgium)** - Vacuum Forming Machine Type-PF-1 with Autoloader.\n5. **Plastochim (France)** - PF1-0808.\n6. **Soehner (Germany)** - PF1-1318.\n7. **Thermic Energy / FRIMO (Germany)** - PF1-1616/S/A.\n8. **Polypack Kft (Hungary)** - Vacuum Forming Machine Type-PF-1/1500x1200.\n9. **Pro-form Kft. (Hungary)** - ",
+    "existing_id": "06fac030-84f9-4ff0-83d5-6e7dae1b512d",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-03T01:45:26.152745",
+    "resolved": false
+  },
+  {
+    "id": "4ab4dd9c48d0",
+    "new_content": "Yes do dig deeper they have a 6022 PF1 X model",
+    "existing_id": "68b61b3d-9b9c-438c-aa07-ec0667fd19d5",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-03T01:47:09.908850",
+    "resolved": false
+  },
+  {
+    "id": "c74065010d0a",
+    "new_content": "PF1 is available in multiple sizes:\n- PF1-1510: 1500 x 1000mm forming area (entry-level)\n- PF1-2015: 2000 x 1500mm forming area\n- PF1-3020: 3000 x 2000mm forming area (most popular)\n- PF1-3030: 3000 x 3000mm forming area\n- PF1-4022: 4000 x 2200mm forming area (largest)\n\nCustom sizes available on request. The -X, -C, -S suffixes indicate different configurations (speed, servo, custom).",
+    "existing_id": "90dc8129-375d-4ae2-a9e2-31f4f6ab51ec",
+    "identity_id": "id_db1a9b47e00d",
+    "source": "telegram",
+    "timestamp": "2026-03-03T01:47:10.548183",
+    "resolved": false
   }
 ]
