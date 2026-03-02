@@ -408,6 +408,28 @@ IRA_TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "build_quote_pdf",
+            "description": "Ask Tyche (goddess of fortune) to build a professional-grade formal quotation (full tech specs from real DB, component brands, pricing with real option prices, optional extras with indicative prices, terms & conditions) and export as a PDF for sending to the customer. Provide either machine_model (e.g. 'PF1-C-2015') or width_mm + height_mm. Use when the user wants a formal quote document as an attachment.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "machine_model": {"type": "string", "description": "Machine model (e.g. 'PF1-C-2015', 'PF1-X-1520'). Preferred over width/height."},
+                    "width_mm": {"type": "integer", "description": "Forming area width in mm. Used if machine_model not provided."},
+                    "height_mm": {"type": "integer", "description": "Forming area height in mm. Used if machine_model not provided."},
+                    "variant": {"type": "string", "description": "Machine variant: C (pneumatic) or X (servo). Default C. Only used with width/height."},
+                    "customer_name": {"type": "string", "description": "Customer contact name"},
+                    "company_name": {"type": "string", "description": "Customer company name"},
+                    "customer_email": {"type": "string", "description": "Customer email address"},
+                    "country": {"type": "string", "description": "Country for pricing (India = GST; other = Ex-Works). Default India."},
+                    "options": {"type": "string", "description": "Comma-separated options to include in quote, e.g. 'heater_type=quartz,loading=robotic,cooling=ducted'. Keys: frame_type, loading, heater_type, clamping, tool_loading, controller, cooling, plug_assist, pressure_forming, twin_sheet."},
+                },
+                "required": [],
+            },
+        },
+    },
 ]
 
 
@@ -468,6 +490,7 @@ async def execute_tool_call(
         "draft_email": "hermes",
         "run_analysis": "hephaestus",
         "correction_report": "nemesis",
+        "build_quote_pdf": "tyche",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -973,6 +996,54 @@ async def execute_tool_call(
             logger.warning(f"correction_report failed: {e}")
             return f"(Nemesis report unavailable: {e})"
 
+    elif tool_name == "build_quote_pdf":
+        machine_model = arguments.get("machine_model") or None
+        width_mm = arguments.get("width_mm")
+        height_mm = arguments.get("height_mm")
+        try:
+            width_mm = int(width_mm) if width_mm is not None else None
+            height_mm = int(height_mm) if height_mm is not None else None
+        except (TypeError, ValueError):
+            width_mm, height_mm = None, None
+        if not machine_model and (width_mm is None or height_mm is None):
+            return "(Error: provide machine_model (e.g. 'PF1-C-2015') or both width_mm and height_mm)"
+        opts_raw = str(arguments.get("options", ""))
+        parsed_options: Dict[str, str] = {}
+        if opts_raw:
+            for pair in opts_raw.split(","):
+                pair = pair.strip()
+                if "=" in pair:
+                    k, _, v = pair.partition("=")
+                    parsed_options[k.strip()] = v.strip()
+                elif pair:
+                    parsed_options[pair] = "true"
+        try:
+            from openclaw.agents.ira.src.agents.quotebuilder import build_quote_pdf as quotebuilder_build
+            result = quotebuilder_build(
+                machine_model=machine_model,
+                width_mm=width_mm,
+                height_mm=height_mm,
+                variant=str(arguments.get("variant", "C")).strip() or "C",
+                customer_name=str(arguments.get("customer_name", "")),
+                company_name=str(arguments.get("company_name", "")),
+                customer_email=str(arguments.get("customer_email", "")),
+                country=str(arguments.get("country", "India")),
+                options=parsed_options if parsed_options else None,
+            )
+            return (
+                f"Quote PDF generated.\n"
+                f"Quote ID: {result.quote_id}\n"
+                f"Model: {result.model}\n"
+                f"Total: Rs. {result.total_inr:,} INR (approx. ${result.total_usd:,} USD)\n"
+                f"PDF path: {result.pdf_path}\n"
+                f"(File is ready to attach and send to the customer.)"
+            )
+        except ImportError as e:
+            return f"(Quotebuilder not available: {e})"
+        except Exception as e:
+            logger.warning(f"build_quote_pdf failed: {e}")
+            return f"(Quotebuilder error: {e})"
+
     return f"Error: Unknown tool '{tool_name}'"
 
 
@@ -985,6 +1056,7 @@ _TOOL_SCHEMAS: Dict[str, Dict[str, type]] = {
     "customer_lookup": {"query": str},
     "search_contacts": {"query": str},
     "lead_intelligence": {"company": str, "context": str},
+    "build_quote_pdf": {"machine_model": str, "width_mm": int, "height_mm": int, "variant": str, "customer_name": str, "company_name": str, "customer_email": str, "country": str, "options": str},
 }
 
 _MAX_ARG_LENGTH = 16000
