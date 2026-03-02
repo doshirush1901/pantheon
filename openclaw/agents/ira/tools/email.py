@@ -71,10 +71,15 @@ class IraEmailTool:
         """Auto-enrich email draft with CRM, knowledge base, and Google Contacts data."""
         gathered: Dict[str, Any] = {"sources": []}
 
-        recipient_name = to if "@" not in to else ""
+        if "@" not in to:
+            recipient_name = to
+        else:
+            local_part = to.split("@")[0].replace(".", " ").replace("_", " ")
+            recipient_name = local_part if len(local_part) > 2 else ""
         search_terms = [t for t in [recipient_name, subject, intent] if t]
 
         # 1. Google Contacts lookup (resolves names to emails)
+        contacts_found = False
         try:
             from openclaw.agents.ira.src.tools.google_tools import contacts_search
             for term in search_terms[:2]:
@@ -82,9 +87,29 @@ class IraEmailTool:
                 if result and "not available" not in result.lower() and "no contacts" not in result.lower():
                     gathered["contacts"] = result
                     gathered["sources"].append("google_contacts")
+                    contacts_found = True
                     break
         except Exception:
             pass
+
+        # 1b. Gmail search fallback — always try if we have a name to search
+        if recipient_name:
+            try:
+                from openclaw.agents.ira.src.tools.google_tools import gmail_search
+                gmail_result = gmail_search(f"to:{recipient_name} OR from:{recipient_name}", max_results=3)
+                if gmail_result and "no results" not in gmail_result.lower():
+                    gathered["gmail_history"] = gmail_result
+                    gathered["sources"].append("gmail_history")
+                    import re
+                    own_domains = {"machinecraft.org", "machinecraft.com"}
+                    for email_match in re.finditer(r'<([^>]+@[^>]+)>', gmail_result):
+                        addr = email_match.group(1).lower()
+                        domain = addr.split("@")[-1]
+                        if domain not in own_domains:
+                            gathered["resolved_email"] = addr
+                            break
+            except Exception:
+                pass
 
         # 2. CRM lookup
         try:
@@ -157,11 +182,17 @@ class IraEmailTool:
             
             enrichment = self._gather_context(to, subject, intent)
             
+            resolved_email = enrichment.get("resolved_email")
+            if resolved_email:
+                to = resolved_email
+            
             context_sections = []
             if context:
                 context_sections.append(f"USER-PROVIDED CONTEXT:\n{context}")
             if enrichment.get("contacts"):
                 context_sections.append(f"GOOGLE CONTACTS (recipient info):\n{enrichment['contacts']}")
+            if enrichment.get("gmail_history"):
+                context_sections.append(f"GMAIL HISTORY (past emails with recipient):\n{enrichment['gmail_history']}")
             if enrichment.get("crm"):
                 context_sections.append(f"CRM DATA:\n{enrichment['crm']}")
             if enrichment.get("knowledge"):

@@ -181,7 +181,7 @@ def _get_valid_models():
     if _VALID_MODELS is not None:
         return _VALID_MODELS
     try:
-        specs_file = Path(__file__).parent.parent.parent.parent.parent / "data" / "brain" / "machine_specs.json"
+        specs_file = Path(__file__).parent.parent.parent.parent.parent.parent / "data" / "brain" / "machine_specs.json"
         if specs_file.exists():
             import json
             specs = json.loads(specs_file.read_text())

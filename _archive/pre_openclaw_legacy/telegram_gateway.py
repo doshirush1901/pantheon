@@ -695,26 +695,66 @@ class TelegramGateway:
                 raise RuntimeError(f"Gmail service unavailable: {e}")
         return self._gmail_service
     
+    def _split_text(self, text: str, max_len: int = 4000) -> List[str]:
+        """Split long text into chunks that fit Telegram's limit.
+
+        Tries to break at paragraph boundaries first, then sentence
+        boundaries, then hard-cuts as a last resort.
+        """
+        if len(text) <= max_len:
+            return [text]
+
+        chunks: List[str] = []
+        while text:
+            if len(text) <= max_len:
+                chunks.append(text)
+                break
+
+            # Try paragraph break
+            cut = text.rfind("\n\n", 0, max_len)
+            if cut <= 0:
+                # Try single newline
+                cut = text.rfind("\n", 0, max_len)
+            if cut <= 0:
+                # Try sentence end
+                cut = text.rfind(". ", 0, max_len)
+                if cut > 0:
+                    cut += 1  # include the period
+            if cut <= 0:
+                cut = max_len
+
+            chunks.append(text[:cut].rstrip())
+            text = text[cut:].lstrip()
+
+        return chunks
+
     def send_message(self, text: str, parse_mode: Optional[str] = None, reply_markup: Optional[Dict] = None) -> Optional[int]:
-        """Send message to Telegram chat with retry logic. Returns message_id on success."""
-        if len(text) > 4000:
-            text = text[:3950] + "\n\n... [truncated]"
-        
-        payload = {
-            "chat_id": self.expected_chat_id,
-            "text": text,
-        }
-        
-        if parse_mode:
-            payload["parse_mode"] = parse_mode
-        
-        if reply_markup:
-            payload["reply_markup"] = reply_markup
-        
-        data = self._api_request("POST", "sendMessage", json=payload)
-        if data:
-            return data.get("result", {}).get("message_id")
-        return None
+        """Send message to Telegram chat with retry logic. Returns message_id on success.
+
+        Long messages are automatically split into multiple Telegram messages.
+        The reply_markup (inline keyboard) is only attached to the last chunk.
+        """
+        chunks = self._split_text(text)
+        last_msg_id = None
+
+        for i, chunk in enumerate(chunks):
+            is_last = i == len(chunks) - 1
+            payload = {
+                "chat_id": self.expected_chat_id,
+                "text": chunk,
+            }
+
+            if parse_mode:
+                payload["parse_mode"] = parse_mode
+
+            if reply_markup and is_last:
+                payload["reply_markup"] = reply_markup
+
+            data = self._api_request("POST", "sendMessage", json=payload)
+            if data:
+                last_msg_id = data.get("result", {}).get("message_id")
+
+        return last_msg_id
     
     def send_typing_action(self) -> bool:
         """Show typing indicator to user with retry logic."""
@@ -726,24 +766,40 @@ class TelegramGateway:
         return data is not None
 
     def edit_message(self, message_id: int, text: str, parse_mode: Optional[str] = None, reply_markup: Optional[Dict] = None) -> bool:
-        """Edit an existing message with retry logic."""
-        if len(text) > 4000:
-            text = text[:3950] + "\n\n... [truncated]"
+        """Edit an existing message with retry logic.
 
+        If the text is too long for a single Telegram message, the original
+        message is edited with the first chunk and the rest are sent as new
+        messages.
+        """
+        chunks = self._split_text(text)
+
+        # Edit the original message with the first chunk
         payload = {
             "chat_id": self.expected_chat_id,
             "message_id": message_id,
-            "text": text,
+            "text": chunks[0],
         }
 
         if parse_mode:
             payload["parse_mode"] = parse_mode
 
-        if reply_markup:
+        if reply_markup and len(chunks) == 1:
             payload["reply_markup"] = reply_markup
 
         data = self._api_request("POST", "editMessageText", json=payload)
-        return data is not None
+        success = data is not None
+
+        # Send remaining chunks as new messages
+        for i, chunk in enumerate(chunks[1:], start=1):
+            is_last = i == len(chunks) - 1
+            self.send_message(
+                chunk,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup if is_last else None,
+            )
+
+        return success
     
     def answer_callback_query(self, callback_query_id: str, text: Optional[str] = None, show_alert: bool = False) -> bool:
         """Answer a callback query (required after button press) with retry logic."""
@@ -1665,6 +1721,7 @@ class TelegramGateway:
             
             chat_id = str(msg.get("chat", {}).get("id", ""))
             if chat_id != self.expected_chat_id:
+                save_last_update_id(update["update_id"])
                 continue
             
             msg_timestamp = datetime.fromtimestamp(
@@ -1673,6 +1730,7 @@ class TelegramGateway:
             age_seconds = (now - msg_timestamp).total_seconds()
             
             if age_seconds > MAX_MESSAGE_AGE_SECONDS:
+                save_last_update_id(update["update_id"])
                 continue
             
             from_user = msg.get("from", {})
@@ -7473,7 +7531,7 @@ Total: {len(draft_ids)}""",
                     },
                     severity="error"
                 )
-                self.send_message(f"❌ Error: {e}")
+                self.send_message("Something went wrong processing your message. I've logged the error — please try again.")
         
         return len(messages)
     

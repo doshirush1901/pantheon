@@ -470,9 +470,7 @@ A PF1-3020 typically produces 40-120 parts/hour depending on part size and compl
         ],
         answer="""Standard lead times:
 
-- **PF1 machines**: 16-24 weeks from order confirmation
-- **AM automation**: 12-16 weeks
-- **FCS trimming**: 12-16 weeks
+- **All machines (PF1, AM, FCS, IMG, PF2)**: 12-16 weeks from order confirmation
 
 Lead time includes:
 - Engineering and design approval
@@ -480,7 +478,7 @@ Lead time includes:
 - Factory testing
 - Shipping and installation
 
-Rush orders possible with premium - contact us for urgent requirements.""",
+Lead time is firm at 12-16 weeks. We do not promise faster delivery.""",
         category="commercial",
         keywords=["lead", "time", "delivery", "when", "ready", "long"],
     ),
