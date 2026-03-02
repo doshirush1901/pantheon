@@ -1,0 +1,102 @@
+[
+    {
+        "id": "AM_THICKNESS_LEARNING",
+        "name": "AM Series Thickness Rule Learning",
+        "description": "Test if IRA learns from AM series thickness corrections",
+        "initial_question": {
+            "subject": "Machine for 4mm ABS sheets",
+            "body": "Hi Ira,\n\nI have a customer asking about forming 4mm thick ABS sheets for automotive parts. Can the AM series handle this?\n\nRushabh"
+        },
+        "expected_failure": "AM_THICKNESS",
+        "correction": {
+            "subject": "Re: Machine for 4mm ABS sheets",
+            "body": "No Ira, that's not correct. The AM series is ONLY suitable for materials with thickness ≤1.5mm. For 4mm material, we should recommend the PF1 series instead. Please remember this for future queries."
+        },
+        "verification_question": {
+            "subject": "Thick gauge forming inquiry",
+            "body": "A new customer wants to form 5mm polypropylene sheets. Which machine series would you recommend and why?"
+        },
+        "expected_keywords_verification": ["PF1", "thick", "material", "recommend"],
+        "critical_rule": "AM_THICKNESS"
+    },
+    {
+        "id": "PRICING_DISCLAIMER_LEARNING",
+        "name": "Pricing Disclaimer Compliance",
+        "description": "Test if IRA consistently adds pricing disclaimers",
+        "initial_question": {
+            "subject": "PF1-C-2015 pricing",
+            "body": "Hi Ira,\n\nWhat's the price for the PF1-C-2015 machine? Customer needs a quick estimate.\n\nRushabh"
+        },
+        "expected_failure": "PRICING_DISCLAIMER",
+        "correction": {
+            "subject": "Re: PF1-C-2015 pricing",
+            "body": "Ira, remember that all prices MUST include 'subject to configuration and current pricing' as a disclaimer. Never quote a price without this caveat."
+        },
+        "verification_question": {
+            "subject": "Quote for AM-2015",
+            "body": "Can you give me a price estimate for the AM-2015 machine?"
+        },
+        "expected_keywords_verification": ["₹", "lakh", "subject to configuration", "pricing"],
+        "critical_rule": "PRICING_DISCLAIMER"
+    },
+    {
+        "id": "NO_FABRICATION_LEARNING",
+        "name": "No Fabrication Rule",
+        "description": "Test if IRA refuses to fabricate information about unknown products",
+        "initial_question": {
+            "subject": "New X-2000 specs",
+            "body": "Hi Ira,\n\nA customer is asking about specs for the X-2000 prototype machine. What can you tell them?\n\nRushabh"
+        },
+        "expected_failure": "NO_FABRICATION",
+        "correction": {
+            "subject": "Re: New X-2000 specs",
+            "body": "Ira, NEVER make up information about products that don't exist in our database. If you don't know, say 'I don't have information about that product.' Don't fabricate specs."
+        },
+        "verification_question": {
+            "subject": "Quantum-3000 machine",
+            "body": "What are the specifications for the Quantum-3000 thermoforming machine?"
+        },
+        "expected_keywords_verification": ["don't have", "no information", "not available", "cannot"],
+        "critical_rule": "NO_FABRICATION"
+    },
+    {
+        "id": "MEMORY_RECALL_TEST",
+        "name": "Customer Memory Recall",
+        "description": "Test if IRA remembers previous conversation context",
+        "initial_question": {
+            "subject": "Following up on our discussion",
+            "body": "Hi Ira,\n\nRemember we discussed a PF1 machine for ABC Plastics last week? They have now confirmed interest. What was the price range we mentioned?\n\nRushabh"
+        },
+        "expected_failure": null,
+        "correction": {
+            "subject": "Re: Following up on our discussion",
+            "body": "Ira, when I ask about previous conversations, you should try to recall from memory. For ABC Plastics, we discussed the PF1-C-2015 at ₹45-55 lakhs. Please store this for future reference."
+        },
+        "verification_question": {
+            "subject": "ABC Plastics update",
+            "body": "What do you recall about our discussions with ABC Plastics regarding the PF1 machine?"
+        },
+        "expected_keywords_verification": ["ABC Plastics", "PF1", "₹45", "lakh"],
+        "critical_rule": null
+    },
+    {
+        "id": "DEEP_QUESTION_HANDLING",
+        "name": "Complex Technical Question",
+        "description": "Test IRA's ability to handle multi-part technical questions",
+        "initial_question": {
+            "subject": "Multi-series comparison needed",
+            "body": "Hi Ira,\n\nI need a comparison between PF1, AM, and ATF series. What are the key differences in terms of:\n1. Material thickness range\n2. Production volume capability\n3. Price range\n\nRushabh"
+        },
+        "expected_failure": null,
+        "correction": {
+            "subject": "Re: Multi-series comparison needed",
+            "body": "Ira, for comparison questions, please structure your response as a table or bullet points covering ALL aspects asked. You missed some details. Make sure to cover thickness, volume, and pricing for each series mentioned."
+        },
+        "verification_question": {
+            "subject": "PF1 vs IMG comparison",
+            "body": "Compare PF1 and IMG series in terms of applications, forming depth, and suitable materials."
+        },
+        "expected_keywords_verification": ["PF1", "IMG", "application", "forming", "material"],
+        "critical_rule": null
+    }
+]

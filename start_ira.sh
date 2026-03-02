@@ -1,0 +1,289 @@
+#!/bin/bash
+# =============================================================================
+# Ira Startup Script
+# =============================================================================
+# Run this after PC restart to start all Ira services
+#
+# Usage:
+#   ./start_ira.sh          # Start all services (new orchestrator)
+#   ./start_ira.sh status   # Check service status
+#   ./start_ira.sh stop     # Stop all services
+#   ./start_ira.sh cli      # Interactive CLI mode
+#   ./start_ira.sh legacy   # Use legacy telegram_gateway.py
+# =============================================================================
+
+set -e
+cd "$(dirname "$0")"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}"
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║                    🤖 IRA STARTUP                         ║"
+echo "╚═══════════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+
+check_postgres() {
+    pg_isready -h 127.0.0.1 -p 5432 -q 2>/dev/null && return 0
+    docker exec ira-postgres pg_isready -q 2>/dev/null && return 0
+    return 1
+}
+
+check_qdrant() {
+    curl -s http://localhost:6333/health >/dev/null 2>&1 && return 0 || return 1
+}
+
+check_redis() {
+    redis-cli ping >/dev/null 2>&1 && return 0 || return 1
+}
+
+check_telegram_gateway() {
+    pgrep -f "telegram_gateway.py --loop" >/dev/null 2>&1 && return 0 || return 1
+}
+
+check_orchestrator() {
+    pgrep -f "orchestrator.py" >/dev/null 2>&1 && return 0 || return 1
+}
+
+check_ira_agent() {
+    # Check if either orchestrator or telegram gateway is running
+    check_orchestrator || check_telegram_gateway
+}
+
+check_email_handler() {
+    pgrep -f "email_openclaw_bridge" >/dev/null 2>&1 && return 0 || return 1
+}
+
+# Legacy alias
+check_gmail_push() {
+    check_email_handler
+}
+
+status_icon() {
+    if $1; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Status Command
+# -----------------------------------------------------------------------------
+
+if [ "$1" = "status" ]; then
+    echo -e "\n${YELLOW}Service Status:${NC}\n"
+    
+    echo -e "  PostgreSQL:       $(status_icon check_postgres)"
+    echo -e "  Qdrant:           $(status_icon check_qdrant)"
+    echo -e "  Redis:            $(status_icon check_redis) (optional)"
+    echo -e "  Telegram Gateway: $(status_icon check_telegram_gateway)"
+    echo -e "  Email Handler:    $(status_icon check_email_handler) (optional)"
+    echo ""
+    
+    # Show agent status if running
+    if check_ira_agent; then
+        echo -e "${YELLOW}Agent Status:${NC}"
+        python3 -m openclaw.agents.ira.agent --status 2>/dev/null | head -30
+    fi
+    exit 0
+fi
+
+# -----------------------------------------------------------------------------
+# CLI Command
+# -----------------------------------------------------------------------------
+
+if [ "$1" = "cli" ]; then
+    echo -e "${YELLOW}Starting Interactive CLI...${NC}\n"
+    python3 -m openclaw.agents.ira.agent --cli
+    exit 0
+fi
+
+# -----------------------------------------------------------------------------
+# Stop Command
+# -----------------------------------------------------------------------------
+
+if [ "$1" = "stop" ]; then
+    echo -e "${YELLOW}Stopping Ira services...${NC}\n"
+    
+    # Stop Telegram Gateway
+    pkill -f "telegram_gateway.py" 2>/dev/null && echo "  Stopped Telegram Gateway" || echo "  Telegram Gateway not running"
+    
+    # Stop Email Handler
+    pkill -f "email_openclaw_bridge" 2>/dev/null && echo "  Stopped Email Handler" || echo "  Email Handler not running"
+    
+    # Stop Qdrant (if running in Docker)
+    docker stop ira-qdrant 2>/dev/null && echo "  Stopped Qdrant" || \
+    docker stop qdrant 2>/dev/null && echo "  Stopped Qdrant" || echo "  Qdrant container not running"
+    
+    echo -e "\n${GREEN}Done!${NC}"
+    exit 0
+fi
+
+# -----------------------------------------------------------------------------
+# Start Services
+# -----------------------------------------------------------------------------
+
+# Ensure logs directory exists
+mkdir -p logs
+
+echo -e "${YELLOW}Starting services...${NC}\n"
+
+# 1. PostgreSQL (via Docker container ira-postgres)
+echo -n "  [1/5] PostgreSQL: "
+if check_postgres; then
+    echo -e "${GREEN}Already running${NC}"
+else
+    docker start ira-postgres 2>/dev/null || true
+    sleep 3
+    
+    if check_postgres; then
+        echo -e "${GREEN}Started (Docker)${NC}"
+    else
+        echo -e "${RED}Not running - start Docker container ira-postgres${NC}"
+    fi
+fi
+
+# 2. Qdrant
+echo -n "  [2/5] Qdrant: "
+if check_qdrant; then
+    echo -e "${GREEN}Already running${NC}"
+else
+    # Start Qdrant in Docker (try ira-qdrant first, then generic qdrant)
+    docker start ira-qdrant 2>/dev/null || \
+    docker start qdrant 2>/dev/null || \
+    docker run -d --name ira-qdrant -p 6333:6333 -p 6334:6334 -v ~/qdrant_data:/qdrant/storage qdrant/qdrant 2>/dev/null || true
+    
+    sleep 3
+    
+    if check_qdrant; then
+        echo -e "${GREEN}Started${NC}"
+    else
+        echo -e "${RED}Failed to start - run manually: docker run -p 6333:6333 qdrant/qdrant${NC}"
+    fi
+fi
+
+# 3. Redis (Optional)
+echo -n "  [3/5] Redis: "
+if check_redis; then
+    echo -e "${GREEN}Already running${NC}"
+else
+    # Try to start via brew
+    if command -v brew &> /dev/null; then
+        brew services start redis 2>/dev/null || true
+        sleep 1
+    fi
+    
+    if check_redis; then
+        echo -e "${GREEN}Started${NC}"
+    else
+        echo -e "${YELLOW}Not available (optional - caching disabled)${NC}"
+    fi
+fi
+
+# 4. Ira Agent (Main Interface)
+echo -n "  [4/5] Ira Agent: "
+
+if [ "$1" = "legacy" ]; then
+    # Legacy mode: use telegram_gateway.py directly
+    if check_telegram_gateway; then
+        echo -e "${GREEN}Already running (legacy mode)${NC}"
+    else
+        nohup python3 _archive/pre_openclaw_legacy/telegram_gateway.py --loop > logs/telegram_gateway.log 2>&1 &
+        sleep 2
+        
+        if check_telegram_gateway; then
+            echo -e "${GREEN}Started (legacy mode)${NC}"
+        else
+            echo -e "${RED}Failed - check logs/telegram_gateway.log${NC}"
+        fi
+    fi
+else
+    # New mode: use OpenClaw agent via start_ira_openclaw.sh
+    if check_telegram_gateway; then
+        echo -e "${GREEN}Already running${NC}"
+    else
+        nohup python3 _archive/pre_openclaw_legacy/telegram_gateway.py --loop > logs/telegram_gateway.log 2>&1 &
+        sleep 3
+        
+        if check_telegram_gateway; then
+            echo -e "${GREEN}Started (Telegram gateway)${NC}"
+        else
+            echo -e "${RED}Failed - check logs/telegram_gateway.log${NC}"
+        fi
+    fi
+fi
+
+# 5. Email Handler (Optional - for email processing)
+echo -n "  [5/5] Email Handler: "
+if check_gmail_push; then
+    echo -e "${GREEN}Already running${NC}"
+else
+    # Check if email handler exists (new location)
+    EMAIL_HANDLER="scripts/email_openclaw_bridge.py"
+    if [ -f "$EMAIL_HANDLER" ]; then
+        nohup python3 "$EMAIL_HANDLER" --loop > logs/email_handler.log 2>&1 &
+        sleep 2
+        
+        if check_gmail_push; then
+            echo -e "${GREEN}Started${NC}"
+        else
+            echo -e "${YELLOW}Not started (check logs/email_handler.log)${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Not configured${NC}"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# Summary
+# -----------------------------------------------------------------------------
+
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+echo ""
+
+# Final status check
+ALL_OK=true
+
+if ! check_postgres; then
+    echo -e "${RED}⚠️  PostgreSQL not running - memories won't work${NC}"
+    ALL_OK=false
+fi
+
+if ! check_qdrant; then
+    echo -e "${RED}⚠️  Qdrant not running - knowledge search won't work${NC}"
+    ALL_OK=false
+fi
+
+if ! check_ira_agent; then
+    echo -e "${RED}⚠️  Ira Agent not running - can't chat with Ira${NC}"
+    ALL_OK=false
+fi
+
+if $ALL_OK; then
+    echo -e "${GREEN}✅ Ira is ready!${NC}"
+    echo ""
+    echo "   Test in Telegram:"
+    echo "     /personality     - See personality traits"
+    echo "     /boost charm     - Increase charm"
+    echo "     /help            - All commands"
+    echo ""
+    echo "   CLI Mode:"
+    echo "     ./start_ira.sh cli"
+fi
+
+echo ""
+echo -e "   Logs: ${YELLOW}tail -f logs/telegram_gateway.log${NC}"
+echo -e "   Stop: ${YELLOW}./start_ira.sh stop${NC}"
+echo -e "   Status: ${YELLOW}./start_ira.sh status${NC}"
+echo ""

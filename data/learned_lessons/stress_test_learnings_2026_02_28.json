@@ -1,0 +1,168 @@
+{
+  "learning_session": {
+    "date": "2026-02-28",
+    "type": "stress_test_evaluation",
+    "total_tests": 12,
+    "pass_rate": 1.0,
+    "version": "1.0"
+  },
+  
+  "lessons_learned": [
+    {
+      "id": "STL001",
+      "category": "business_rule",
+      "severity": "critical",
+      "lesson": "AM Series machines can ONLY handle materials ≤1.5mm thick",
+      "trigger": "Customer asks for AM series with thick materials (>1.5mm)",
+      "correct_action": "Politely correct and recommend PF1/PF2 series instead",
+      "incorrect_action": "Accepting AM order for thick materials",
+      "example_bad": "The AM-2000 is great for your 5mm ABS sheets",
+      "example_good": "The AM series is designed for thin-gauge (≤1.5mm). For your 5mm ABS requirement, I recommend the PF1 series which handles heavy-gauge materials up to 10mm.",
+      "code_enforcement": "generate_answer.py - AM thickness validation"
+    },
+    {
+      "id": "STL002", 
+      "category": "process_routing",
+      "severity": "high",
+      "lesson": "IMG (In-Mold Graining) process requires IMG series machines, NOT PF1/PF2",
+      "trigger_keywords": ["IMG", "in-mold graining", "grain retention", "TPO forming", "class-A surface", "texture retention"],
+      "correct_action": "Immediately recognize IMG requirement and recommend IMG series",
+      "incorrect_action": "Recommending PF1/PF2 for grain retention applications",
+      "example_bad": "For TPO with grain retention, I recommend the PF1-C-2520",
+      "example_good": "For TPO forming with grain retention, you need our IMG Series (In-Mold Graining). Standard PF1/PF2 cannot maintain grain texture during forming.",
+      "code_enforcement": "sales_qualifier.py - detect_img_requirement()"
+    },
+    {
+      "id": "STL003",
+      "category": "expectation_management", 
+      "severity": "high",
+      "lesson": "Impossible request combinations require proactive expectation management",
+      "impossible_combinations": [
+        "Large format (>2500mm) + Budget <40 lakhs",
+        "Delivery <4 weeks (standard is 12-16 weeks)",
+        "Thickness >10mm (max capability)",
+        "3000x3000mm forming area with budget constraints"
+      ],
+      "correct_action": "Acknowledge constraints honestly, offer realistic alternatives",
+      "incorrect_action": "Promising impossible delivery or specs, or just asking more questions",
+      "example_bad": "Sure, we can deliver a 3000x3000mm machine in 4 weeks for 25 lakhs",
+      "example_good": "I want to be upfront - a 3000mm+ machine typically starts at ₹60-80 lakhs with 12-16 week lead time. Let's discuss which constraints are flexible.",
+      "code_enforcement": "sales_qualifier.py - detect_impossible_request()"
+    },
+    {
+      "id": "STL004",
+      "category": "qualification",
+      "severity": "medium",
+      "lesson": "Vague inquiries need qualifying questions BEFORE machine recommendations",
+      "vague_indicators": ["looking for machine", "need thermoforming", "send details", "what machines do you have"],
+      "required_info_before_recommendation": ["forming_area", "material", "thickness"],
+      "correct_action": "Ask 2-3 structured qualifying questions",
+      "incorrect_action": "Immediately recommending a specific machine",
+      "example_bad": "Based on your interest, I recommend the PF1-C-2015 at ₹60 lakhs",
+      "example_good": "Happy to help! Quick questions: What forming area? What materials? What max thickness?",
+      "code_enforcement": "sales_qualifier.py - qualify_inquiry()"
+    },
+    {
+      "id": "STL005",
+      "category": "competitor_handling",
+      "severity": "medium", 
+      "lesson": "Never badmouth competitors - focus on Machinecraft's value",
+      "competitors_mentioned": ["GEISS", "Formech", "Chinese machines", "Taiwan machines"],
+      "correct_action": "Acknowledge comparison, highlight Machinecraft strengths professionally",
+      "incorrect_action": "Criticizing competitor quality, reliability, or origin",
+      "example_bad": "Chinese machines are unreliable and will break down",
+      "example_good": "Happy to provide specs for comparison. Our PF1 series offers [strengths]. The price reflects [value proposition including warranty, service, quality].",
+      "code_enforcement": "email_polish_luxury.py - professional tone"
+    },
+    {
+      "id": "STL006",
+      "category": "communication_style",
+      "severity": "medium",
+      "lesson": "Match communication complexity to customer expertise level",
+      "customer_types": {
+        "technical_expert": "Match technical depth, provide precise specs",
+        "confused_boss": "Use simple language, explain gently, don't overwhelm",
+        "non_native_speaker": "Simple English, short sentences, confirm understanding",
+        "rambling_inquiry": "Extract key requirements, ask structured follow-ups"
+      },
+      "code_enforcement": "email_polish_luxury.py - personality injection"
+    },
+    {
+      "id": "STL007",
+      "category": "pricing_discussions",
+      "severity": "medium",
+      "lesson": "Price negotiations require value explanation, not defensiveness",
+      "trigger": "Customer complains about price or compares to cheaper alternatives",
+      "correct_action": "Explain value (warranty, service, quality), offer to discuss requirements to optimize",
+      "incorrect_action": "Getting defensive, immediately offering discounts, badmouthing alternatives",
+      "example_good": "I understand the price difference. Our pricing reflects [specific value: warranty, local service, proven reliability]. Happy to discuss which features matter most to optimize your investment."
+    },
+    {
+      "id": "STL008",
+      "category": "urgency_handling",
+      "severity": "medium",
+      "lesson": "Urgent requests require empathy + honest lead time communication",
+      "trigger": "URGENT, immediate, machine broke, need NOW",
+      "correct_action": "Acknowledge urgency with empathy, be honest about 12-16 week standard, offer expedited options if available",
+      "incorrect_action": "Promising unrealistic delivery, ignoring the urgency",
+      "example_good": "I understand this is critical for your production. Standard lead time is 12-16 weeks, but let me check stock availability and expedited options."
+    }
+  ],
+  
+  "sub_agent_upgrades": {
+    "athena_orchestrator": {
+      "new_capabilities": [
+        "Detect IMG process requirements and route appropriately",
+        "Identify impossible request combinations early",
+        "Apply AM series thickness rule enforcement"
+      ]
+    },
+    "clio_researcher": {
+      "new_knowledge": [
+        "IMG series is required for TPO/grain retention applications",
+        "AM series max thickness is 1.5mm (not 2mm)",
+        "Large format machines (2500mm+) start at ₹60-80 lakhs"
+      ]
+    },
+    "calliope_writer": {
+      "style_improvements": [
+        "Luxury typography with breathing room",
+        "Rushabh-style openers: Hi!, Hey!, Happy to help",
+        "Rushabh-style closers: Makes sense?, Let me know",
+        "Dry humor (15% of responses): technical wit, expertise flex",
+        "Expert touches: From experience with similar setups..."
+      ]
+    },
+    "vera_fact_checker": {
+      "critical_rules_enforced": [
+        "AM Series ≤1.5mm ONLY - flag any violation",
+        "IMG process → IMG series (never PF1/PF2)",
+        "Lead time is 12-16 weeks - never promise faster",
+        "Prices must match database - no guessing"
+      ]
+    },
+    "sophia_mentor": {
+      "reflection_triggers": [
+        "After impossible request - did we manage expectations?",
+        "After AM recommendation - did we check thickness?",
+        "After competitor mention - did we stay professional?",
+        "After vague inquiry - did we qualify before recommending?"
+      ]
+    }
+  },
+  
+  "metrics_improvement": {
+    "before_stress_tests": {
+      "am_thickness_catch_rate": 0.5,
+      "img_recognition_rate": 0.0,
+      "impossible_request_handling": 0.0,
+      "overall_pass_rate": 0.0
+    },
+    "after_stress_tests": {
+      "am_thickness_catch_rate": 1.0,
+      "img_recognition_rate": 1.0,
+      "impossible_request_handling": 1.0,
+      "overall_pass_rate": 1.0
+    }
+  }
+}

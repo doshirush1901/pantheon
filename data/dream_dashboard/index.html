@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ira Dream Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #888; margin-bottom: 2rem; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .stat {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .stat-label { color: #888; font-size: 0.9rem; }
+        ul { list-style: none; }
+        li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-right: 0.3rem;
+        }
+        .tag-critical { background: #ff4757; }
+        .tag-moderate { background: #ffa502; color: #1a1a2e; }
+        .tag-low { background: #2ed573; color: #1a1a2e; }
+        .timestamp { color: #666; font-size: 0.8rem; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ira Dream Dashboard</h1>
+        <p class="subtitle">Generated 2026-02-28 14:23</p>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>📔 Recent Dreams</h2>
+                <div class="stat">3</div>
+                <div class="stat-label">Total dream sessions logged</div>
+                <ul style="margin-top: 1rem;">
+
+                    <li>
+                        <strong>2026-02-28</strong><br>
+                        <span class="timestamp">0 docs, 0 facts learned</span>
+                    </li>
+                    <li>
+                        <strong>2026-02-28</strong><br>
+                        <span class="timestamp">0 docs, 0 facts learned</span>
+                    </li>
+                    <li>
+                        <strong>2026-02-28</strong><br>
+                        <span class="timestamp">10 docs, 2 facts learned</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h2>⚠️ Memory Conflicts</h2>
+                <div class="stat">4</div>
+                <div class="stat-label">Contradictions detected</div>
+                <ul style="margin-top: 1rem;">
+
+                    <li>
+                        <span class="tag tag-moderate">moderate</span>
+                        <span class="tag tag-low">price</span><br>
+                        <span class="timestamp">Different prices for PF1 models: PF1-C-3020 is 850...</span>
+                    </li>
+                    <li>
+                        <span class="tag tag-moderate">moderate</span>
+                        <span class="tag tag-low">price</span><br>
+                        <span class="timestamp">Different prices for PF1-C-1510 and PF1-C-3020...</span>
+                    </li>
+                    <li>
+                        <span class="tag tag-moderate">moderate</span>
+                        <span class="tag tag-low">price</span><br>
+                        <span class="timestamp">Different prices for PF1-C-3020...</span>
+                    </li>
+                    <li>
+                        <span class="tag tag-moderate">moderate</span>
+                        <span class="tag tag-low">price</span><br>
+                        <span class="timestamp">Different prices for PF1-C-3020...</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h2>📈 Learning Velocity</h2>
+
+                <div class="stat">0</div>
+                <div class="stat-label">Facts learned in last 7 days</div>
+                <div style="margin-top: 1rem;">
+                    <strong>Avg Quality:</strong> 75.0%
+                </div>
+
+            </div>
+            
+            <div class="card">
+                <h2>🧠 Memory Health</h2>
+                <ul>
+                    <li>
+                        <strong>Compression</strong><br>
+                        <span class="timestamp">Memories optimized for retrieval</span>
+                    </li>
+                    <li>
+                        <strong>Forgetting</strong><br>
+                        <span class="timestamp">Low-value memories pruned</span>
+                    </li>
+                    <li>
+                        <strong>Attribution</strong><br>
+                        <span class="timestamp">Sources tracked for facts</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,240 @@
+{
+  "qualify_lead": {
+    "name": "Lead Qualification",
+    "description": "Qualify a potential customer by gathering key information about their application, budget, and timeline",
+    "priority": 1,
+    "steps": ["ask_application", "ask_budget", "ask_timeline", "ask_volume"],
+    "step_descriptions": {
+      "ask_application": "Understand the specific application and use case",
+      "ask_budget": "Understand the customer's budget range",
+      "ask_timeline": "Understand when they need the machine operational",
+      "ask_volume": "Understand production volume requirements"
+    },
+    "required_steps": {
+      "ask_application": true,
+      "ask_budget": true,
+      "ask_timeline": true,
+      "ask_volume": false
+    },
+    "prompts": {
+      "ask_application": "What specific application will you be using the machine for? For example, automotive parts, packaging, signage, or something else?",
+      "ask_budget": "To help me recommend the right machine, could you share a bit about your budget for this project?",
+      "ask_timeline": "What is your expected timeline? When do you need the machine to be operational?",
+      "ask_volume": "What production volume are you targeting? Are you looking at prototyping, small batches, or mass production?"
+    },
+    "extraction_patterns": {
+      "ask_application": [
+        "(thermoform|vacuum form|blister|packaging|automotive|signage|aerospace|medical|refrigerator|bathtub|spa|pool|liner|tray|clamshell)",
+        "(?:for|making|producing|manufacturing)\\s+(\\w+(?:\\s+\\w+){0,3})",
+        "(interior|exterior|panel|cover|housing|enclosure|part|component)"
+      ],
+      "ask_budget": [
+        "\\$[\\d,]+(?:\\.\\d{2})?",
+        "(?:budget|spend|invest|allocate)\\s+(?:is|of|around|about|approximately)?\\s*[\\d,]+",
+        "(?:INR|USD|EUR|GBP|₹|€|£)\\s*[\\d,]+",
+        "(?:around|about|approximately)\\s*\\$?[\\d,]+",
+        "(\\d+)\\s*(?:k|K|lakh|lakhs|million|crore)"
+      ],
+      "ask_timeline": [
+        "(urgent|asap|immediately|right away|this (?:week|month|quarter|year))",
+        "(Q[1-4])\\s*(?:'?\\d{2}|\\d{4})",
+        "(H[12])\\s*(?:'?\\d{2}|\\d{4})",
+        "(?:by|before|within|in)\\s+(\\d+)\\s*(?:days?|weeks?|months?|years?)",
+        "(?:by|before)\\s+(?:end of\\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)",
+        "(next|this)\\s+(week|month|quarter|year)",
+        "(\\d{1,2})(?:\\/|-)(?:\\d{1,2})(?:\\/|-)(?:\\d{2,4})"
+      ],
+      "ask_volume": [
+        "(high|medium|low)\\s*(?:volume|production|output)",
+        "(\\d+)\\s*(?:parts?|pieces?|units?)\\s*(?:per|a|\\/|each)\\s*(?:day|week|month|hour|shift)",
+        "(mass production|prototype|prototyping|pilot|batch|custom|bespoke)",
+        "(\\d+)\\s*(?:per|a)\\s*(?:day|week|month)"
+      ]
+    },
+    "trigger_keywords": [
+      "machine", "thermoforming", "thermoform", "vacuum forming", "vacuum form",
+      "quote", "inquiry", "interested", "looking for", "need a machine",
+      "PF1", "forming", "plastic forming"
+    ]
+  },
+  
+  "book_meeting": {
+    "name": "Meeting Booking",
+    "description": "Schedule a meeting, call, or demo with the prospect",
+    "priority": 2,
+    "steps": ["propose_meeting", "confirm_time", "get_contact"],
+    "step_descriptions": {
+      "propose_meeting": "Propose scheduling a meeting or call",
+      "confirm_time": "Confirm the specific meeting time",
+      "get_contact": "Get contact details for the meeting invite"
+    },
+    "required_steps": {
+      "propose_meeting": true,
+      "confirm_time": true,
+      "get_contact": false
+    },
+    "prompts": {
+      "propose_meeting": "Would you be available for a quick call this week to discuss your requirements in more detail? It would help me understand your needs better.",
+      "confirm_time": "What times work best for you? I'm flexible with my schedule.",
+      "get_contact": "Could you share your preferred contact number or email so I can send you the meeting invite?"
+    },
+    "extraction_patterns": {
+      "propose_meeting": [
+        "(yes|sure|okay|ok|sounds good|let's do it|available|free)",
+        "(interested|would like|want to|love to)"
+      ],
+      "confirm_time": [
+        "(monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
+        "(\\d{1,2}(?::\\d{2})?\\s*(?:am|pm|AM|PM))",
+        "(morning|afternoon|evening|noon)",
+        "(\\d{1,2})(?:\\/|-)(?:\\d{1,2})",
+        "(tomorrow|today|next week|this week)",
+        "(IST|EST|PST|GMT|UTC)"
+      ],
+      "get_contact": [
+        "[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}",
+        "\\+?\\d[\\d\\s\\-()]{8,}\\d"
+      ]
+    },
+    "trigger_keywords": [
+      "meeting", "call", "discuss", "demo", "demonstration", "visit",
+      "schedule", "book", "appointment", "talk", "chat"
+    ]
+  },
+  
+  "prepare_quote": {
+    "name": "Quote Preparation",
+    "description": "Gather information needed to prepare a detailed quotation",
+    "priority": 1,
+    "steps": ["identify_model", "confirm_specs", "ask_options", "get_shipping_location"],
+    "step_descriptions": {
+      "identify_model": "Identify the machine model they need",
+      "confirm_specs": "Confirm the specifications and configuration",
+      "ask_options": "Ask about optional features and accessories",
+      "get_shipping_location": "Get shipping destination for delivery estimates"
+    },
+    "required_steps": {
+      "identify_model": true,
+      "confirm_specs": true,
+      "ask_options": false,
+      "get_shipping_location": false
+    },
+    "prompts": {
+      "identify_model": "Which machine model are you interested in? For example, PF1-C series, PF1-X series, or would you like me to recommend one based on your forming size?",
+      "confirm_specs": "Could you confirm the forming area size you need? For example, 1500x2000mm or 2000x3000mm?",
+      "ask_options": "Would you like any additional options like automatic sheet loading, plug assist, or temperature monitoring?",
+      "get_shipping_location": "Where will the machine be installed? This helps me include accurate shipping costs in the quote."
+    },
+    "extraction_patterns": {
+      "identify_model": [
+        "(PF1[\\-]?[CXPSAR][\\-]?\\d{4})",
+        "(PF1|PF2|IMG|ATF|FCS|AM)[\\-]?\\w*",
+        "(compact|standard|premium|heavy[\\-]?duty|large[\\-]?format)"
+      ],
+      "confirm_specs": [
+        "(\\d{3,4})\\s*[xX×]\\s*(\\d{3,4})(?:\\s*mm)?",
+        "(\\d{3,4})\\s*(?:mm|millimeter|millimetre)",
+        "(small|medium|large|extra[\\-]?large)\\s*(?:size|format)"
+      ],
+      "ask_options": [
+        "(auto|automatic)\\s*(?:load|loading|sheet)",
+        "(plug|assist|plug[\\-]?assist)",
+        "(servo|pick[\\-]?place|stacker)",
+        "(temperature|monitoring|sensor)",
+        "(standard|basic|no options)"
+      ],
+      "get_shipping_location": [
+        "([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*),?\\s*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*)",
+        "(USA|UK|UAE|India|Germany|France|Spain|Italy|Canada|Australia|Brazil|Mexico|Japan|China|South Korea)",
+        "\\d{5,6}"
+      ]
+    },
+    "trigger_keywords": [
+      "quote", "quotation", "price", "pricing", "cost", "how much",
+      "RFQ", "request for quote", "send me", "proposal"
+    ]
+  },
+  
+  "technical_consultation": {
+    "name": "Technical Consultation",
+    "description": "Provide technical guidance and understand detailed requirements",
+    "priority": 3,
+    "steps": ["understand_material", "understand_part_geometry", "assess_heating_needs"],
+    "step_descriptions": {
+      "understand_material": "Understand the material being processed",
+      "understand_part_geometry": "Understand part geometry and draw depth",
+      "assess_heating_needs": "Assess heating requirements"
+    },
+    "required_steps": {
+      "understand_material": true,
+      "understand_part_geometry": true,
+      "assess_heating_needs": false
+    },
+    "prompts": {
+      "understand_material": "What material will you be thermoforming? This affects the heater selection and process parameters.",
+      "understand_part_geometry": "What is the draw depth of your parts? And are there any complex geometries or undercuts?",
+      "assess_heating_needs": "Do you have specific heating requirements? For example, single-sided vs twin-sheet, or zone-controlled heating?"
+    },
+    "extraction_patterns": {
+      "understand_material": [
+        "(ABS|HDPE|PP|PS|PVC|PMMA|PC|PET|PETG|TPO|TPE|HIPS|acrylic|polycarbonate|polypropylene|polystyrene|polyethylene)",
+        "(\\d+)\\s*(?:mm|mil)\\s*(?:thick|thickness|gauge)",
+        "(clear|opaque|colored|textured)"
+      ],
+      "understand_part_geometry": [
+        "(\\d+)\\s*(?:mm|inch|cm)\\s*(?:deep|depth|draw)",
+        "(shallow|deep|complex|simple)\\s*(?:draw|geometry|shape)",
+        "(undercut|overhang|recess|detail)"
+      ],
+      "assess_heating_needs": [
+        "(single|twin)[\\-]?(?:sheet|sided)",
+        "(zone|zoned)[\\-]?(?:control|heating|controlled)",
+        "(ceramic|quartz|infrared|IR)\\s*(?:heater|heating|element)",
+        "(top|bottom|dual)[\\-]?(?:heat|heating|heater)"
+      ]
+    },
+    "trigger_keywords": [
+      "technical", "specification", "specs", "engineering",
+      "how does", "what is", "explain", "material", "process"
+    ]
+  },
+  
+  "follow_up_nurture": {
+    "name": "Lead Nurturing Follow-up",
+    "description": "Re-engage with a lead who hasn't responded or needs nurturing",
+    "priority": 4,
+    "steps": ["check_status", "offer_help", "suggest_next_step"],
+    "step_descriptions": {
+      "check_status": "Check on their project status",
+      "offer_help": "Offer additional help or information",
+      "suggest_next_step": "Suggest a concrete next step"
+    },
+    "required_steps": {
+      "check_status": true,
+      "offer_help": true,
+      "suggest_next_step": false
+    },
+    "prompts": {
+      "check_status": "I wanted to follow up on our previous conversation. How is your project progressing?",
+      "offer_help": "Is there any additional information I can provide to help you move forward?",
+      "suggest_next_step": "Would it help to schedule a quick call to discuss any remaining questions?"
+    },
+    "extraction_patterns": {
+      "check_status": [
+        "(moving forward|progressing|on track|delayed|paused|cancelled|decided)",
+        "(still interested|still looking|changed our mind|found another)",
+        "(budget|timeline|project)\\s*(?:approved|ready|on hold)"
+      ],
+      "offer_help": [
+        "(yes|no|maybe|not right now|later)",
+        "(need|want|would like)\\s+(?:more|additional)\\s+(?:info|information|details)",
+        "(questions?|concerns?|clarification)"
+      ],
+      "suggest_next_step": [
+        "(yes|sure|sounds good|let's do it|available)",
+        "(no|not now|later|busy|next week)"
+      ]
+    },
+    "trigger_keywords": []
+  }
+}

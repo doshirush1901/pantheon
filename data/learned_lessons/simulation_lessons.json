@@ -1,0 +1,397 @@
+[
+  {
+    "lesson": "Ensure all specifications and details are verified against the ground truth and include all necessary information and disclaimers as per business rules.",
+    "source": "sim-c4682101",
+    "ts": "2026-03-01T06:58:01.804581"
+  },
+  {
+    "lesson": "Ensure the recommended machine series aligns with the customer's requirements and business rules, and provide a detailed comparison to justify the recommendation.",
+    "source": "sim-c4682101",
+    "ts": "2026-03-01T06:58:23.604601"
+  },
+  {
+    "lesson": "Always include requested technical and pricing information with the necessary disclaimers and ensure the response is comprehensive and within the specified word count.",
+    "source": "sim-c4682101",
+    "ts": "2026-03-01T06:58:46.302558"
+  },
+  {
+    "lesson": "Always cross-check model specifications and ensure all claims are supported by the database to maintain factual accuracy.",
+    "source": "sim-25600bdc",
+    "ts": "2026-03-01T06:59:08.125440"
+  },
+  {
+    "lesson": "Ensure all customer requirements are addressed and include necessary disclaimers and details as per business rules.",
+    "source": "sim-25600bdc",
+    "ts": "2026-03-01T06:59:31.329308"
+  },
+  {
+    "lesson": "Always include required disclaimers and ensure the email meets the specified length and detail requirements for formal quotations.",
+    "source": "sim-25600bdc",
+    "ts": "2026-03-01T06:59:59.157019"
+  },
+  {
+    "lesson": "Ensure all machine models and specifications mentioned are verified against the ground truth and include all required business rule elements like pricing disclaimers.",
+    "source": "sim-d0bd3bfa",
+    "ts": "2026-03-01T07:00:21.631621"
+  },
+  {
+    "lesson": "Always verify machine specifications and pricing against the ground truth database to ensure accuracy and compliance with business rules.",
+    "source": "sim-d0bd3bfa",
+    "ts": "2026-03-01T07:00:43.607478"
+  },
+  {
+    "lesson": "Ensure all customer requests are addressed with specific information and adhere to business rules, especially regarding pricing disclaimers and email length requirements.",
+    "source": "sim-d0bd3bfa",
+    "ts": "2026-03-01T07:01:06.616089"
+  },
+  {
+    "lesson": "Ensure all technical specifications are verified against the ground truth and include a detailed rationale for the recommended machine, especially when the customer's application is specific.",
+    "source": "sim-191e7761",
+    "ts": "2026-03-01T07:01:28.143663"
+  },
+  {
+    "lesson": "Ensure all technical specifications are accurate and complete, and provide detailed comparisons to fully address customer needs.",
+    "source": "sim-191e7761",
+    "ts": "2026-03-01T07:01:48.934459"
+  },
+  {
+    "lesson": "Ensure all customer requests are fully addressed with detailed information and adhere to business rules, including necessary disclaimers and word count requirements.",
+    "source": "sim-191e7761",
+    "ts": "2026-03-01T07:02:14.220022"
+  },
+  {
+    "lesson": "Always verify product specifications against the database and ensure compliance with business rules, including necessary disclaimers.",
+    "source": "sim-c146136e",
+    "ts": "2026-03-01T07:02:33.384603"
+  },
+  {
+    "lesson": "Always verify machine specifications and ensure recommendations align with customer requirements and available data.",
+    "source": "sim-c146136e",
+    "ts": "2026-03-01T07:02:54.859747"
+  },
+  {
+    "lesson": "Always verify model specifications against the ground truth and ensure compliance with all business rules, including pricing disclaimers.",
+    "source": "sim-c146136e",
+    "ts": "2026-03-01T07:03:25.782335"
+  },
+  {
+    "lesson": "Ensure all specifications and features are verified against the database and include required business rule elements like pricing disclaimers.",
+    "source": "sim-b6744803",
+    "ts": "2026-03-01T07:03:53.260495"
+  },
+  {
+    "lesson": "Ensure all customer requirements, such as open-frame design, are addressed and verify all claims against the ground truth before finalizing the recommendation.",
+    "source": "sim-b6744803",
+    "ts": "2026-03-01T07:04:16.233098"
+  },
+  {
+    "lesson": "Ensure all technical specifications are accurate and include all required disclaimers and customer-requested information.",
+    "source": "sim-b6744803",
+    "ts": "2026-03-01T07:04:36.938023"
+  },
+  {
+    "lesson": "Always verify product specifications and include required business disclaimers to ensure compliance and accuracy.",
+    "source": "sim-3aeee053",
+    "ts": "2026-03-01T07:05:01.441097"
+  },
+  {
+    "lesson": "Ensure all business rules are followed, including pricing disclaimers and detailed content requirements, to provide a comprehensive and compliant response.",
+    "source": "sim-3aeee053",
+    "ts": "2026-03-01T07:05:23.768822"
+  },
+  {
+    "lesson": "Always verify model specifications against the database and include required disclaimers and comparisons for a complete and compliant response.",
+    "source": "sim-3aeee053",
+    "ts": "2026-03-01T07:05:54.301701"
+  },
+  {
+    "lesson": "Ensure your response includes a detailed comparison and recommendation, adhering to the length and content requirements specified in the ground truth.",
+    "source": "sim-f28f2a98",
+    "ts": "2026-03-01T07:06:17.737255"
+  },
+  {
+    "lesson": "Always verify machine specifications and series details against the database to ensure accuracy and relevance to the customer's needs.",
+    "source": "sim-f28f2a98",
+    "ts": "2026-03-01T07:06:43.427474"
+  },
+  {
+    "lesson": "Always verify model specifications and ensure all pricing includes the required disclaimer and is presented in the customer's requested currency.",
+    "source": "sim-f28f2a98",
+    "ts": "2026-03-01T07:07:17.300127"
+  },
+  {
+    "lesson": "Ensure all specifications and features are verified against the database and include required business rule elements like pricing disclaimers.",
+    "source": "sim-430444e5",
+    "ts": "2026-03-01T07:07:42.007691"
+  },
+  {
+    "lesson": "Ensure all customer requirements are addressed and verify all model specifications against the ground truth.",
+    "source": "sim-430444e5",
+    "ts": "2026-03-01T07:08:02.101070"
+  },
+  {
+    "lesson": "Always ensure to include requested technical and pricing information, along with any necessary disclaimers, to fully address customer inquiries.",
+    "source": "sim-430444e5",
+    "ts": "2026-03-01T07:08:27.728248"
+  },
+  {
+    "lesson": "Ensure all technical specifications are verified against the ground truth and provide a detailed rationale for the recommendation, including compliance with business rules and email length requirements.",
+    "source": "sim-220b7f02",
+    "ts": "2026-03-01T07:08:50.580897"
+  },
+  {
+    "lesson": "Ensure the recommended series aligns with the customer's material and specific requirements, and verify all technical specifications against the database.",
+    "source": "sim-220b7f02",
+    "ts": "2026-03-01T07:09:11.712883"
+  },
+  {
+    "lesson": "Ensure all customer requests are fully addressed and comply with business rules, including pricing disclaimers and currency specifications.",
+    "source": "sim-220b7f02",
+    "ts": "2026-03-01T07:09:35.567190"
+  },
+  {
+    "lesson": "Ensure to provide a detailed machine comparison and adhere to all business rules, including pricing disclaimers and specific series requirements, to fully address the customer's inquiry.",
+    "source": "sim-1008b173",
+    "ts": "2026-03-01T07:09:55.510802"
+  },
+  {
+    "lesson": "Ensure all technical specifications are verified against the database and provide a comprehensive comparison to fully address the customer's inquiry.",
+    "source": "sim-1008b173",
+    "ts": "2026-03-01T07:10:16.569596"
+  },
+  {
+    "lesson": "Always include requested technical and pricing information, and ensure compliance with business rules regarding pricing disclaimers.",
+    "source": "sim-1008b173",
+    "ts": "2026-03-01T07:10:40.800812"
+  },
+  {
+    "lesson": "Always cross-check model specifications and ensure compliance with all business rules, including AM thickness and pricing disclaimers.",
+    "source": "sim-3c61d7de",
+    "ts": "2026-03-01T07:11:01.097879"
+  },
+  {
+    "lesson": "Ensure all model specifications are verified against the ground truth and include all relevant details to fully address the customer's requirements.",
+    "source": "sim-3c61d7de",
+    "ts": "2026-03-01T07:11:27.006324"
+  },
+  {
+    "lesson": "Always include required disclaimers and ensure the email meets the specified length and detail requirements.",
+    "source": "sim-3c61d7de",
+    "ts": "2026-03-01T07:11:52.917706"
+  },
+  {
+    "lesson": "Ensure all machine models and specifications are verified against the database and include all required business rule elements such as pricing disclaimers.",
+    "source": "sim-9ef0c2f6",
+    "ts": "2026-03-01T07:12:14.298362"
+  },
+  {
+    "lesson": "Ensure all recommended models and their specifications are verified against the database, and address all customer requirements explicitly.",
+    "source": "sim-9ef0c2f6",
+    "ts": "2026-03-01T07:12:36.103779"
+  },
+  {
+    "lesson": "Ensure all customer requests are addressed directly and include required disclaimers and detailed information as per business rules.",
+    "source": "sim-9ef0c2f6",
+    "ts": "2026-03-01T07:12:58.341764"
+  },
+  {
+    "lesson": "Ensure all machine specifications and models mentioned are verified against the database, and include all required details and disclaimers as per business rules.",
+    "source": "sim-2fa8d263",
+    "ts": "2026-03-01T07:13:21.724930"
+  },
+  {
+    "lesson": "Ensure all machine specifications and recommendations are verified against the database and provide a detailed comparison as required by the email guidelines.",
+    "source": "sim-2fa8d263",
+    "ts": "2026-03-01T07:13:43.462868"
+  },
+  {
+    "lesson": "Always verify model specifications and include all required disclaimers and pricing information as per customer requests and business rules.",
+    "source": "sim-2fa8d263",
+    "ts": "2026-03-01T07:14:16.991330"
+  },
+  {
+    "lesson": "Ensure the response includes specific machine recommendations with detailed specs and meets all business rules and length requirements.",
+    "source": "sim-4e89f8fe",
+    "ts": "2026-03-01T07:14:36.357190"
+  },
+  {
+    "lesson": "Ensure the recommended series aligns with the customer's specific material and feature requirements, and verify all specifications against the database.",
+    "source": "sim-4e89f8fe",
+    "ts": "2026-03-01T07:14:59.593691"
+  },
+  {
+    "lesson": "Always verify model specifications against the database and ensure compliance with business rules, especially regarding pricing disclaimers.",
+    "source": "sim-4e89f8fe",
+    "ts": "2026-03-01T07:15:26.777152"
+  },
+  {
+    "lesson": "Ensure all specifications and recommendations are verified against the database, and provide detailed comparisons and justifications for recommendations.",
+    "source": "sim-c6442962",
+    "ts": "2026-03-01T07:15:50.416848"
+  },
+  {
+    "lesson": "Always verify machine specifications and pricing against the database and include comparisons with relevant alternatives to provide a comprehensive recommendation.",
+    "source": "sim-c6442962",
+    "ts": "2026-03-01T07:16:20.896915"
+  },
+  {
+    "lesson": "Ensure all model specifications are verified against the database and include required pricing disclaimers in all communications.",
+    "source": "sim-c6442962",
+    "ts": "2026-03-01T07:16:48.789682"
+  },
+  {
+    "lesson": "Always verify the existence and specifications of products against the ground truth and ensure detailed comparisons are included in recommendations.",
+    "source": "sim-01ff22ce",
+    "ts": "2026-03-01T07:17:08.391247"
+  },
+  {
+    "lesson": "Ensure all machine models and specifications mentioned are verified against the ground truth, and include all required details and disclaimers as per business rules.",
+    "source": "sim-6180c5fc",
+    "ts": "2026-03-01T07:26:49.952404"
+  },
+  {
+    "lesson": "Ensure the email meets the length target by providing detailed specifications and reasoning while maintaining accuracy.",
+    "source": "sim-6180c5fc",
+    "ts": "2026-03-01T07:26:58.024503"
+  },
+  {
+    "lesson": "Ensure all customer requests are addressed with specific information and adhere to business rules, including providing necessary disclaimers and detailed recommendations.",
+    "source": "sim-6180c5fc",
+    "ts": "2026-03-01T07:27:33.440672"
+  },
+  {
+    "lesson": "Always verify the existence and specifications of the recommended model against the database and include a detailed comparison with other relevant models.",
+    "source": "sim-dd20ce20",
+    "ts": "2026-03-01T07:28:12.071781"
+  },
+  {
+    "lesson": "Ensure all relevant details from the ground truth are included and clearly explain the reasoning behind the series recommendation.",
+    "source": "sim-dd20ce20",
+    "ts": "2026-03-01T07:28:39.006665"
+  },
+  {
+    "lesson": "Ensure the response directly addresses the customer's request for technical and pricing information, and always include required disclaimers.",
+    "source": "sim-dd20ce20",
+    "ts": "2026-03-01T07:29:37.180769"
+  },
+  {
+    "lesson": "Ensure all machine specifications and models mentioned are verified against the database, and include detailed comparisons and pricing disclaimers as per business rules.",
+    "source": "sim-b2493efa",
+    "ts": "2026-03-01T07:30:26.269543"
+  },
+  {
+    "lesson": "Ensure all features and specifications mentioned in the recommendation are supported by the ground truth and address all customer requirements explicitly.",
+    "source": "sim-b2493efa",
+    "ts": "2026-03-01T07:30:59.087683"
+  },
+  {
+    "lesson": "Ensure all technical specifications are consistent and include required disclaimers in pricing information.",
+    "source": "sim-b2493efa",
+    "ts": "2026-03-01T07:32:10.889283"
+  },
+  {
+    "lesson": "Ensure all technical specifications are accurate and include a detailed comparison with reasoning for the recommendation, along with a pricing disclaimer.",
+    "source": "sim-c74d781c",
+    "ts": "2026-03-01T07:32:39.467196"
+  },
+  {
+    "lesson": "Ensure the recommended machine series aligns with the customer's requirements and the ground truth specifications.",
+    "source": "sim-c74d781c",
+    "ts": "2026-03-01T07:33:08.626240"
+  },
+  {
+    "lesson": "Always ensure that specifications and pricing are accurate and include all required disclaimers and customer-requested details.",
+    "source": "sim-c74d781c",
+    "ts": "2026-03-01T07:33:34.476481"
+  },
+  {
+    "lesson": "Always cross-check model specifications and series details with the ground truth database to ensure accuracy and completeness.",
+    "source": "sim-e7535681",
+    "ts": "2026-03-01T07:34:02.777295"
+  },
+  {
+    "lesson": "Ensure all machine specifications and model numbers are verified against the ground truth and provide detailed comparisons and explanations as required by the business rules.",
+    "source": "sim-e7535681",
+    "ts": "2026-03-01T07:34:29.003841"
+  },
+  {
+    "lesson": "Always verify model specifications against the database and include required disclaimers to comply with business rules.",
+    "source": "sim-e7535681",
+    "ts": "2026-03-01T07:34:54.211965"
+  },
+  {
+    "lesson": "Ensure that the response includes specific machine recommendations and complies with business rules, including providing a detailed comparison and pricing disclaimer.",
+    "source": "sim-46d7521f",
+    "ts": "2026-03-01T07:35:19.082402"
+  },
+  {
+    "lesson": "Always verify machine specifications and ensure the recommended series aligns with the customer's specific needs, especially regarding material thickness and application type.",
+    "source": "sim-46d7521f",
+    "ts": "2026-03-01T07:35:43.800624"
+  },
+  {
+    "lesson": "Always verify model specifications against the latest database and include all required disclaimers to comply with business rules.",
+    "source": "sim-46d7521f",
+    "ts": "2026-03-01T07:36:08.726533"
+  },
+  {
+    "lesson": "Ensure all specifications and features are verified against the database and include required disclaimers and detailed comparisons as per business rules.",
+    "source": "sim-dfe1a081",
+    "ts": "2026-03-01T07:36:30.204503"
+  },
+  {
+    "lesson": "Ensure all customer requirements are addressed and verify all technical specifications against the database for accuracy.",
+    "source": "sim-dfe1a081",
+    "ts": "2026-03-01T07:36:53.318088"
+  },
+  {
+    "lesson": "Ensure to provide complete information requested by the customer, including technical details and pricing, while adhering to business rules and length requirements.",
+    "source": "sim-dfe1a081",
+    "ts": "2026-03-01T07:37:14.812379"
+  },
+  {
+    "lesson": "Ensure all machine models and specifications mentioned are verified against the database, and include all required business rules and detailed comparisons as per guidelines.",
+    "source": "sim-ba4a1d67",
+    "ts": "2026-03-01T07:37:38.051153"
+  },
+  {
+    "lesson": "Ensure the recommended machine aligns with the customer's requirements and business rules, and provide detailed comparisons and confirmations of key features.",
+    "source": "sim-ba4a1d67",
+    "ts": "2026-03-01T07:37:59.956886"
+  },
+  {
+    "lesson": "Ensure all specifications are accurate and include required disclaimers and customer-requested information in the response.",
+    "source": "sim-ba4a1d67",
+    "ts": "2026-03-01T07:38:21.579257"
+  },
+  {
+    "lesson": "Always verify the existence and specifications of the recommended machine against the database and ensure the response meets the required length and detail.",
+    "source": "sim-f329dcfe",
+    "ts": "2026-03-01T07:38:50.395424"
+  },
+  {
+    "lesson": "Ensure all business rules are followed, including providing detailed comparisons and including necessary disclaimers.",
+    "source": "sim-f329dcfe",
+    "ts": "2026-03-01T07:39:19.471850"
+  },
+  {
+    "lesson": "Ensure to provide complete information including technical details, pricing with disclaimers, and specific recommendations in line with business rules.",
+    "source": "sim-f329dcfe",
+    "ts": "2026-03-01T07:39:44.517345"
+  },
+  {
+    "lesson": "Always verify the existence and specifications of the recommended model against the ground truth and ensure compliance with email length and content requirements.",
+    "source": "sim-0ec6f11c",
+    "ts": "2026-03-01T07:40:11.394732"
+  },
+  {
+    "lesson": "Ensure the recommended machine aligns with the customer's specifications and business rules, especially regarding material thickness and series suitability.",
+    "source": "sim-0ec6f11c",
+    "ts": "2026-03-01T07:40:36.556271"
+  },
+  {
+    "lesson": "Ensure all model specifications are verified against the database and include required disclaimers and detailed information as per business rules.",
+    "source": "sim-0ec6f11c",
+    "ts": "2026-03-01T07:41:00.023652"
+  }
+]

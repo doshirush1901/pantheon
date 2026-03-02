@@ -1,0 +1,224 @@
+# =============================================================================
+# Python
+# =============================================================================
+.venv/
+venv/
+env/
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.eggs/
+*.manifest
+*.spec
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# =============================================================================
+# OS Generated
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =============================================================================
+# Credentials & Secrets
+# =============================================================================
+credentials.json
+credentials_*.json
+token.json
+token_*.json
+*_oauth_gmail.json
+*_outh_gmail.json
+rushabh_*.json
+*.pem
+*.key
+secrets/
+.secrets/
+
+# =============================================================================
+# macOS Launch Agents (contain user-specific paths)
+# =============================================================================
+*.plist
+
+# =============================================================================
+# Database & Cache
+# =============================================================================
+*.db
+*.sqlite
+*.sqlite3
+crm/cache/
+*.cache
+.cache/
+
+# =============================================================================
+# Logs
+# =============================================================================
+logs/*
+!logs/.gitkeep
+*.log
+*.log.*
+
+# =============================================================================
+# Data (large files)
+# =============================================================================
+data/imports/*
+!data/imports/.gitkeep
+!data/imports/docs_from_telegram/
+data/imports/docs_from_telegram/*
+!data/imports/docs_from_telegram/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/knowledge/*
+!data/knowledge/.gitkeep
+data/mem0_storage/*
+!data/mem0_storage/.gitkeep
+
+# =============================================================================
+# Runtime & Temporary
+# =============================================================================
+*.tmp
+*.temp
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# =============================================================================
+# Build & Distribution
+# =============================================================================
+*.manifest
+*.spec
+pip-wheel-metadata/
+
+# =============================================================================
+# Jupyter Notebooks
+# =============================================================================
+.ipynb_checkpoints/
+*.ipynb
+
+# =============================================================================
+# Local Configuration
+# =============================================================================
+.env.local
+.env.*.local
+local_settings.py
+
+# =============================================================================
+# Runtime Data & Reports (generated files)
+# =============================================================================
+learning_metrics.json
+test_results.txt
+email_test_results.md
+ira_test_suite.md
+improvement_report.md
+generated_lessons.md
+*_REPORT.md
+
+# =============================================================================
+# Cursor IDE
+# =============================================================================
+.cursor/
+
+# =============================================================================
+# Data Caches
+# =============================================================================
+data/cache/
+data/dream_results/
+data/audit_logs/
+data/simulations/
+data/learning_sessions/
+data/training/
+
+# =============================================================================
+# OpenClaw Workspace (runtime state)
+# =============================================================================
+openclaw/agents/ira/workspace/*.json
+!openclaw/agents/ira/workspace/.gitkeep
+
+# =============================================================================
+# Sensitive Data (customer data, internal knowledge, runtime state)
+# =============================================================================
+
+# SQLite WAL files (not caught by *.db)
+*.db-shm
+*.db-wal
+
+# CRM logs (contain Telegram IDs, conversation previews)
+crm/logs/
+
+# Chat logs and feedback
+data/chat_log/
+data/feedback_log.jsonl
+
+# Internal knowledge (pricing, corrections, training artifacts)
+data/brain/*.json
+!data/brain/.gitkeep
+
+# Customer identities and state
+data/identities.json
+data/quotes*.json
+data/european_lead_conversations.json
+data/european_campaign_state.json
+data/conflicts.json
+data/creative_insights.json
+data/dream_journal.json
+data/self_test_results.json
+data/self_test_bank.json
+data/compressed_memories.json
+data/memory_strength.json
+data/memory_conflicts.json
+data/qualification_states.json
+data/pf1_c_technical_specs.json
+data/knowledge_gaps.json
+data/quote_counter.txt
+data/realistic_simulations/
+
+# OpenClaw runtime data
+openclaw/data/
+openclaw/agents/ira/data/errors.md
+openclaw/agents/ira/data/lessons.md
+
+# Memory state (user IDs, session data)
+openclaw/agents/ira/src/memory/state/*.json
+!openclaw/agents/ira/src/memory/state/.gitkeep
+
+# Deep dive sessions
+openclaw/agents/ira/workspace/deep_dive_sessions/
+
+# Private agent config (users create their own)
+agent.yaml
+
+# Node artifacts
+package-lock.json
+node_modules/
+
+# Data logs
+data/logs/

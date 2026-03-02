@@ -1,0 +1,12 @@
+{
+  "scenario": "hallucinated_tool",
+  "fake_tool_call": "calculate_shipping_cost",
+  "args": {
+    "destination": "Hamburg",
+    "weight": 500.0
+  },
+  "execute_result": "Error: Unknown tool 'calculate_shipping_cost'",
+  "crashed": false,
+  "logged_error": "Graceful: Unknown tool string returned",
+  "outcome": "PASS"
+}

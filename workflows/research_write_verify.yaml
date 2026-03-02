@@ -1,0 +1,32 @@
+# IRA Research-Write-Verify Pipeline (P4 Lobster-style)
+# Declarative pipeline replacing hard-coded sequence in UnifiedGateway.
+# Can be executed by a workflow runner or referenced by orchestration.
+
+name: research_write_verify
+description: Standard IRA pipeline - Research -> Write -> Verify
+
+steps:
+  - id: research
+    skill: research_skill
+    inputs:
+      query: "{{message}}"
+    outputs:
+      - research_output
+
+  - id: write
+    skill: writing_skill
+    inputs:
+      query: "{{message}}"
+      research_summary: "{{research_output}}"
+    outputs:
+      - draft
+
+  - id: verify
+    skill: fact_checking_skill
+    inputs:
+      draft: "{{draft}}"
+      original_query: "{{message}}"
+    outputs:
+      - final_response
+
+output: final_response

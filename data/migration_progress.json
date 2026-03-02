@@ -1,0 +1,14 @@
+{
+  "emails": {
+    "migrated": 125688,
+    "offset": null,
+    "started": "2026-02-27T22:35:11.141553",
+    "last_batch": "2026-02-27T23:01:02.216729"
+  },
+  "emails_v4": {
+    "migrated": 25589,
+    "offset": null,
+    "started": "2026-02-27T23:12:14.817824",
+    "last_batch": "2026-02-27T23:16:47.624419"
+  }
+}

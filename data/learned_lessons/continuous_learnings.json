@@ -1,0 +1,101 @@
+{
+  "lessons": [
+    {
+      "id": "RUSHABH_001",
+      "category": "product_knowledge",
+      "severity": "critical",
+      "lesson": "PF1 is a CLOSED CHAMBER machine with sag control and pre-blow. PF2 is an OPEN FRAME machine (no chamber) where material sags freely - for BATH INDUSTRY ONLY (bathtubs, spas). NEVER confuse these.",
+      "trigger": "PF1 vs PF2 comparison or PF2 capabilities",
+      "correct_action": "PF1 = closed chamber, versatile, automation. PF2 = open frame, basic, bath only.",
+      "incorrect_action": "Never say PF2 has automation, advanced controls, or customization.",
+      "source": "Rushabh (founder)",
+      "timestamp": "2026-03-01T06:57:04.905945"
+    },
+    {
+      "id": "RUSHABH_002",
+      "category": "email_formatting",
+      "severity": "critical",
+      "lesson": "When quoting a machine price, ALWAYS include detailed tech specs as bullet points. Machine proposals must be 1200+ words.",
+      "trigger": "Any pricing or recommendation email",
+      "correct_action": "Full specs: forming area, heater power, vacuum, features, applications, price with disclaimer.",
+      "incorrect_action": "Never send a short price-only email without specs.",
+      "source": "Rushabh (founder)",
+      "timestamp": "2026-03-01T06:57:04.905950"
+    },
+    {
+      "id": "RUSHABH_003",
+      "category": "product_knowledge",
+      "severity": "critical",
+      "lesson": "PF2 has NO automation options, NO chamber, NO sag control. Air cylinder driven. Bath industry ONLY. NEVER hallucinate PF2 features.",
+      "trigger": "Any question about PF2 capabilities",
+      "correct_action": "PF2 = basic, air cylinder, open frame, bath industry only.",
+      "incorrect_action": "NEVER claim PF2 has mold design customization, heating config, advanced controls, material compatibility, or automation.",
+      "source": "Rushabh (founder)",
+      "timestamp": "2026-03-01T06:57:04.905951"
+    },
+    {
+      "id": "LESSON_001",
+      "category": "communication",
+      "lesson": "Ensure to acknowledge and utilize information already provided by the customer to avoid redundancy.",
+      "trigger": "When a customer repeats their requirements or constraints clearly.",
+      "correct_action": "Acknowledge the information and provide a solution or alternative based on the given details.",
+      "incorrect_action": "Asking the same questions repeatedly without progressing the conversation.",
+      "learned_from": "SIM_20260228_233835_3155",
+      "timestamp": "2026-02-28T23:39:07.785474"
+    },
+    {
+      "id": "LESSON_001",
+      "category": "Technical Accuracy",
+      "lesson": "Ensure all technical details, especially regarding energy consumption and integration timelines, are accurate and clearly explained.",
+      "trigger": "When discussing technical specifications or integration processes",
+      "correct_action": "Provide accurate data and, if possible, examples or case studies to support claims.",
+      "incorrect_action": "Avoid providing vague or incorrect technical details that could mislead the customer.",
+      "learned_from": "SIM_20260228_233907_3368",
+      "timestamp": "2026-02-28T23:39:56.711170"
+    },
+    {
+      "id": "LESSON_001",
+      "category": "Qualification and Information Sharing",
+      "lesson": "Provide specific information and address customer queries directly.",
+      "trigger": "When a customer asks for detailed specifications or has specific concerns.",
+      "correct_action": "Provide detailed answers and address specific customer queries.",
+      "incorrect_action": "Avoid repeating questions without adding value or addressing the customer's concerns.",
+      "learned_from": "SIM_20260228_234004_9956",
+      "timestamp": "2026-02-28T23:40:33.516700"
+    },
+    {
+      "id": "LESSON_001",
+      "category": "Qualification and Technical Details",
+      "lesson": "Provide specific examples or data when discussing technical trade-offs.",
+      "trigger": "When a customer asks about the impact of removing or altering features.",
+      "correct_action": "Provide data or case studies that illustrate the impact of changes.",
+      "incorrect_action": "Avoid vague responses without supporting data.",
+      "learned_from": "SIM_20260228_234341_9372",
+      "timestamp": "2026-02-28T23:44:37.759652"
+    }
+  ],
+  "sub_agent_upgrades": {
+    "calliope": [
+      {
+        "feedback": "Calliope should learn to better utilize customer-provided information to avoid redundancy and improve the flow of the conversation.",
+        "from_conversation": "SIM_20260228_233835_3155",
+        "timestamp": "2026-02-28T23:39:07.785518"
+      },
+      {
+        "feedback": "Calliope should focus on improving the accuracy of technical details and ensure that all customer queries are addressed with specific examples or case studies when requested.",
+        "from_conversation": "SIM_20260228_233907_3368",
+        "timestamp": "2026-02-28T23:39:56.711177"
+      },
+      {
+        "feedback": "Calliope should learn to provide more detailed responses to customer inquiries, especially regarding technical specifications and maintenance.",
+        "from_conversation": "SIM_20260228_234004_9956",
+        "timestamp": "2026-02-28T23:40:33.516707"
+      },
+      {
+        "feedback": "Calliope should learn to avoid repeating qualification questions and focus on providing specific technical insights when discussing feature trade-offs.",
+        "from_conversation": "SIM_20260228_234341_9372",
+        "timestamp": "2026-02-28T23:44:37.759657"
+      }
+    ]
+  }
+}

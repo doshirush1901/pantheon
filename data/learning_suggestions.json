@@ -1,0 +1,42 @@
+[
+  {
+    "topic": "competitor_analysis",
+    "priority": "medium",
+    "reason": "Competitive intelligence helps close deals",
+    "suggested_sources": [
+      "Market reports",
+      "Sales feedback"
+    ],
+    "expected_value": 0.6
+  },
+  {
+    "topic": "case_studies",
+    "priority": "medium",
+    "reason": "Customer success stories build trust",
+    "suggested_sources": [
+      "Customer interviews",
+      "Project reports"
+    ],
+    "expected_value": 0.5
+  },
+  {
+    "topic": "market_trends",
+    "priority": "low",
+    "reason": "Industry context improves conversations",
+    "suggested_sources": [
+      "Industry publications",
+      "Trade shows"
+    ],
+    "expected_value": 0.4
+  },
+  {
+    "topic": "pricing",
+    "priority": "medium",
+    "reason": "Frequently asked about (1 times)",
+    "suggested_sources": [
+      "Latest pricing documents",
+      "Sales team updates"
+    ],
+    "expected_value": 0.1
+  }
+]

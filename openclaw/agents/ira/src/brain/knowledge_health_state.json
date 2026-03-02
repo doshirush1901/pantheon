@@ -1,0 +1,355 @@
+{
+  "corrections_learned": [],
+  "last_full_check": "2026-03-02T08:17:51.128011",
+  "validation_issues": [
+    {
+      "timestamp": "2026-02-28T00:18:22.519382",
+      "query": "I need to form 5mm thick ABS",
+      "response_preview": "I recommend the AM-5060 for this application.",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T00:18:22.527532",
+      "query": "What's the price?",
+      "response_preview": "The price is [insert price here].",
+      "warnings": [
+        "Possible hallucination detected: \\[insert.*\\]",
+        "Business rule violation: Prices Must Be Specific - Never say 'contact for pricing' when we have price list"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T00:18:22.530286",
+      "query": "I need to form 6mm thick HDPE sheets",
+      "response_preview": "For this application, we recommend our standard machine.",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T00:18:47.169570",
+      "query": "I need to form 5mm thick ABS",
+      "response_preview": "I recommend the AM-5060 for this application with 5mm thickness.",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T00:18:47.171087",
+      "query": "What's the price?",
+      "response_preview": "The price is [insert price here].",
+      "warnings": [
+        "Possible hallucination detected: \\[insert.*\\]",
+        "Business rule violation: Prices Must Be Specific - Never say 'contact for pricing' when we have price list"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T00:18:47.172450",
+      "query": "I need to form 6mm thick HDPE sheets",
+      "response_preview": "For this application, we recommend our standard machine.",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T18:54:21.935376",
+      "query": "Hi Ira,\r\n\r\nI have a customer asking about forming 4mm thick ABS sheets for\r\nautomotive parts. Can the AM series handle this?\r\n\r\nRushabh\r\n",
+      "response_preview": "Hi Rushabh,\n\nThe AM Series is designed specifically for thin gauge materials, with a maximum sheet thickness of 2mm. Unfortunately, it cannot handle 4mm thick ABS sheets. \n\nFor forming thicker materia",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T18:55:39.327140",
+      "query": "No Ira, that's not correct. The AM series is ONLY suitable for\r\nmaterials with thickness \u22641.5mm. For 4mm material, we should recommend\r\nthe PF1 series instead. Please remember this for future queries.",
+      "response_preview": "Thank you for the clarification! You're absolutely right\u2014the AM Series is indeed suitable for materials with a maximum thickness of 1.5mm. For any materials thicker than that, such as 4mm, the PF1 Ser",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T18:57:03.728212",
+      "query": "A new customer wants to form 5mm polypropylene sheets. Which machine\r\nseries would you recommend and why?\r\n",
+      "response_preview": "For forming 5mm polypropylene sheets, I recommend the **PF1 Series** of machines. The PF1 Series is specifically designed for thicker materials, making it suitable for applications like yours.\n\n### Ke",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T22:10:44.202361",
+      "query": "Subject: Re: Inquiry About Thermoforming Machines\r\n\r\nHi Ira,\r\n\r\nThank you for the information regarding the PF1-C-2515 model. I\r\nappreciate the prompt response and your suggestion to consider\r\ncustomi",
+      "response_preview": "Subject: Re: Inquiry About Thermoforming Machines\n\nHi Mike,\n\nThank you for your follow-up and for sharing your budget considerations. I\u2019m glad to assist you in exploring customization options for the ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T22:22:55.139745",
+      "query": "Hi Machinecraft Team,\r\n\r\nI'm Mike Chen, the founder of a budding startup focused on sustainable\r\npackaging solutions. We're venturing into the exciting world of\r\nthermoforming and are eager to learn m",
+      "response_preview": "Hi Mike! Happy to help with your inquiry.\n\nFor your budget of around USD 60,000 and a forming area of 600 x 900 mm, the **UNO-0806** is an excellent choice. Here are the key details:\n\n- **Forming Area",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T22:24:06.137342",
+      "query": "Hi Machinecraft Team,\r\n\r\nI hope this message finds you well! My name is Mike Chen, and I'm the\r\nfounder of a small startup eager to dive into the world of\r\nthermoforming. We're passionate about sustai",
+      "response_preview": "Hi Mike! Happy to help.\n\nFor your budget of USD 60,000 and a forming area of 600 x 900 mm, I recommend considering the following machines:\n\n1. **UNO-0806**\n   - **Forming Area:** 800 x 600 mm\n   - **P",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T22:25:28.036367",
+      "query": "Hi Machinecraft Team,\r\n\r\nI'm Mike Chen, founder of a budding startup with big ambitions but a\r\nlimited budget. We're diving into the world of thermoforming and are\r\non the hunt for the right machine t",
+      "response_preview": "Hi Mike! Happy to help with your inquiry.\n\nFor your forming area of 600 x 900 mm and working with PETG and rPET, here are details on the machines you're interested in:\n\n### Machine Details:\n1. **UNO-0",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T22:27:17.665691",
+      "query": "Hi Machinecraft Team,\r\n\r\nI hope this email finds you well! My name is Mike Chen, and I am the\r\nfounder of a budding startup that's eager to dive into the world of\r\nthermoforming. We're passionate abou",
+      "response_preview": "Hi Mike! Happy to help.\n\nFor your budget of USD 60,000 and a forming area of 600 x 900 mm, the **UNO-0806** is a great fit. It's designed for entry-level applications and should suit your needs for wo",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T22:36:29.859395",
+      "query": "OK so\r\n\r\nHi team,\r\n\r\nI'm looking for a forming machine that can handle 600 x 900 mm sheets\r\nwith materials like PETG and rPET, at a 3mm thickness. Budget's set at\r\n$60K USD. We need to sort this out b",
+      "response_preview": "Hi! Happy to help, Mike.\n\nFor your requirement of a forming machine that handles 600 x 900 mm sheets with a 3mm thickness, I recommend the **UNO-1208**. Here are the key details:\n\n- **Forming Area:** ",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:02:34.381231",
+      "query": "Thanks for the details.\r\n\r\nPlease share the price for this machine with:\r\n- Full installation\r\n- Training\r\n- Warranty terms\r\n\r\nWhat are your payment terms?\r\n\r\nYogesh Amte\r\nMetrolab Engineering Pvt Ltd",
+      "response_preview": "Hi Yogesh! Happy to help.\n\nFor the PF1 machine, here are the details:\n\n**Pricing:**\n- **Machine Price:** 120,000 GBP (Ex-works Umargam, Gujarat, India)\n- **Installation:** On-site installation can be ",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:03:41.867517",
+      "query": "Thank you for the offer.\r\n\r\nThe specs look good. Can you give us a better price? We're planning to\r\norder this quarter if the numbers work.\r\n\r\nAlso, what's included in the installation cost?\r\n\r\nYogesh",
+      "response_preview": "Hi Yogesh! Happy to help.\n\nI appreciate your interest in moving forward this quarter. We\u2019ve offered our best price based on the specifications provided, but I\u2019m open to discussing your target price to",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:20:32.261869",
+      "query": "Hi,\n\nI need your AM-2000 machine for forming 5mm thick ABS sheets. \nPlease send quote with delivery time.\n\nWe need to start production of bathtub liners next month.\n\nSandeep",
+      "response_preview": "Hi! Happy to help.\n\nThe AM-2000 is not suitable for forming 5mm thick ABS sheets, as it's designed for materials up to 2mm thick. For your requirement, I recommend the PF1 series, which is ideal for t",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:22:32.694744",
+      "query": "I need your AM-2000 machine for forming 5mm thick ABS sheets. \nPlease send quote with delivery time.\nWe need to start production of bathtub liners next month.",
+      "response_preview": "Hi! Happy to help.\n\nFor forming 5mm thick ABS sheets, the AM-2000 isn't suitable, as it's designed for materials up to 2mm thick. You'll need to consider our PF1 series, which is specifically designed",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:23:47.250398",
+      "query": "I need your AM-2000 machine for forming 5mm thick ABS sheets. \nPlease send quote. We need to start production of bathtub liners next month.",
+      "response_preview": "Hi! Happy to help.\n\nFor forming 5mm thick ABS sheets, the AM-2000 is not suitable, as it's designed for materials with a maximum thickness of 2mm. You'll need to consider our PF1 Series, which is spec",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:38:45.284237",
+      "query": "Ira,\n\nI appreciate your swift follow-up. We're forming PMMA and the application is for signage. We're losing valuable production time, so we need a solution as quickly as possible.\n\nCan you recommend ",
+      "response_preview": "Hi Hans! Happy to help.\n\nFor your PMMA signage application with sheets of 1500x1000mm, I recommend the PF1-C-1510. It\u2019s specifically designed for thicker materials like PMMA and offers reliable perfor",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:39:20.074995",
+      "query": "Hello Ira,\n\nThank you for providing the initial specifications. It's good to know that the PF1-C-2015 supports a wide range of materials and is suitable for high-temperature applications. \n\nI do have ",
+      "response_preview": "Hi Hans! Happy to help with your inquiries.\n\nThe PF1-C-2015 is designed with compatibility in mind, allowing for seamless integration with most existing automation systems. It supports standard commun",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:39:37.337270",
+      "query": "Hello Ira,\n\nThank you for the information about the power management features and the warranty details. It's comforting to know that the PF1-C-2015 has a built-in voltage stabilizer to handle power fl",
+      "response_preview": "Hi Hans! Happy to help with your questions.\n\nThe PF1-C-2015 is designed with energy efficiency in mind. During peak operation, it consumes approximately 125 kW, while in idle mode, it drops to around ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:39:43.513379",
+      "query": "Hello Ira,\n\nThank you for the comprehensive details on energy efficiency and the extended support options. It's reassuring to see that the PF1-C-2015 is designed with both performance and cost savings",
+      "response_preview": "Hi Hans! Happy to help.\n\nThe PF1-C-2015 is built for long-term reliability, with a robust design that typically offers a lifespan of 10-15 years, depending on usage and maintenance. It generally requi",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-02-28T23:43:57.526560",
+      "query": "Ira,\n\nThank you for the response and the information on the PF1-C-2015. I appreciate the machine's capabilities, particularly the handling of various materials and the zero-sag design, which are cruci",
+      "response_preview": "Hi, Aleksandr! Happy to help with your queries.\n\nRegarding the PF1-C-2015, we can explore options to adjust features or components to align with your budget of \u20b96,000,000. Here are a few areas where w",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T00:31:15.261735",
+      "query": "What is the average throughput for the AM series with PP material?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe average throughput for the AM Series vacuum forming machines when using PP (Polypropylene) material can vary based on the specific model and the thickness of the sheet. General",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T00:43:37.314887",
+      "query": "I need to form 5mm thick ABS on an AM-5060. Is that possible?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe AM-5060 is designed for thin gauge materials only, with a maximum sheet thickness of 2mm. Since you're looking to form 5mm thick ABS, you'll need to use a machine from the PF1 ",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:00:16.275871",
+      "query": "Send me the full specs and pricing. Also what's the shipping cost to\r\nMelbourne and installation support?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nHere are the full specs and pricing for the PF1 2000 x 4000 thermoforming machine:\n\n### Pricing:\n- **Base Machine**: \u20b962,00,000 (~$74,000 USD)\n- **Installation**: \u20b92,00,000\n- **Tra",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:01:46.057637",
+      "query": "Please provide complete technical specifications, USD pricing, and\r\ndelivery timeline to Shenzhen. We are comparing with Illig and GEISS.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nHere are the details for our PF1 and FCS series machines:\n\n### PF1 Series Specifications\n- **Model**: PF1-C-2020\n- **Max Forming Area**: 2000 x 2000 mm\n- **Production Speed**: Up t",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:04:57.877814",
+      "query": "Ol\u00e1! We saw your AM-5060 online and want to use it for forming 5mm ABS\r\nsheets for automotive interior panels. Can you confirm it can handle\r\nthis thickness?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe AM-5060 is designed for thin gauge materials with a maximum sheet thickness of 2mm. Unfortunately, it cannot handle 5mm ABS sheets. For that thickness, I recommend considering ",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:06:26.663692",
+      "query": "The PF1-X-1210 looks good. Please send complete technical\r\nspecifications, pricing in USD, and lead time to Brazil.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe PF1-X-1210 has a forming size of 1200 x 1000 mm. Here's the information you requested:\n\n- **Price**: \u20b911,620,000 (approximately USD 108,000, depending on the current exchange r",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:07:42.375898",
+      "query": "The AMP-5060 sounds interesting. Please send complete specifications\r\nand pricing. Also, do you offer operator training?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe AM-P-5060 is a robust thermoforming machine with a standard configuration priced at \u20b935,00,000. Here\u2019s a breakdown of the total package:\n\n- **Base Machine**: \u20b935,00,000\n- **Ins",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:12:23.426785",
+      "query": "Please provide complete technical specifications, USD pricing, and\r\ndelivery timeline to Shenzhen. We are comparing with Illig and GEISS.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nHere are the details for our FCS 6070-4S thermoforming machine:\n\n### Technical Specifications:\n- **Model**: FCS 6070-4S\n- **Forming Area**: 600 x 700 mm\n- **Material Compatibility*",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:14:44.669722",
+      "query": "Ol\u00e1! We saw your AM-5060 online and want to use it for forming 5mm ABS\r\nsheets for automotive interior panels. Can you confirm it can handle\r\nthis thickness?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe AM-5060 is designed for thin gauge materials with a maximum sheet thickness of 2mm. Unfortunately, it cannot handle 5mm ABS sheets. For your application with thicker materials ",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can only handle material thickness \u22642mm"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:16:00.102651",
+      "query": "The PF1-X-1210 looks good. Please send complete technical\r\nspecifications, pricing in USD, and lead time to Brazil.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nThe PF1-X-1210 has a forming size of 1200 x 1000 mm. Here are the details you requested:\n\n- **Price**: \u20b911,620,000 (approximately USD 140,000, depending on the current exchange rat",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T01:57:49.771740",
+      "query": "Send me everything - complete specifications, features list, USD\r\nprice, and how soon you can deliver. We're comparing 3 vendors.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nHere are the details for our PF1-1224 thermoforming machine:\n\n### Specifications:\n- **Max Forming Area**: 1200 x 2400 mm\n- **Max Stroke Z**: 500 mm\n\n### Features:\n- Automatic Sheet",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T02:03:48.036353",
+      "query": "Send me everything - complete specifications, features list, USD\r\nprice, and how soon you can deliver. We're comparing 3 vendors.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nHere are the details for the PF1-1224 thermoforming machine:\n\n### PF1-1224 Specifications:\n- **Max Forming Area**: 1200 x 2400 mm\n- **Max Stroke Z**: 500 mm\n- **Features**:\n  - Aut",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T07:00:51.216337",
+      "query": "Perfect. Could you put together a formal quotation with full specs? We\r\nbudget in BRL.\r\n",
+      "response_preview": "Hi! Happy to help with that.\n\nTo prepare a formal quotation with full specifications, I need a bit more detail about the specific machine model you're interested in and any customization requirements.",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T07:03:20.619282",
+      "query": "Sounds promising. Can you send me the full specs and pricing in BRL?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nFor the PF1-0810/S model, the pricing is EUR 65,000, which is approximately BRL 350,000 based on current exchange rates. Here are the key specifications:\n\n- **Mould Size**: 1200 x ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T07:06:23.105215",
+      "query": "Sounds promising. Can you send me the full specs and pricing in CZK?\r\n",
+      "response_preview": "Hi! Happy to help.\n\nFor the PF1-C-3020, the price is \u20b98,000,000, which is approximately $100,000 USD. To convert this into Czech Koruna (CZK), the current exchange rate is around 24 CZK for 1 INR, mak",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T07:40:06.436070",
+      "query": "That works. I'd like the complete technical datasheet and pricing (ARS) please.\r\n",
+      "response_preview": "Hi! Happy to help.\n\nFor the RT-5A-1515 machine, here are the key specifications and pricing details:\n\n### Technical Specifications:\n- **Forming Area**: [Insert specific dimensions]\n- **Heater Power**:",
+      "warnings": [
+        "Business rule violation: Prices Must Be Specific - Never say 'contact for pricing' when we have price list"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T13:04:14.214683",
+      "query": "Hi\n\nGenerate a hot leads profile for me basis of what our customer base is and where our strengths lie\n\nwho are the companies I should email \n\nWhich regions will be hot for me next year",
+      "response_preview": "Hi! Happy to help.\n\nBased on our strengths in heavy-gauge thermoforming, here\u2019s a hot leads profile and potential targets:\n\n**Target Industries**:\n- Automotive (interiors, EV parts)\n- Bathroom (bathtu",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-01T13:06:02.888103",
+      "query": "Give me new clients , atleast 50\nAlso sohner does not do bathroom items\nBatelaan as mentioned is now sold and closed and they never made caravan parts \nMutual can be\nFVF is our agent in Japan",
+      "response_preview": "Hi! Happy to help.\n\nHere\u2019s a list of potential new clients across various sectors that align with our strengths in heavy-gauge thermoforming. These companies are not from the previously mentioned list",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    }
+  ]
+}

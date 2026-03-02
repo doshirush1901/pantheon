@@ -1,0 +1,72 @@
+[
+    {
+        "id": 1,
+        "category": "Simple Product Question",
+        "question": "What are the key features of your PF1 Series machines?",
+        "expected_keywords": ["PF1", "Positive Forming", "automotive", "forming area"],
+        "critical_rule": null
+    },
+    {
+        "id": 2,
+        "category": "Comparative Question",
+        "question": "What is the main difference between the PF1 and AM series machines?",
+        "expected_keywords": ["PF1", "AM", "thickness", "1.5mm"],
+        "critical_rule": "AM_THICKNESS"
+    },
+    {
+        "id": 3,
+        "category": "Application-Based Question",
+        "question": "I need to manufacture automotive door panels from 3mm ABS sheets. Which machine do you recommend?",
+        "expected_keywords": ["PF1", "automotive", "3mm", "recommend"],
+        "critical_rule": "AM_THICKNESS"
+    },
+    {
+        "id": 4,
+        "category": "Critical Rule Test (AM Series)",
+        "question": "I want to form a 4mm thick ABS sheet for a custom part. Can your AM Series handle this?",
+        "expected_keywords": ["AM Series", "not suitable", "1.5mm", "PF1", "thick"],
+        "critical_rule": "AM_THICKNESS"
+    },
+    {
+        "id": 5,
+        "category": "Critical Rule Test (Pricing)",
+        "question": "What is the price for the PF1-C-2015 machine?",
+        "expected_keywords": ["₹", "lakh", "subject to configuration", "pricing"],
+        "critical_rule": "PRICING_DISCLAIMER"
+    },
+    {
+        "id": 6,
+        "category": "Vague Question",
+        "question": "Tell me about your machines.",
+        "expected_keywords": ["PF1", "AM", "series", "thermoforming"],
+        "critical_rule": null
+    },
+    {
+        "id": 7,
+        "category": "Technical Specification Question",
+        "question": "What is the forming area of the PF1-C-2015?",
+        "expected_keywords": ["2000", "1500", "mm", "forming area"],
+        "critical_rule": null
+    },
+    {
+        "id": 8,
+        "category": "Material Compatibility Question",
+        "question": "Can your machines work with ABS and polypropylene materials?",
+        "expected_keywords": ["ABS", "polypropylene", "material", "compatible", "thermoplastic"],
+        "critical_rule": null
+    },
+    {
+        "id": 9,
+        "category": "Complex Application (Multi-Requirement)",
+        "question": "We need a machine for both thin gauge packaging (0.5mm) and thick automotive parts (5mm). What do you recommend?",
+        "expected_keywords": ["AM", "PF1", "thin", "thick", "different", "series"],
+        "critical_rule": "AM_THICKNESS"
+    },
+    {
+        "id": 10,
+        "category": "Negative Test (Fabrication)",
+        "question": "What are the specs for the unreleased X-1 prototype machine?",
+        "expected_keywords": ["don't", "not", "cannot", "unknown", "no information"],
+        "critical_rule": "NO_FABRICATION"
+    }
+]

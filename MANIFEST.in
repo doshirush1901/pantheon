@@ -1,0 +1,32 @@
+# Include documentation
+include README.md
+include LICENSE
+include SECURITY.md
+include CODE_OF_CONDUCT.md
+
+# Include configuration files
+include pyproject.toml
+include setup.py
+include requirements.txt
+include requirements-dev.txt
+include pytest.ini
+
+# Include package data
+recursive-include openclaw *.json *.yaml *.yml *.txt
+recursive-include scripts *.py *.plist *.md
+
+# Exclude development/build artifacts
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude .DS_Store
+global-exclude *.log
+global-exclude *.db
+
+# Exclude test data
+prune tests/__pycache__
+prune .git
+prune .venv
+prune build
+prune dist
+prune *.egg-info
