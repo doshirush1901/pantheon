@@ -84,6 +84,16 @@ def _load_crm_lookup() -> Any:
         return UNAVAILABLE
 
 
+def _load_crm_list_customers() -> Any:
+    """Lazy-load Mnemosyne list all customers skill."""
+    try:
+        from openclaw.agents.ira.src.agents.crm_agent.agent import list_all_customers
+        return list_all_customers
+    except ImportError as e:
+        logger.warning(f"CRM list customers skill unavailable: {e}")
+        return UNAVAILABLE
+
+
 def _load_crm_pipeline() -> Any:
     """Lazy-load Mnemosyne pipeline overview skill."""
     try:
@@ -104,6 +114,46 @@ def _load_crm_drip() -> Any:
         return UNAVAILABLE
 
 
+def _load_finance_overview() -> Any:
+    """Lazy-load Plutus finance overview skill."""
+    try:
+        from openclaw.agents.ira.src.agents.finance_agent.agent import finance_overview
+        return finance_overview
+    except ImportError as e:
+        logger.warning(f"Finance overview skill unavailable: {e}")
+        return UNAVAILABLE
+
+
+def _load_order_book_status() -> Any:
+    """Lazy-load Plutus order book status skill."""
+    try:
+        from openclaw.agents.ira.src.agents.finance_agent.agent import order_book_status
+        return order_book_status
+    except ImportError as e:
+        logger.warning(f"Order book status skill unavailable: {e}")
+        return UNAVAILABLE
+
+
+def _load_cashflow_forecast() -> Any:
+    """Lazy-load Plutus cashflow forecast skill."""
+    try:
+        from openclaw.agents.ira.src.agents.finance_agent.agent import cashflow_forecast
+        return cashflow_forecast
+    except ImportError as e:
+        logger.warning(f"Cashflow forecast skill unavailable: {e}")
+        return UNAVAILABLE
+
+
+def _load_revenue_history() -> Any:
+    """Lazy-load Plutus revenue history skill."""
+    try:
+        from openclaw.agents.ira.src.agents.finance_agent.agent import revenue_history
+        return revenue_history
+    except ImportError as e:
+        logger.warning(f"Revenue history skill unavailable: {e}")
+        return UNAVAILABLE
+
+
 def _load_identity() -> Any:
     """Lazy-load identity service."""
     try:
@@ -111,6 +161,16 @@ def _load_identity() -> Any:
         return UnifiedIdentityService()
     except ImportError as e:
         logger.warning(f"Identity service unavailable: {e}")
+        return UNAVAILABLE
+
+
+def _load_discovery_scan() -> Any:
+    """Lazy-load Prometheus discovery scan skill."""
+    try:
+        from openclaw.agents.ira.src.agents.prometheus.agent import discovery_scan
+        return discovery_scan
+    except ImportError as e:
+        logger.warning(f"Discovery scan skill unavailable: {e}")
         return UNAVAILABLE
 
 
@@ -188,6 +248,14 @@ async def invoke_crm_lookup(query: str, context: Dict[str, Any] = None) -> str:
     return await fn(query, context)
 
 
+async def invoke_crm_list_customers(context: Dict[str, Any] = None) -> str:
+    """Invoke Mnemosyne to list all customers."""
+    fn = _load_crm_list_customers()
+    if fn is UNAVAILABLE:
+        return "CRM not available."
+    return await fn(context)
+
+
 async def invoke_crm_pipeline(context: Dict[str, Any] = None) -> str:
     """Invoke Mnemosyne pipeline overview."""
     fn = _load_crm_pipeline()
@@ -202,6 +270,46 @@ async def invoke_crm_drip(context: Dict[str, Any] = None) -> str:
     if fn is UNAVAILABLE:
         return "CRM not available."
     return await fn(context)
+
+
+async def invoke_finance_overview(query: str, context: Dict[str, Any] = None) -> str:
+    """Invoke Plutus finance overview."""
+    fn = _load_finance_overview()
+    if fn is UNAVAILABLE:
+        return "Finance agent not available."
+    return await fn(query, context)
+
+
+async def invoke_order_book_status(context: Dict[str, Any] = None) -> str:
+    """Invoke Plutus order book status."""
+    fn = _load_order_book_status()
+    if fn is UNAVAILABLE:
+        return "Finance agent not available."
+    return await fn(context)
+
+
+async def invoke_cashflow_forecast(context: Dict[str, Any] = None) -> str:
+    """Invoke Plutus cashflow forecast."""
+    fn = _load_cashflow_forecast()
+    if fn is UNAVAILABLE:
+        return "Finance agent not available."
+    return await fn(context)
+
+
+async def invoke_revenue_history(query: str, context: Dict[str, Any] = None) -> str:
+    """Invoke Plutus revenue history."""
+    fn = _load_revenue_history()
+    if fn is UNAVAILABLE:
+        return "Finance agent not available."
+    return await fn(query, context)
+
+
+async def invoke_discovery_scan(query: str, context: Dict[str, Any] = None) -> str:
+    """Invoke Prometheus discovery scan. Returns opportunity report."""
+    fn = _load_discovery_scan()
+    if fn is UNAVAILABLE:
+        return "Discovery agent not available."
+    return await fn(query, context)
 
 
 def invoke_identity_resolve(channel: str, identifier: str) -> Optional[str]:
@@ -227,8 +335,14 @@ def get_skill_availability() -> Dict[str, str]:
         ("iris_enrich", _load_iris_enrich),
         ("reflect", _load_reflect),
         ("crm_lookup", _load_crm_lookup),
+        ("crm_list_customers", _load_crm_list_customers),
         ("crm_pipeline", _load_crm_pipeline),
         ("crm_drip", _load_crm_drip),
+        ("finance_overview", _load_finance_overview),
+        ("order_book_status", _load_order_book_status),
+        ("cashflow_forecast", _load_cashflow_forecast),
+        ("revenue_history", _load_revenue_history),
+        ("discovery_scan", _load_discovery_scan),
         ("identity", _load_identity),
     ]:
         try:

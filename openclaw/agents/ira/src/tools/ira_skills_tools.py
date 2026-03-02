@@ -57,6 +57,18 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "crm_list_customers",
+            "description": "List CONFIRMED Machinecraft customers — companies that actually BOUGHT machines. Pulls from order history (2014-2025), NOT from leads or prospects. Use when asked for 'customers', 'customer list', 'who bought machines', 'latest customers', or 'how many customers'. Do NOT use this for leads/prospects — use crm_pipeline for that.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "crm_pipeline",
             "description": "Ask Mnemosyne for a full sales pipeline overview: leads by stage, by priority, reply rates, drip status. Use when Rushabh asks about pipeline health or sales performance.",
             "parameters": {
@@ -74,6 +86,58 @@ IRA_TOOLS_SCHEMA = [
             "parameters": {
                 "type": "object",
                 "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "finance_overview",
+            "description": "Ask Plutus (Chief of Finance) any financial question — revenue, P&L, cashflow, receivables, order book value, payment status, margins. Use for ANY money-related query.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "The financial question to answer"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "order_book_status",
+            "description": "Ask Plutus for the current order book: total booked value, amount collected, outstanding receivables, per-project breakdown, and concentration risk. Use when asked about 'order book', 'outstanding', 'receivables', 'how much we are owed'.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cashflow_forecast",
+            "description": "Ask Plutus for cashflow projections: when money is expected, from which customers, based on dispatch dates and payment milestones. Use when asked about 'cashflow', 'when will we get paid', 'expected payments'.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "revenue_history",
+            "description": "Ask Plutus for historical revenue: annual turnover, revenue by year, export revenue breakdown, cumulative sales. Use when asked about 'turnover', 'revenue history', 'how much did we sell', 'annual revenue'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Specific revenue question or period (e.g. 'FY2024', 'last 5 years', 'export revenue')"},
+                },
                 "required": [],
             },
         },
@@ -183,6 +247,20 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "discovery_scan",
+            "description": "Ask Prometheus (the market discovery agent) to find new products and industries where vacuum forming can be applied. Scans emerging sectors like battery storage, EV, drones, renewable energy, medical devices, modular construction. Can scan a specific industry, evaluate a product idea, or run a full sweep across all tracked industries.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Industry to scan (e.g. 'battery storage', 'drone manufacturing'), product idea to evaluate (e.g. 'EV battery enclosures'), or 'sweep' for full multi-industry scan"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "ask_user",
             "description": "Ask the user a clarifying question when you need more information to complete a task. Use this instead of guessing.",
             "parameters": {
@@ -231,6 +309,11 @@ async def execute_tool_call(
         "writing_skill": "calliope",
         "fact_checking_skill": "vera",
         "web_search": "iris",
+        "discovery_scan": "prometheus",
+        "finance_overview": "plutus",
+        "order_book_status": "plutus",
+        "cashflow_forecast": "plutus",
+        "revenue_history": "plutus",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -371,30 +454,70 @@ async def execute_tool_call(
         return "\n\n".join(results_parts) if results_parts else "(No web results found)"
 
     elif tool_name == "customer_lookup":
-        # Mnemosyne handles all contact/lead lookups
         query = arguments.get("query", "")
+        results_parts = []
+
+        # 1. Mnemosyne CRM lookup (primary)
         try:
             from openclaw.agents.ira.src.skills.invocation import invoke_crm_lookup
             crm_result = await invoke_crm_lookup(query, context)
             if crm_result and "don't have anyone" not in crm_result:
-                return crm_result
+                results_parts.append(f"[CRM]\n{crm_result}")
         except Exception as e:
-            logger.debug(f"Mnemosyne lookup failed, falling back to Mem0: {e}")
+            logger.debug(f"Mnemosyne lookup failed: {e}")
 
-        # Fallback to Mem0 if Mnemosyne doesn't have the contact
-        results = []
+        # 2. Qdrant ira_customers collection
         try:
-            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
-            mem0 = get_mem0_service()
-            for uid in ["machinecraft_customers", "machinecraft_knowledge"]:
-                memories = mem0.search(query, uid, limit=10)
-                for m in memories:
-                    results.append(f"[{uid}] {m.memory}")
+            from qdrant_client import QdrantClient
+            from qdrant_client.models import Filter, FieldCondition, MatchText
+            qdrant = QdrantClient(url=os.environ.get("QDRANT_URL", "http://localhost:6333"))
+            qdrant_filter = Filter(
+                should=[
+                    FieldCondition(key="company", match=MatchText(text=query)),
+                    FieldCondition(key="name", match=MatchText(text=query)),
+                ]
+            )
+            hits, _ = qdrant.scroll(
+                collection_name="ira_customers",
+                scroll_filter=qdrant_filter,
+                limit=5,
+                with_payload=True,
+            )
+            for hit in hits:
+                p = hit.payload or {}
+                name = p.get("name", "")
+                company = p.get("company", "")
+                country = p.get("country", "")
+                machines = p.get("machines", [])
+                parts = [f"{name} at {company} ({country})"]
+                if machines:
+                    parts.append(f"Machines: {', '.join(machines)}")
+                results_parts.append(f"[qdrant_customers] {' | '.join(parts)}")
         except Exception as e:
-            logger.warning(f"Customer lookup Mem0 error: {e}")
-        if results:
-            return "\n".join(results)
+            logger.debug(f"Qdrant customer lookup failed: {e}")
+
+        # 3. Mem0 fallback
+        if not results_parts:
+            try:
+                from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+                mem0 = get_mem0_service()
+                for uid in ["machinecraft_customers", "machinecraft_knowledge"]:
+                    memories = mem0.search(query, uid, limit=10)
+                    for m in memories:
+                        results_parts.append(f"[{uid}] {m.memory}")
+            except Exception as e:
+                logger.warning(f"Customer lookup Mem0 error: {e}")
+
+        if results_parts:
+            return "\n\n".join(results_parts)
         return f"(No customer data found for '{query}')"
+
+    elif tool_name == "crm_list_customers":
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_crm_list_customers
+            return await invoke_crm_list_customers(context)
+        except Exception as e:
+            return f"(Customer list error: {e})"
 
     elif tool_name == "crm_pipeline":
         try:
@@ -409,6 +532,36 @@ async def execute_tool_call(
             return await invoke_crm_drip(context)
         except Exception as e:
             return f"(Mnemosyne drip error: {e})"
+
+    elif tool_name == "finance_overview":
+        query = arguments.get("query", "")
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_finance_overview
+            return await invoke_finance_overview(query, context)
+        except Exception as e:
+            return f"(Finance overview error: {e})"
+
+    elif tool_name == "order_book_status":
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_order_book_status
+            return await invoke_order_book_status(context)
+        except Exception as e:
+            return f"(Order book error: {e})"
+
+    elif tool_name == "cashflow_forecast":
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_cashflow_forecast
+            return await invoke_cashflow_forecast(context)
+        except Exception as e:
+            return f"(Cashflow forecast error: {e})"
+
+    elif tool_name == "revenue_history":
+        query = arguments.get("query", "")
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_revenue_history
+            return await invoke_revenue_history(query, context)
+        except Exception as e:
+            return f"(Revenue history error: {e})"
 
     elif tool_name == "memory_search":
         query = arguments.get("query", "")
@@ -484,6 +637,14 @@ async def execute_tool_call(
             return "(Google Contacts not available.)"
         except Exception as e:
             return f"(Contacts error: {e})"
+
+    elif tool_name == "discovery_scan":
+        query = arguments.get("query", "")
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_discovery_scan
+            return await invoke_discovery_scan(query, context)
+        except Exception as e:
+            return f"(Discovery scan error: {e})"
 
     elif tool_name == "ask_user":
         question = arguments.get("question", "")
