@@ -118,8 +118,8 @@ MACHINE_SPECS: Dict[str, MachineSpec] = _load_specs_from_json()
 
 # Hardcoded specs removed in v3 — all 46 machines now in data/brain/machine_specs.json.
 # To add a machine: edit that JSON file, then call reload_specs() or restart.
-_REMOVED_LEGACY_BLOCK = "REMOVED(
-        model="AM-5060",
+_REMOVED_LEGACY_BLOCK = """REMOVED(
+        model="AM-5060",  # noqa: E501
         series="AM",
         variant="standard",
         price_inr=750000,
@@ -1017,6 +1017,8 @@ _REMOVED_LEGACY_BLOCK = "REMOVED(
         source_documents=["Price List"]
     ),
 }
+"""  # end of _REMOVED_LEGACY_BLOCK
+
 
 # ============================================================================
 # DATABASE FUNCTIONS
