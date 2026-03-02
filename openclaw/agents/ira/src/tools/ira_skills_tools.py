@@ -44,13 +44,37 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "customer_lookup",
-            "description": "Look up a customer or company in our CRM/memory. Returns relationship history, past orders, communication history, and preferences.",
+            "description": "Ask Mnemosyne (CRM agent) to look up a customer, lead, or company. Returns full relationship brief: contact details, email history, deal stage, conversation summary, and Mnemosyne's recommendation for next action.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "Customer name, company name, or email to look up"},
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crm_pipeline",
+            "description": "Ask Mnemosyne for a full sales pipeline overview: leads by stage, by priority, reply rates, drip status. Use when Rushabh asks about pipeline health or sales performance.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crm_drip_candidates",
+            "description": "Ask Mnemosyne which leads are ready for the next drip email. Returns a prioritized list with her recommendations for each lead.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
             },
         },
     },
@@ -347,7 +371,17 @@ async def execute_tool_call(
         return "\n\n".join(results_parts) if results_parts else "(No web results found)"
 
     elif tool_name == "customer_lookup":
+        # Mnemosyne handles all contact/lead lookups
         query = arguments.get("query", "")
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_crm_lookup
+            crm_result = await invoke_crm_lookup(query, context)
+            if crm_result and "don't have anyone" not in crm_result:
+                return crm_result
+        except Exception as e:
+            logger.debug(f"Mnemosyne lookup failed, falling back to Mem0: {e}")
+
+        # Fallback to Mem0 if Mnemosyne doesn't have the contact
         results = []
         try:
             from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
@@ -358,22 +392,23 @@ async def execute_tool_call(
                     results.append(f"[{uid}] {m.memory}")
         except Exception as e:
             logger.warning(f"Customer lookup Mem0 error: {e}")
-        try:
-            result = await invoke_research(f"customer {query}", context)
-            if result:
-                results.append(f"[knowledge_base] {result[:2000]}")
-        except Exception:
-            pass
         if results:
-            header = (
-                "WARNING: These results come from memory and documents. "
-                "Not every company mentioned is a CONFIRMED CUSTOMER. "
-                "A company is only a confirmed customer if the data says they BOUGHT/ORDERED a machine. "
-                "Companies that are agents, prospects, competitors, or just mentioned in passing are NOT customers. "
-                "Label each as CONFIRMED CUSTOMER, PROSPECT, AGENT, or UNKNOWN based on the evidence.\n\n"
-            )
-            return header + "\n".join(results)
+            return "\n".join(results)
         return f"(No customer data found for '{query}')"
+
+    elif tool_name == "crm_pipeline":
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_crm_pipeline
+            return await invoke_crm_pipeline(context)
+        except Exception as e:
+            return f"(Mnemosyne pipeline error: {e})"
+
+    elif tool_name == "crm_drip_candidates":
+        try:
+            from openclaw.agents.ira.src.skills.invocation import invoke_crm_drip
+            return await invoke_crm_drip(context)
+        except Exception as e:
+            return f"(Mnemosyne drip error: {e})"
 
     elif tool_name == "memory_search":
         query = arguments.get("query", "")

@@ -74,6 +74,36 @@ def _load_reflect() -> Any:
         return UNAVAILABLE
 
 
+def _load_crm_lookup() -> Any:
+    """Lazy-load Mnemosyne CRM lookup skill."""
+    try:
+        from openclaw.agents.ira.src.agents.crm_agent.agent import lookup_contact
+        return lookup_contact
+    except ImportError as e:
+        logger.warning(f"CRM lookup skill unavailable: {e}")
+        return UNAVAILABLE
+
+
+def _load_crm_pipeline() -> Any:
+    """Lazy-load Mnemosyne pipeline overview skill."""
+    try:
+        from openclaw.agents.ira.src.agents.crm_agent.agent import get_pipeline_overview
+        return get_pipeline_overview
+    except ImportError as e:
+        logger.warning(f"CRM pipeline skill unavailable: {e}")
+        return UNAVAILABLE
+
+
+def _load_crm_drip() -> Any:
+    """Lazy-load Mnemosyne drip candidates skill."""
+    try:
+        from openclaw.agents.ira.src.agents.crm_agent.agent import get_drip_candidates
+        return get_drip_candidates
+    except ImportError as e:
+        logger.warning(f"CRM drip skill unavailable: {e}")
+        return UNAVAILABLE
+
+
 def _load_identity() -> Any:
     """Lazy-load identity service."""
     try:
@@ -150,6 +180,30 @@ async def invoke_reflect(interaction_data: Dict[str, Any]) -> None:
     await fn(interaction_data)
 
 
+async def invoke_crm_lookup(query: str, context: Dict[str, Any] = None) -> str:
+    """Invoke Mnemosyne CRM lookup. Returns contact/lead brief."""
+    fn = _load_crm_lookup()
+    if fn is UNAVAILABLE:
+        return "CRM not available."
+    return await fn(query, context)
+
+
+async def invoke_crm_pipeline(context: Dict[str, Any] = None) -> str:
+    """Invoke Mnemosyne pipeline overview."""
+    fn = _load_crm_pipeline()
+    if fn is UNAVAILABLE:
+        return "CRM not available."
+    return await fn(context)
+
+
+async def invoke_crm_drip(context: Dict[str, Any] = None) -> str:
+    """Invoke Mnemosyne drip candidates."""
+    fn = _load_crm_drip()
+    if fn is UNAVAILABLE:
+        return "CRM not available."
+    return await fn(context)
+
+
 def invoke_identity_resolve(channel: str, identifier: str) -> Optional[str]:
     """
     Invoke identity service resolve. Sync.
@@ -172,6 +226,9 @@ def get_skill_availability() -> Dict[str, str]:
         ("verify", _load_verify),
         ("iris_enrich", _load_iris_enrich),
         ("reflect", _load_reflect),
+        ("crm_lookup", _load_crm_lookup),
+        ("crm_pipeline", _load_crm_pipeline),
+        ("crm_drip", _load_crm_drip),
         ("identity", _load_identity),
     ]:
         try:

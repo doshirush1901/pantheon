@@ -53,11 +53,20 @@ from .chief_of_staff.agent import (
     get_intent,
 )
 
+from .crm_agent.agent import (
+    lookup_contact,
+    get_lead_brief,
+    get_drip_candidates,
+    get_pipeline_overview,
+    suggest_next_action,
+)
+
 # Data structures
 from .researcher.agent import ResearchResult
 from .fact_checker.agent import VerificationReport
 from .reflector.agent import ReflectionResult, QualityScore
 from .chief_of_staff.agent import Plan, OrchestrationResult
+from .crm_agent.agent import LeadBrief
 
 __all__ = [
     "research",
@@ -78,10 +87,18 @@ __all__ = [
     "get_recent_errors",
     "get_recent_lessons",
     "get_quality_trends",
+    # Mnemosyne (CRM)
+    "lookup_contact",
+    "get_lead_brief",
+    "get_drip_candidates",
+    "get_pipeline_overview",
+    "suggest_next_action",
+    # Data structures
     "ResearchResult",
     "VerificationReport",
     "ReflectionResult",
     "QualityScore",
     "Plan",
     "OrchestrationResult",
+    "LeadBrief",
 ]
