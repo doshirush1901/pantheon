@@ -396,6 +396,18 @@ IRA_TOOLS_SCHEMA = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "correction_report",
+            "description": "Ask Nemesis (the correction-hungry learning agent) for a report on logged mistakes and pending corrections. Use when the user asks 'what mistakes have you made?', 'show correction report', 'what have you learned from corrections?', or 'Nemesis report'. Returns total corrections, unapplied count, repeat offenders, and recent pending corrections.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
 ]
 
 
@@ -455,6 +467,7 @@ async def execute_tool_call(
         "send_email": "hermes",
         "draft_email": "hermes",
         "run_analysis": "hephaestus",
+        "correction_report": "nemesis",
     }
     _agent_name = _tool_agent_map.get(tool_name)
     if _agent_name:
@@ -951,6 +964,14 @@ async def execute_tool_call(
     elif tool_name == "ask_user":
         question = arguments.get("question", "")
         return f"ASK_USER:{question}"
+
+    elif tool_name == "correction_report":
+        try:
+            from openclaw.agents.ira.src.agents.nemesis.agent import get_nemesis
+            return get_nemesis().get_hungry_report()
+        except Exception as e:
+            logger.warning(f"correction_report failed: {e}")
+            return f"(Nemesis report unavailable: {e})"
 
     return f"Error: Unknown tool '{tool_name}'"
 

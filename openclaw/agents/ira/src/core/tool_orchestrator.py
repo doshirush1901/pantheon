@@ -459,6 +459,9 @@ FINANCE (Plutus):
 - cashflow_forecast: Week-by-week cashflow projections from payment schedule.
 - revenue_history: Historical revenue by year, export breakdown.
 
+LEARNING (Nemesis):
+- correction_report: When the user asks "what mistakes have you made?", "show correction report", "what have you learned from corrections?", or "Nemesis report" — call this to get logged corrections, unapplied count, repeat offenders, and pending fixes.
+
 GOOGLE WORKSPACE:
 - read_spreadsheet: Read data from Google Sheets. Need the spreadsheet_id from the URL.
 - search_drive: Find files in Google Drive by name or content.

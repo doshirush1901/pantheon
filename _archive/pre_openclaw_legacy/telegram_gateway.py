@@ -1639,6 +1639,8 @@ class TelegramGateway:
             {"command": "fail", "description": "Failure tracking & fix plans"},
             {"command": "correct", "description": "Log a correction to my last response (Nemesis)"},
             {"command": "fix", "description": "Same as /correct — log what was wrong"},
+            {"command": "nemesis", "description": "Show Nemesis correction report (mistakes & pending fixes)"},
+            {"command": "corrections", "description": "Same as /nemesis — correction report"},
             {"command": "price_conflicts", "description": "Show pricing conflicts"},
             {"command": "dream", "description": "Dream mode — nap, learn & self-improve"},
         ]
@@ -2615,6 +2617,7 @@ RESPONSE FEEDBACK:
   /good → Rate last response as good (helps Ira learn)
   /bad [reason] → Rate last response as bad with optional reason
   /correct <message> or /fix <message> → Log a correction to my last reply (Nemesis learns it; applied in sleep)
+  /nemesis or /corrections → Show Nemesis report (logged mistakes, unapplied corrections, repeat offenders)
   /feedback → Show feedback summary
   /knowledge_quality → Show quality report for learned knowledge
 
@@ -3902,6 +3905,26 @@ Use `/conflicts` to review and resolve them."""
             text=ack,
             log_entry={"type": "correction_command", "command": "/correct", "correction_preview": user_message[:100]},
         )
+
+    def handle_nemesis_report_command(self) -> GatewayResponse:
+        """Handle /nemesis or /corrections — show Nemesis correction report (logged mistakes, pending fixes)."""
+        try:
+            from openclaw.agents.ira.src.agents.nemesis.agent import get_nemesis
+            report = get_nemesis().get_hungry_report()
+            if not report or not report.strip():
+                report = "No corrections logged yet. Use /correct or tell me when I'm wrong — Nemesis will learn from it during sleep."
+            if len(report) > 3900:
+                report = report[:3850] + "\n\n... [truncated]"
+            return GatewayResponse(
+                text=f"<b>Nemesis Correction Report</b>\n\n<pre>{report}</pre>",
+                parse_mode="HTML",
+                log_entry={"type": "nemesis_report"},
+            )
+        except Exception as e:
+            return GatewayResponse(
+                text=f"Nemesis report unavailable: {e}",
+                success=False,
+            )
 
     def handle_bad_command(self, chat_id: str, reason: str = "") -> GatewayResponse:
         """Handle /bad [reason] - Rate last response as bad."""
@@ -6396,6 +6419,10 @@ Total: {len(draft_ids)}""",
         if correct_match:
             correction_text = (correct_match.group(1) or "").strip()
             return self.handle_correct_command(message.chat_id, correction_text)
+
+        # /nemesis or /corrections — show Nemesis report (logged mistakes, pending fixes)
+        if text_lower in ("/nemesis", "/corrections"):
+            return self.handle_nemesis_report_command()
 
         # /bad [reason]
         bad_match = re.match(r'^/bad(?:\s+(.*))?$', text, re.IGNORECASE)

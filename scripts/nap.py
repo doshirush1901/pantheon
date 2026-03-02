@@ -138,12 +138,15 @@ class NapJournal:
 
         nem = self.phases.get("nemesis", {})
         if nem:
+            n_processed = nem.get("corrections_processed", 0)
+            n_hints = nem.get("truth_hints_added", 0)
+            n_rules = nem.get("guidance_rules", 0)
             lines.append(
-                f"⚡ <b>Nemesis Training:</b> {nem.get('corrections_processed', 0)} corrections → "
-                f"{nem.get('truth_hints_added', 0)} hints, "
-                f"{nem.get('qdrant_indexed', 0)} qdrant, "
-                f"{nem.get('guidance_rules', 0)} rules"
+                f"⚡ <b>Nemesis Training:</b> {n_processed} corrections applied → "
+                f"{n_hints} new truth hints, {nem.get('qdrant_indexed', 0)} in Qdrant, {n_rules} prompt rules"
             )
+            if n_processed > 0:
+                lines.append("   <i>Those mistakes are now in my brain — I won't repeat them.</i>")
 
         p1 = self.phases.get("dream", {})
         if p1:
