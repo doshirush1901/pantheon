@@ -275,34 +275,6 @@ def run_autonomous_drip():
         return {"status": "error", "error": str(e)}
 
 
-def run_ambivo_sync():
-    """
-    Sync data from Ambivo CRM — import new leads, scan Gmail conversations.
-    """
-    logger.info("=" * 60)
-    logger.info("AMBIVO CRM SYNC")
-    logger.info("=" * 60)
-
-    sys.path.insert(0, str(PROJECT_ROOT / "openclaw/agents/ira/src/crm"))
-
-    try:
-        from ambivo_connector import AmbivoConnector
-
-        connector = AmbivoConnector()
-        result = connector.full_sync()
-        summary = result.get("summary", {})
-        logger.info(f"  Contacts imported: {summary.get('contacts_imported', 0)}")
-        logger.info(f"  Conversations: {summary.get('conversations_imported', 0)}")
-        return {"status": "success", **summary}
-
-    except ImportError as e:
-        logger.warning(f"Ambivo connector not available: {e}")
-        return {"status": "not_available", "error": str(e)}
-    except Exception as e:
-        logger.error(f"Ambivo sync error: {e}")
-        return {"status": "error", "error": str(e)}
-
-
 def run_all_tasks():
     """Run all scheduled tasks."""
     logger.info("\n" + "=" * 70)
@@ -315,9 +287,6 @@ def run_all_tasks():
         "tasks": {}
     }
     
-    # Sync Ambivo CRM data first (new leads, conversations)
-    results["tasks"]["ambivo_sync"] = run_ambivo_sync()
-    print()  # Spacing
     # Run autonomous drip (Ira sends her own emails)
     results["tasks"]["autonomous_drip"] = run_autonomous_drip()
     print()  # Spacing
@@ -351,7 +320,7 @@ def main():
     parser = argparse.ArgumentParser(description="IRA Scheduled Task Runner")
     parser.add_argument(
         "--task",
-        choices=["drip", "followups", "health", "autonomous_drip", "ambivo_sync"],
+        choices=["drip", "followups", "health", "autonomous_drip"],
         help="Specific task to run"
     )
     parser.add_argument(
@@ -372,15 +341,12 @@ def main():
         run_health_monitoring()
     elif args.task == "autonomous_drip":
         run_autonomous_drip()
-    elif args.task == "ambivo_sync":
-        run_ambivo_sync()
     else:
         parser.print_help()
         print("\nExamples:")
         print("  python scripts/run_scheduled_tasks.py --all")
         print("  python scripts/run_scheduled_tasks.py --task drip")
         print("  python scripts/run_scheduled_tasks.py --task autonomous_drip")
-        print("  python scripts/run_scheduled_tasks.py --task ambivo_sync")
 
 
 if __name__ == "__main__":

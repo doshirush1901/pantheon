@@ -76,13 +76,6 @@ except ImportError:
     CAMPAIGN_AVAILABLE = False
 
 try:
-    sys.path.insert(0, str(SKILLS_DIR / "crm"))
-    from ambivo_connector import AmbivoConnector
-    AMBIVO_AVAILABLE = True
-except ImportError:
-    AMBIVO_AVAILABLE = False
-
-try:
     import openai
     OPENAI_AVAILABLE = True
 except ImportError:
@@ -147,9 +140,19 @@ class AutonomousDripEngine:
         self.campaign = get_campaign() if CAMPAIGN_AVAILABLE else None
         self.gmail = None
         self._init_gmail()
-        self.ambivo = AmbivoConnector() if AMBIVO_AVAILABLE else None
+        self._init_crm()
         self.strategies = self._load_strategies()
         self.dream_ideas = self._load_dream_ideas()
+
+    def _init_crm(self):
+        """Initialize Ira's own CRM."""
+        try:
+            from ira_crm import get_crm
+            self.crm = get_crm()
+            logger.info(f"Ira CRM initialized ({self.crm.db_path})")
+        except Exception as e:
+            self.crm = None
+            logger.warning(f"Ira CRM not available: {e}")
 
     def _init_gmail(self):
         """Initialize Gmail client for sending."""
@@ -210,39 +213,30 @@ class AutonomousDripEngine:
         with open(BATCH_HISTORY_FILE, "a") as f:
             f.write(json.dumps(batch.to_dict()) + "\n")
 
-    def sync_ambivo(self) -> Dict[str, Any]:
-        """Sync latest data from Ambivo before sending a batch."""
-        if not self.ambivo:
-            return {"status": "ambivo_not_available"}
-        try:
-            result = self.ambivo.full_sync()
-            logger.info(f"Ambivo sync: {result.get('summary', {})}")
-            return result
-        except Exception as e:
-            logger.warning(f"Ambivo sync failed (non-fatal): {e}")
-            return {"error": str(e)}
-
     def _get_lead_email(self, lead_id: str) -> Optional[str]:
-        """Get email address for a lead from campaign data, Ambivo, or contacts."""
+        """Get email address for a lead from CRM or campaign data."""
+        # Try CRM first (has the unified contact database)
+        if self.crm and self.campaign:
+            profile = self.campaign.get_lead_profile(lead_id)
+            if profile:
+                company = profile.get("company", "")
+                if company:
+                    results = self.crm.search_contacts(company, limit=1)
+                    if results and "@placeholder" not in results[0].email:
+                        return results[0].email
+
+        # Fallback to campaign profile
         if not self.campaign:
             return None
         profile = self.campaign.get_lead_profile(lead_id)
         if not profile:
             return None
-        # Try direct email field
         email = profile.get("email") or profile.get("contact_email")
         if email:
             return email
-        # Try key contacts
         contacts = profile.get("key_contacts_to_find", [])
         if contacts and isinstance(contacts[0], dict):
             return contacts[0].get("email")
-        # Try Ambivo connector as fallback
-        if self.ambivo:
-            company = profile.get("company", "")
-            found = self.ambivo._find_email_for_company(company)
-            if found:
-                return found
         return None
 
     def _apply_dream_ideas(self, email_body: str, lead_profile: Dict) -> str:
@@ -316,11 +310,6 @@ class AutonomousDripEngine:
         logger.info(f"Dream ideas active: {len([i for i in self.dream_ideas if i.get('status') == 'active'])}")
         logger.info("=" * 60)
 
-        # Sync latest data from Ambivo before sending
-        if self.ambivo and not dry_run:
-            logger.info("Syncing Ambivo CRM data...")
-            self.sync_ambivo()
-
         if not self.campaign:
             logger.error("Campaign not available")
             return BatchResult(batch_id=batch_id, sent_at=datetime.now().isoformat(),
@@ -380,6 +369,13 @@ class AutonomousDripEngine:
                     if thread_id:
                         logger.info(f"  SENT to {company} ({to_email}) - thread: {thread_id}")
                         self.campaign.record_email_sent(lead_id, stage=next_stage)
+                        # Log in Ira's CRM
+                        if self.crm:
+                            self.crm.log_email_sent(
+                                to_email, subject=email["subject"],
+                                thread_id=thread_id, drip_stage=next_stage,
+                                batch_id=batch_id, body_preview=email["body"][:300],
+                            )
                     else:
                         logger.warning(f"  FAILED to send to {company}")
                         failed_count += 1
@@ -470,6 +466,16 @@ class AutonomousDripEngine:
                         new_replies += 1
                         batch_modified = True
                         logger.info(f"  Reply from {lead['company']}! Quality: {lead['reply_quality']}")
+                        # Record in CRM
+                        if self.crm:
+                            to_email = lead.get("to_email", "")
+                            if to_email:
+                                self.crm.record_reply(
+                                    to_email, thread_id=thread_id,
+                                    quality=lead["reply_quality"],
+                                    subject=replies[-1].get("subject", ""),
+                                    preview=replies[-1].get("body", "")[:300],
+                                )
                 except Exception as e:
                     logger.debug(f"  Thread check error for {lead.get('company')}: {e}")
 
