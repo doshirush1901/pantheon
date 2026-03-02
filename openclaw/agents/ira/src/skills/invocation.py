@@ -174,6 +174,16 @@ def _load_discovery_scan() -> Any:
         return UNAVAILABLE
 
 
+def _load_hephaestus() -> Any:
+    """Lazy-load Hephaestus forge skill (program builder)."""
+    try:
+        from openclaw.agents.ira.src.agents.hephaestus.agent import forge
+        return forge
+    except ImportError as e:
+        logger.warning(f"Hephaestus forge skill unavailable: {e}")
+        return UNAVAILABLE
+
+
 async def invoke_research(message: str, context: Dict[str, Any]) -> str:
     """
     Invoke research skill. Returns research output string.
@@ -312,6 +322,23 @@ async def invoke_discovery_scan(query: str, context: Dict[str, Any] = None) -> s
     return await fn(query, context)
 
 
+async def invoke_hephaestus(
+    task: str = "",
+    code: str = "",
+    data: str = "",
+    context: Dict[str, Any] = None,
+) -> str:
+    """Invoke Hephaestus to forge and execute a program.
+
+    Can be called with a natural-language task (Hephaestus writes the code)
+    or with pre-written code. Data from previous tool calls is passed through.
+    """
+    fn = _load_hephaestus()
+    if fn is UNAVAILABLE:
+        return "Hephaestus (program builder) not available."
+    return await fn(task=task, code=code, data=data, context=context)
+
+
 def invoke_identity_resolve(channel: str, identifier: str) -> Optional[str]:
     """
     Invoke identity service resolve. Sync.
@@ -343,6 +370,7 @@ def get_skill_availability() -> Dict[str, str]:
         ("cashflow_forecast", _load_cashflow_forecast),
         ("revenue_history", _load_revenue_history),
         ("discovery_scan", _load_discovery_scan),
+        ("hephaestus", _load_hephaestus),
         ("identity", _load_identity),
     ]:
         try:
