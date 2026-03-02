@@ -168,26 +168,50 @@ async def execute_tool_call(
     elif tool_name == "web_search":
         query = arguments.get("query", "")
         company = arguments.get("company", "")
-        try:
-            from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
-            iris_ctx = {"company": company or query, "query": query}
-            iris_result = await iris_enrich(iris_ctx)
-            if iris_result:
-                parts = []
-                for k, v in iris_result.items():
-                    if v:
-                        parts.append(f"{k}: {v}")
-                return "\n".join(parts) if parts else "(No web results)"
-        except Exception as e:
-            logger.warning(f"Iris web search failed: {e}")
+        results_parts = []
+        
+        # Jina web search (works for any query)
         try:
             import httpx
-            resp = httpx.get(f"https://s.jina.ai/{query}", timeout=15, headers={"Accept": "application/json"})
-            if resp.status_code == 200:
-                return resp.text[:3000]
-        except Exception:
-            pass
-        return "(Web search unavailable)"
+            search_query = f"{company} {query}" if company else query
+            resp = httpx.get(
+                f"https://s.jina.ai/{search_query}",
+                timeout=20,
+                headers={"Accept": "application/json", "X-Return-Format": "text"},
+            )
+            if resp.status_code == 200 and len(resp.text.strip()) > 50:
+                results_parts.append(f"[web_search] {resp.text[:3000]}")
+        except Exception as e:
+            logger.debug(f"Jina search failed: {e}")
+        
+        # Iris enrichment (when a specific company is mentioned)
+        if company:
+            try:
+                from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
+                iris_ctx = {"company": company, "query": query}
+                iris_result = await iris_enrich(iris_ctx)
+                if iris_result:
+                    for k, v in iris_result.items():
+                        if v and len(str(v)) > 10:
+                            results_parts.append(f"[iris:{k}] {v}")
+            except Exception as e:
+                logger.debug(f"Iris enrich failed: {e}")
+        
+        # If company specified, also try scraping their website
+        if company and not results_parts:
+            try:
+                import httpx
+                resp = httpx.get(
+                    f"https://r.jina.ai/https://www.{company.lower().replace(' ', '')}.com",
+                    timeout=15,
+                    headers={"Accept": "text/plain"},
+                )
+                if resp.status_code == 200 and len(resp.text) > 100:
+                    results_parts.append(f"[website] {resp.text[:2000]}")
+            except Exception:
+                pass
+        
+        return "\n\n".join(results_parts) if results_parts else "(No web results found)"
 
     elif tool_name == "customer_lookup":
         query = arguments.get("query", "")
