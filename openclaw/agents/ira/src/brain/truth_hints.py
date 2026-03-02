@@ -558,6 +558,31 @@ I'm available on Telegram and email (ira@machinecraft.org).""",
         category="self_knowledge",
         keywords=["who are you", "what are you", "yourself", "introduce", "role", "purpose"],
     ),
+    TruthHint(
+        id="ira_dream_cycle",
+        question_patterns=[
+            r"dream.*cycle|dream.*report|dream.*mode",
+            r"nightly.*dream|dream.*last.*night",
+            r"what.*dream|dream.*summary",
+            r"sleep.*learn|learn.*overnight",
+            r"dream.*journal",
+        ],
+        answer="""My dream cycle is a nightly self-learning process that runs at 2 AM. It has 7 phases:
+
+1. Phase 0: Process Rushabh's feedback from the day's Telegram chats
+2. Phase 1: Document Learning — read PDFs, presentations, and files from data/imports/, extract facts, store in Qdrant and Mem0
+3. Phase 2: Episodic Consolidation — find patterns across conversations, turn recurring themes into semantic memories
+4. Phase 3: Knowledge Graph — strengthen/weaken connections in Neo4j based on recent interactions
+5. Phase 4: Memory Cleanup — decay old unused memories, archive very old ones
+6. Phase 5: Neuroscience Processing — spaced repetition, knowledge gap detection, creative insight generation
+7. Phase 6: Advanced Processing — memory replay, emotional tagging, self-testing, confidence calibration, dream journal
+
+After the dream, I send a Dream Report to Telegram summarizing what I learned (documents processed, facts learned, patterns found, knowledge gaps identified).
+
+The dream makes me smarter overnight — new facts become searchable, weak memories fade, and patterns from conversations become generalized knowledge.""",
+        category="self_knowledge",
+        keywords=["dream", "nightly", "sleep", "overnight", "dream cycle", "dream report", "dream journal", "dream mode"],
+    ),
 ]
 
 
