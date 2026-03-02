@@ -56,7 +56,7 @@ That's the difference between "an LLM with a system prompt" and "an AI that has 
 
 Ira is the second thing.
 
-She runs on Telegram, Email, and API. She remembers conversations across all three. She has a nightly dream cycle where she consolidates knowledge while you sleep. She has an immune system that auto-corrects recurring mistakes. She has a growth hormone that gets triggered every time she processes an email.
+She runs on Telegram, Email, and API. She remembers conversations across all three. She has a nightly dream cycle where she consolidates knowledge while you sleep. She has an immune system that auto-corrects recurring mistakes. She has a growth hormone that gets triggered every time she processes an email. She runs as a **Manus-style** agentic loop: one orchestrator (Athena), many specialist agents, tool-calling until the answer is done—plus **Sphinx** (gatekeeper of clarity; asks clarifying questions for vague requests) and **Nemesis** (learns from every correction; rewires the brain during sleep).
 
 She is, in the most literal sense we could manage, alive.
 
@@ -105,10 +105,19 @@ So we didn't build one agent. We built a pantheon.
                          │   Mentor    │
                          │  (learns,   │
                          │   reflects) │
-                         └─────────────┘
+                         └──────┬──────┘
+                                │
+            ┌────────────────────┼────────────────────┐
+            │                    │                     │
+     ┌──────┴──────┐    ┌───────┴───────┐    ┌───────┴───────┐
+     │   SPHINX    │    │   NEMESIS     │
+     │ Gatekeeper  │    │  Corrections  │
+     │ (clarify    │    │  (learn from  │
+     │  vague ask) │    │   every fail) │
+     └─────────────┘    └──────────────┘
 ```
 
-Each of these is a real, implemented agent with its own codebase, its own tools, and its own personality. Let's meet them.
+Each of these is a real, implemented agent with its own codebase. **Sphinx** runs pre-pipeline (before Athena); **Nemesis** is passive—she intercepts every failure and correction across the system. Let's meet them.
 
 ### Athena — The Strategist
 
@@ -252,9 +261,23 @@ Hephaestus: *writes a Python script, executes it*
 
 ### Sophia — The Mentor
 
-**What she does:** After every interaction, Sophia reflects. What went well? What could be improved? She logs patterns, identifies weak areas, and feeds insights back into the system so Ira gets smarter over time.
+**What she does:** After every interaction, Sophia reflects. What went well? What could be improved? She logs patterns, identifies weak areas, and feeds insights back into the system so Ira gets smarter over time. When quality is low or issues are found, she feeds **Nemesis** so no mistake goes unlearned.
 
 **File:** `openclaw/agents/ira/src/agents/reflector/agent.py`
+
+### Sphinx — The Gatekeeper of Clarity
+
+**What she does:** Sphinx intercepts complex but *vague* requests *before* they hit Athena. She asks 3–8 short clarifying questions (e.g. application, material, thickness, budget for sales; recipient, purpose for email). The user replies with numbered answers—or says "skip" / "just do it" to bypass. She then merges the Q&A into a single enriched brief and passes it to Athena.
+
+**When she runs:** Only when the request is complex (orchestrator heuristics) and classified as vague (GPT-4o-mini). She does *not* trigger on follow-up messages in an ongoing conversation.
+
+**File:** `openclaw/agents/ira/src/agents/sphinx/agent.py`
+
+### Nemesis — The Correction-Hungry Learning Agent
+
+**What she does:** Nemesis ensures no mistake goes unlearned. She sits at every failure junction: Telegram corrections ("that's wrong, it should be X"), Sophia reflections (low quality score, issues flagged), immune system escalations (recurring validation failures). For each she extracts structured corrections, stores them in Mem0 (so the next query benefits immediately), and queues them for **sleep training**. During nap/dream, her trainer rewires truth hints, Qdrant, and the system prompt with learned rules.
+
+**File:** `openclaw/agents/ira/src/agents/nemesis/agent.py` (plus `correction_store.py`, `sleep_trainer.py`)
 
 ---
 
@@ -277,7 +300,12 @@ OK so you've met the team. But what actually happens when someone sends a messag
               │ (complex or model-specific)
               ▼
    ┌─────────────────────┐
-   │  3. ATHENA LOOP     │  ← GPT-4o + tools, up to 25 rounds
+   │  2.5 SPHINX (opt)   │  ← Vague request? Ask 3–8 clarifying questions; merge reply into brief
+   └──────────┬──────────┘
+              │
+              ▼
+   ┌─────────────────────┐
+   │  3. ATHENA LOOP     │  ← GPT-4o + tools, up to 25 rounds (Manus-style agentic loop)
    │     │                │
    │     ├→ Clio          │  (searches specs, prices)
    │     ├→ Iris          │  (if customer context needed)
@@ -303,14 +331,14 @@ OK so you've met the team. But what actually happens when someone sends a messag
               │
               ▼
    ┌─────────────────────┐
-   │  7. SOPHIA REFLECTS  │  ← Log interaction, learn patterns
+   │  7. SOPHIA REFLECTS  │  ← Log interaction, learn patterns; on failure → Nemesis
    └──────────┬──────────┘
               │
               ▼
          Final answer
 ```
 
-Seven layers. Every message. Every time.
+Eight layers (including the optional Sphinx gate). Immune system and Sophia both feed **Nemesis** when issues recur or quality is low. Every message. Every time.
 
 ### The Defense Systems (Because LLMs Lie)
 
