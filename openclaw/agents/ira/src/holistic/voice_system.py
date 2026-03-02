@@ -55,8 +55,8 @@ VOICE_LOG = PROJECT_ROOT / "data" / "holistic" / "voice_log.jsonl"
 
 CHANNEL_PROFILES = {
     "telegram": {
-        "max_length": 2000,
-        "prefer_short": True,
+        "max_length": 4096,
+        "prefer_short": False,
         "use_markdown": True,
         "use_emoji_sparingly": True,
         "default_style": "conversational",
@@ -229,13 +229,13 @@ class VoiceSystem:
 
         # Ideal response length (in words)
         ideal_lengths = {
-            "quick": 40,
-            "moderate": 120,
-            "complex": 300,
+            "quick": 60,
+            "moderate": 200,
+            "complex": 800,
         }
         ideal = ideal_lengths[complexity]
         if is_multi_part:
-            ideal = max(ideal, sub_requests * 80)
+            ideal = max(ideal, sub_requests * 150)
 
         return MessageProfile(
             complexity=complexity,
@@ -284,8 +284,10 @@ class VoiceSystem:
             shaped = self._trim_for_quick(shaped, profile)
             actions_taken.append("trimmed_for_quick_lookup")
 
-        # 2. Enforce channel max length
-        if len(shaped) > channel_profile["max_length"]:
+        # 2. Enforce channel max length — but NOT for complex responses.
+        #    Deep research answers should be delivered in full; Telegram's
+        #    message splitting handles long messages gracefully.
+        if profile.complexity == "quick" and len(shaped) > channel_profile["max_length"]:
             shaped = self._enforce_max_length(shaped, channel_profile["max_length"])
             actions_taken.append("enforced_max_length")
 

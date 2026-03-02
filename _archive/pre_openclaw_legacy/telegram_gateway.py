@@ -781,6 +781,28 @@ class TelegramGateway:
 
         return last_msg_id
     
+    def send_document(self, file_path: str, caption: str = "", parse_mode: Optional[str] = None) -> Optional[int]:
+        """Send a file as a Telegram document. Returns message_id on success."""
+        import requests as _requests
+        url = f"https://api.telegram.org/bot{self.bot_token}/sendDocument"
+        try:
+            with open(file_path, "rb") as f:
+                files = {"document": (Path(file_path).name, f)}
+                data = {"chat_id": self.expected_chat_id}
+                if caption:
+                    data["caption"] = caption[:1024]
+                if parse_mode:
+                    data["parse_mode"] = parse_mode
+                resp = _requests.post(url, data=data, files=files, timeout=30)
+                result = resp.json()
+                if result.get("ok"):
+                    return result.get("result", {}).get("message_id")
+                else:
+                    logger.error("[Telegram] sendDocument failed: %s", result)
+        except Exception as e:
+            logger.error("[Telegram] sendDocument error: %s", e)
+        return None
+
     def send_typing_action(self) -> bool:
         """Show typing indicator to user with retry logic."""
         payload = {
@@ -5583,6 +5605,8 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
 
                 if _agent_response and len(_agent_response.strip()) > 10:
                     _agent_used = True
+                    # Capture any quote files generated during the pipeline
+                    self._pending_quote_files = _agent_context.get("_quote_files", [])
                     result = type('AgentResult', (), {
                         'text': _agent_response,
                         'mode': type('M', (), {'value': 'agent'})(),
@@ -7504,33 +7528,55 @@ Total: {len(draft_ids)}""",
     def _update_thinking_status(self, msg_id: int, stage: str, elapsed: float):
         """Update the thinking indicator with current tool/agent activity."""
         tool_labels = {
-            "memory":             "Recalling memories...",
-            "research":           "Clio searching knowledge base...",
-            "research_skill":     "Clio searching knowledge base...",
-            "iris":               "Iris gathering intelligence...",
-            "web_search":         "Iris searching the web...",
-            "customer_lookup":    "Looking up customer data...",
-            "memory_search":      "Searching long-term memory...",
-            "writing":            "Calliope composing response...",
-            "writing_skill":      "Calliope composing response...",
-            "verifying":          "Vera fact-checking...",
-            "fact_checking_skill":"Vera fact-checking...",
-            "polishing":          "Final polish...",
-            "ask_user":           "Preparing a question for you...",
+            "memory":              "Recalling memories...",
+            "research":            "Clio searching knowledge base...",
+            "research_skill":      "Clio searching knowledge base...",
+            "iris":                "Iris gathering intelligence...",
+            "web_search":          "Iris searching the web...",
+            "lead_intelligence":   "Iris researching company intel...",
+            "customer_lookup":     "Mnemosyne looking up customer...",
+            "crm_list_customers":  "Mnemosyne scanning customer list...",
+            "crm_pipeline":        "Mnemosyne checking pipeline...",
+            "memory_search":       "Searching long-term memory...",
+            "writing":             "Calliope composing response...",
+            "writing_skill":       "Calliope composing response...",
+            "verifying":           "Vera fact-checking...",
+            "fact_checking_skill": "Vera fact-checking...",
+            "finance_overview":    "Plutus checking finances...",
+            "order_book_status":   "Plutus reviewing order book...",
+            "cashflow_forecast":   "Plutus forecasting cashflow...",
+            "revenue_history":     "Plutus pulling revenue data...",
+            "run_analysis":        "Hephaestus crunching data...",
+            "search_email":        "Searching email history...",
+            "read_email_thread":   "Reading email thread...",
+            "read_inbox":          "Checking inbox...",
+            "draft_email":         "Hermes drafting email...",
+            "search_drive":        "Searching Google Drive...",
+            "read_spreadsheet":    "Reading spreadsheet data...",
+            "check_calendar":      "Checking calendar...",
+            "discovery_scan":      "Prometheus scanning markets...",
+            "build_quote_pdf":     "Building quote PDF...",
+            "vera_verify":         "Vera verifying accuracy...",
+            "sophia_reflect":      "Sophia reflecting & learning...",
+            "polishing":           "Final polish...",
+            "ask_user":            "Preparing a question for you...",
         }
         label = tool_labels.get(stage, f"Working on: {stage}...")
-        
+
         if stage not in [s for s, _ in self._thinking_steps]:
             self._thinking_steps.append((stage, label))
-        
-        lines = ["🧠 *Thinking*\n"]
-        for i, (s, lbl) in enumerate(self._thinking_steps):
+
+        tool_count = len(self._thinking_steps)
+        depth_label = "🔬 Deep research" if tool_count >= 6 else "🧠 Researching"
+
+        lines = [f"*{depth_label}* ({tool_count} steps)\n"]
+        for s, lbl in self._thinking_steps:
             if s == stage:
                 lines.append(f"▸ {lbl}")
             else:
                 lines.append(f"✓ {lbl.replace('...', '')}")
-        lines.append(f"\n_{elapsed:.0f}s_")
-        
+        lines.append(f"\n_{elapsed:.0f}s elapsed_")
+
         text = "\n".join(lines)
         try:
             self.edit_message(msg_id, text, parse_mode="Markdown")
@@ -7583,10 +7629,11 @@ Total: {len(draft_ids)}""",
         start_time = time.time()
         thinking_msg_id = None
         self._thinking_steps = []
+        self._pending_quote_files = []
         
         if not is_command:
             thinking_msg_id = self.send_message(
-                "🧠 *Thinking*\n\n▸ Analyzing your request...",
+                "🧠 *Researching*\n\n▸ Analyzing your request...\n\n_Deep research in progress — this may take a moment_",
                 parse_mode="Markdown"
             )
         else:
@@ -7638,6 +7685,33 @@ Total: {len(draft_ids)}""",
                 pass
         
         if response.text:
+            elapsed = time.time() - start_time
+            report_file = None
+
+            # For long-form responses, save as .md and send as a document
+            # so the user can open and read the full report comfortably.
+            _REPORT_THRESHOLD = 2000  # chars — roughly 1+ pages of content
+            if len(response.text) > _REPORT_THRESHOLD and not is_command:
+                try:
+                    reports_dir = Path("data/exports/reports")
+                    reports_dir.mkdir(parents=True, exist_ok=True)
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    slug = re.sub(r"[^a-z0-9]+", "_", message.text[:40].lower()).strip("_")
+                    report_file = reports_dir / f"ira_report_{ts}_{slug}.md"
+
+                    header = (
+                        f"# Ira Research Report\n\n"
+                        f"**Query:** {message.text}\n\n"
+                        f"**Date:** {datetime.now().strftime('%B %d, %Y at %H:%M')}\n\n"
+                        f"**Research time:** {elapsed:.0f}s\n\n"
+                        f"---\n\n"
+                    )
+                    report_file.write_text(header + response.text, encoding="utf-8")
+                    logger.info("[Report] Saved %d-char report to %s", len(response.text), report_file)
+                except Exception as e:
+                    logger.warning("[Report] Failed to save report file: %s", e)
+                    report_file = None
+
             if thinking_msg_id:
                 success = self.edit_message(
                     thinking_msg_id,
@@ -7657,7 +7731,35 @@ Total: {len(draft_ids)}""",
                     parse_mode=response.parse_mode,
                     reply_markup=response.reply_markup
                 )
-            elapsed = time.time() - start_time
+
+            if report_file and report_file.exists():
+                self.send_document(
+                    str(report_file),
+                    caption=f"Full report ({len(response.text):,} chars, {elapsed:.0f}s research)",
+                )
+
+            # Send any quote files (PDF + Markdown) generated during the pipeline
+            for qf in getattr(self, "_pending_quote_files", []):
+                try:
+                    md_path = qf.get("md_path", "")
+                    pdf_path = qf.get("pdf_path", "")
+                    qid = qf.get("quote_id", "")
+                    model = qf.get("model", "")
+                    if md_path and Path(md_path).exists():
+                        self.send_document(
+                            md_path,
+                            caption=f"Quote {qid} — {model} (Markdown)",
+                            parse_mode="Markdown",
+                        )
+                    if pdf_path and Path(pdf_path).exists():
+                        self.send_document(
+                            pdf_path,
+                            caption=f"Quote {qid} — {model} (PDF)",
+                        )
+                except Exception as qe:
+                    logger.warning("[Quote] Failed to send quote file: %s", qe)
+            self._pending_quote_files = []
+
             print(f"Response sent ({elapsed:.1f}s)")
         elif thinking_msg_id:
             self.edit_message(thinking_msg_id, "Done.")

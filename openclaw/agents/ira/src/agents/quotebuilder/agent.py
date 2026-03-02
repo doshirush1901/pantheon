@@ -76,6 +76,7 @@ class BuildQuoteResult:
     """Result of building a quote and PDF."""
     quote_id: str
     pdf_path: str
+    md_path: str
     total_inr: int
     total_usd: int
     model: str
@@ -359,6 +360,255 @@ class Quotebuilder:
         pdf.output(str(path))
         return str(path)
 
+    def quote_to_markdown(self, quote: "GeneratedQuote", output_path: Optional[Path] = None) -> str:
+        """Render a GeneratedQuote to a rich Markdown file. Returns path."""
+        from datetime import datetime as _dt
+
+        w, h = quote.forming_area_mm
+        is_servo = quote.machine_variant in ["X", "S"]
+        variant_desc = "All-Servo (PF1-X Series)" if is_servo else "Pneumatic (PF1-C Series)"
+
+        def fmt_inr(amount: int) -> str:
+            if amount >= 10_000_000:
+                return f"₹{amount / 10_000_000:.2f} Cr"
+            if amount >= 100_000:
+                return f"₹{amount / 100_000:.1f} Lakhs"
+            return f"₹{amount:,}"
+
+        forming_sqm = quote.forming_area_sqm or (w * h / 1_000_000)
+        heater_power = int(forming_sqm * 40)
+        vacuum_capacity = max(100, int(forming_sqm * 50))
+        total_power = heater_power + (45 if is_servo else 20)
+        heater_type = quote.requirements.get("heater_type", "IR Ceramic")
+        max_depth = quote.requirements.get("max_depth", 600)
+
+        lines = [
+            "# MACHINECRAFT TECHNOLOGIES",
+            "",
+            "**Plot 92, Dehri Road, Umbergaon, Dist. Valsad, Gujarat-396170, India**",
+            "Tel: +91-22-40140000 | Email: sales@machinecraft.org | Web: www.machinecraft.org",
+            "",
+            "---",
+            "",
+            f"# QUOTATION — {quote.recommended_model}",
+            "",
+            "## Quote Details",
+            "",
+            f"| | |",
+            f"|---|---|",
+            f"| **Quote No** | {quote.quote_id} |",
+            f"| **Date** | {quote.quote_date} |",
+            f"| **Machine Model** | {quote.recommended_model} |",
+            f"| **Type** | {variant_desc} |",
+            f"| **Validity** | 30 days from date of issue |",
+            f"| **Prepared by** | Rushabh Doshi, Director — Sales & Marketing |",
+            "",
+        ]
+
+        if quote.customer_name and quote.customer_name != "Valued Customer":
+            lines.extend([
+                "## Prepared For",
+                "",
+                f"| | |",
+                f"|---|---|",
+                f"| **Client** | {quote.customer_name} |",
+                f"| **Company** | {quote.company_name or '—'} |",
+                f"| **Email** | {quote.customer_email or '—'} |",
+                f"| **Country** | {quote.country or 'India'} |",
+                "",
+            ])
+
+        lines.extend([
+            f"## {quote.recommended_model} — Machine Overview",
+            "",
+            f"The **{quote.recommended_model}** is a heavy-gauge, single-station cut-sheet "
+            f"thermoforming machine designed for versatility and high performance. All models "
+            f"in the PF1 Series feature a robust **closed-chamber design** that prevents sheet "
+            f"sag by allowing pre-blow air pressure control, ensuring superior forming quality "
+            f"on thick materials.",
+            "",
+            f"With a generous **{w} × {h} mm** forming area, the {quote.recommended_model} "
+            f"delivers precision forming for a variety of thermoplastic sheets (typically "
+            f"2–12 mm thick), making it ideal for automotive, aerospace, industrial, and "
+            f"commercial applications that demand excellent detail and consistency.",
+            "",
+            "## Key Features",
+            "",
+            "- **Closed-Chamber Zero-Sag Design** — Air-tight chamber below the sheet line "
+            "with pulsated air maintains sheet level during heating, preventing sag",
+            f"- **{w} × {h} mm Forming Area** — Generous size for large-format components",
+            "- **Sandwich Heating Oven (Top & Bottom)** — IR heating elements with individual "
+            "SSR and digital PID control via HMI for precise, even heating",
+        ])
+
+        if is_servo:
+            lines.extend([
+                "- **All-Servo Drive System** — Servo motors for forming platen, heater ovens, "
+                "clamp frames, and plug assist with programmable speed/acceleration profiles",
+                "- **Universal Motorized Aperture Setting** — Motorized window plate adjustment "
+                "in both axes using touchscreen settings (no manual adjustment needed)",
+                "- **Automatic Sheet Loading System** — Powered loading for consistent cycle times",
+            ])
+        else:
+            lines.extend([
+                "- **Pneumatic Forming System** — Forming platen driven by cylinders with rack "
+                "& pinion mechanism for reliable, cost-effective operation",
+                "- **Fixed Clamp Frames** — 1 frame included; additional custom frames available",
+            ])
+
+        lines.extend([
+            "- **Rugged Construction & Intelligent Control** — Heavy-duty steel frame with "
+            "precision motion components; modern PLC control system with 7\" HMI touchscreen",
+            "- **Pre-blow / Sag Control** — Closed chamber with light sensors for automatic "
+            "sheet level monitoring",
+            "",
+            "## Technical Specifications",
+            "",
+            "| Specification | Value |",
+            "|---|---|",
+            f"| Machine Model | {quote.recommended_model} |",
+            f"| Forming Area (Max) | {w} × {h} mm (L × W) |",
+            f"| Max Stroke Z Direction | {max_depth} mm |",
+            f"| Sheet Thickness Range | Typically 2–12 mm (material-dependent) |",
+        ])
+
+        if is_servo:
+            lines.extend([
+                "| Clamp Frame System | Universal Motorized Aperture Setting |",
+                "| Sheet Loading/Unloading | Automatic Sheet Loading System |",
+                "| Forming Platen Drive | Servo Motor Driven |",
+                "| Heater Oven Drive | Servo Motor Driven |",
+                "| Clamp Frame Drive | Servo Motor Driven |",
+                "| Plug Assist Drive | Servo Motor Driven |",
+            ])
+        else:
+            lines.extend([
+                "| Clamp Frame System | Fixed Welded Frames (1 frame included) |",
+                "| Sheet Loading/Unloading | Manual Loading by Operator |",
+                "| Forming Platen Drive | Pneumatic (4 cylinders + rack & pinion) |",
+                "| Heater Oven Drive | Pneumatic (high-temp cylinders) |",
+                "| Clamp Frame Drive | Pneumatic (2 cylinders + rack & pinion) |",
+                "| Plug Assist Drive | Pneumatic (manual height adjustment) |",
+            ])
+
+        lines.extend([
+            f"| Heating Oven Configuration | Sandwich — Top & Bottom, {heater_type} |",
+            f"| Heater Power (approx) | {heater_power} kW |",
+            f"| Vacuum System | ~{vacuum_capacity} m³/hr capacity |",
+            "| Compressed Air Requirement | ~6 bar (100 psi) |",
+            "| Cooling System | Centrifugal Fans |",
+            "| Control System & HMI | PLC + 7\" color touchscreen HMI |",
+            "| Pre-blow / Sag Control | Yes (closed chamber with light sensors) |",
+            f"| Total Connected Load | ~{total_power} kW |",
+            "",
+            "## Pricing",
+            "",
+            "| Item | Qty | Price (INR) |",
+            "|---|:---:|---:|",
+        ])
+
+        for item in quote.line_items:
+            lines.append(f"| {item.description} | {item.quantity} | {fmt_inr(item.total_price_inr)} |")
+
+        lines.append(f"| **Subtotal** | | **{fmt_inr(quote.subtotal_inr)}** |")
+        if quote.gst_inr > 0:
+            lines.append(f"| GST (18%) | | {fmt_inr(quote.gst_inr)} |")
+            lines.append(f"| **TOTAL** | | **{fmt_inr(quote.total_inr)}** |")
+        else:
+            lines.append(f"| **TOTAL (Ex-Works)** | | **{fmt_inr(quote.subtotal_inr)}** |")
+
+        lines.extend([
+            "",
+            f"> Approximately **${quote.total_usd:,} USD**. "
+            f"Price Ex-Works Machinecraft plant, Umargam, Gujarat, India.",
+            "",
+            "## Optional Extras",
+            "",
+            "| Item | Description | Price |",
+            "|---|---|---|",
+            "| Additional Clamp Frames | Custom-sized frames | On Request |",
+            "| Installation & Commissioning | At customer site | On Request |",
+            "| Operator Training | At customer site (2-3 days) | On Request |",
+        ])
+
+        if not is_servo:
+            lines.extend([
+                "| Automatic Sheet Loading | Powered loading system | On Request |",
+                "| Universal Frame System | Motorized aperture adjustment | On Request |",
+            ])
+
+        lines.extend([
+            "| Enhanced Vacuum System | Higher capacity pump | On Request |",
+            "| Servo Vacuuming | Programmable vacuum profiles | On Request |",
+            "| Ball Transfer Tool Loading | Easy mold changeover | On Request |",
+            "| IoT / Remote Monitoring | VPN-based support module | On Request |",
+            "",
+            "## Terms & Conditions",
+            "",
+            f"| | |",
+            f"|---|---|",
+            f"| **Lead Time** | {quote.delivery_time} from PO & advance payment |",
+            f"| **Payment Terms** | {quote.payment_terms} |",
+            f"| **Shipping** | EXW Machinecraft plant, Umargam, Gujarat, India |",
+            f"| **Warranty** | {quote.warranty} |",
+            f"| **Validity** | 30 days from date of issue |",
+            "",
+            "**Delivery Terms:** Packing, freight, insurance, and on-site installation costs "
+            "are not included unless explicitly stated.",
+            "",
+            "**Installation & Training:** Machinecraft will provide on-site commissioning and "
+            "basic operator training. Travel and lodging costs for technicians will be extra.",
+            "",
+            "**Factory Acceptance Test (FAT):** Machinecraft will perform a dry run test and "
+            "run the machine on a demo tool with 1× material (ABS or PS) in 1× thickness.",
+            "",
+        ])
+
+        if quote.notes:
+            lines.append("### Notes")
+            lines.append("")
+            for note in quote.notes:
+                lines.append(f"- {note}")
+            lines.append("")
+
+        lines.extend([
+            "## Contact Information",
+            "",
+            "| | |",
+            "|---|---|",
+            "| **Rushabh Doshi** | Director — Sales & Marketing |",
+            "| **Sales Team** | +91-22-40140000 |",
+            "| **Email** | sales@machinecraft.org |",
+            "| **Direct Email** | rushabh@machinecraft.org |",
+            "| **Technical Support** | support@machinecraft.org |",
+            "| **Website** | www.machinecraft.org |",
+            "",
+            "---",
+            "",
+            "*For acceptance of this offer, please sign below and return a copy:*",
+            "",
+            "**Accepted by (Authorized Signatory):** ____________________",
+            "",
+            "**Date:** _____________",
+            "",
+            "---",
+            "",
+            "*Machinecraft Technologies — 505, Palm Springs, Link Road, Malad (W), "
+            "Mumbai 400064, India.*",
+            "",
+            "*Factory: Plot 92, Umbergaon Station-Dehri Rd, Valsad, Gujarat 396170, India.*",
+            "",
+            "*© 2026 Machinecraft Technologies. All Rights Reserved.*",
+        ])
+
+        md_text = "\n".join(lines)
+        path = output_path or (QUOTE_PDF_EXPORTS / f"Quote_{quote.quote_id}_{quote.recommended_model}.md")
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(md_text, encoding="utf-8")
+        logger.info("[Quotebuilder] Markdown quote saved to %s (%d chars)", path, len(md_text))
+        return str(path)
+
     def build_quote_pdf(
         self,
         width_mm: int,
@@ -372,7 +622,8 @@ class Quotebuilder:
         options: Optional[Dict[str, Any]] = None,
     ) -> BuildQuoteResult:
         """
-        Build a detailed quote and save as PDF. Returns result with quote_id and pdf_path.
+        Build a detailed quote and save as PDF + Markdown.
+        Returns result with quote_id, pdf_path, md_path.
         """
         forming_size = (width_mm, height_mm)
         quote = self.build_quote(
@@ -387,9 +638,11 @@ class Quotebuilder:
         )
         quote.customer_email = customer_email
         pdf_path = self.quote_to_pdf(quote)
+        md_path = self.quote_to_markdown(quote)
         return BuildQuoteResult(
             quote_id=quote.quote_id,
             pdf_path=pdf_path,
+            md_path=md_path,
             total_inr=quote.total_inr,
             total_usd=quote.total_usd,
             model=quote.recommended_model,
@@ -419,10 +672,10 @@ def build_quote_pdf(
     options: Optional[Dict[str, Any]] = None,
 ) -> BuildQuoteResult:
     """
-    Build a detailed quote and export to PDF. Convenience function.
+    Build a detailed quote and export to PDF + Markdown. Convenience function.
 
     Returns:
-        BuildQuoteResult with quote_id, pdf_path, total_inr, total_usd, model.
+        BuildQuoteResult with quote_id, pdf_path, md_path, total_inr, total_usd, model.
     """
     return get_quotebuilder().build_quote_pdf(
         width_mm=width_mm,
