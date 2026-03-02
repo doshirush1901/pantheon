@@ -183,7 +183,7 @@ Note: These are budget prices. Final quotation depends on specific configuration
             r"pf[-\s]?1.*material",
             r"pf[-\s]?1.*application",
             r"pf[-\s]?1.*used for",
-            r"what.*pf[-\s]?1.*for",
+            r"what.*pf[-\s]?1.*\bfor\b",
             r"pf[-\s]?1.*suitable",
             r"pf[-\s]?1.*packaging",
             r"pf[-\s]?1.*rigid",

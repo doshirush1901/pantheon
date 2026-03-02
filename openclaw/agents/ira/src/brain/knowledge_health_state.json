@@ -1,6 +1,6 @@
 {
   "corrections_learned": [],
-  "last_full_check": "2026-03-02T23:07:02.051155",
+  "last_full_check": "2026-03-02T23:22:53.185588",
   "validation_issues": [
     {
       "timestamp": "2026-02-28T00:18:22.519382",
@@ -708,6 +708,22 @@
       "response_preview": "Based on the information gathered, here's how we can approach the customer's requirements and the competitive positioning against Kiefel and Illig:\n\n### Machine Recommendation\nFor forming 3mm ABS with",
       "warnings": [
         "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:13:20.454408",
+      "query": "What do we know about Dutch Tides? Pull up their full history.",
+      "response_preview": "Dutch Tides is an innovative hydroponics startup based near Den Haag (The Hague), Netherlands, specializing in urban farming. They have a significant relationship with Machinecraft, having ordered a P",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T23:15:09.900844",
+      "query": "What are the specs of the PF3-X-4040? I heard it's your newest model.",
+      "response_preview": "The PF3-X-4040 is a thermoforming machine by Machinecraft Technologies. Here are some key specifications:\n\n- **Design**: Open chamber design based on the American concept, allowing the sheet to sag un",
+      "warnings": [
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
       ]
     }
   ]

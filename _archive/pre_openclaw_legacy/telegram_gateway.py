@@ -3569,8 +3569,7 @@ Use `/conflicts` to review and resolve them."""
     def handle_dashboard_command(self) -> GatewayResponse:
         """Handle /dashboard - Show relationship health overview."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "conversation"))
-            from relationship_dashboard import generate_report
+            from openclaw.agents.ira.src.conversation.relationship_dashboard import generate_report
             
             report = generate_report("text")
             
@@ -3592,8 +3591,7 @@ Use `/conflicts` to review and resolve them."""
     def handle_priorities_command(self) -> GatewayResponse:
         """Handle /priorities - Show top contacts needing attention."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "conversation"))
-            from relationship_dashboard import get_priorities
+            from openclaw.agents.ira.src.conversation.relationship_dashboard import get_priorities
             
             priorities = get_priorities(5)
             
@@ -3629,8 +3627,7 @@ Use `/conflicts` to review and resolve them."""
     def handle_at_risk_command(self) -> GatewayResponse:
         """Handle /at_risk - Show at-risk relationships."""
         try:
-            sys.path.insert(0, str(AGENT_DIR / "src" / "conversation"))
-            from relationship_dashboard import get_at_risk
+            from openclaw.agents.ira.src.conversation.relationship_dashboard import get_at_risk
             
             at_risk = get_at_risk()
             
@@ -3690,8 +3687,7 @@ Use `/conflicts` to review and resolve them."""
                 )
             
             # Get detail via dashboard
-            sys.path.insert(0, str(AGENT_DIR / "src" / "conversation"))
-            from relationship_dashboard import get_contact_detail
+            from openclaw.agents.ira.src.conversation.relationship_dashboard import get_contact_detail
             
             detail = get_contact_detail(matching_contact)
             
@@ -5296,6 +5292,32 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                         content = msg.get("content", "")[:400]
                         _conv_history += f"{role}: {content}\n"
 
+                # Build personality/warmth context from conversational enhancement
+                _personality_ctx = ""
+                if conversational_enhancement:
+                    try:
+                        _ce = conversational_enhancement
+                        _warmth = _ce.relationship_context.get("warmth", "stranger") if _ce.relationship_context else "stranger"
+                        _emotion = _ce.emotional_reading.primary_state.value if _ce.emotional_reading else "neutral"
+                        _opener = _ce.suggested_opener or ""
+                        _additions = "\n".join(_ce.prompt_additions) if _ce.prompt_additions else ""
+                        _milestones = ", ".join(_ce.milestones_to_celebrate) if _ce.milestones_to_celebrate else ""
+                        parts = []
+                        if _warmth != "stranger":
+                            parts.append(f"Relationship warmth: {_warmth}")
+                        if _emotion != "neutral":
+                            parts.append(f"User seems: {_emotion}")
+                        if _opener:
+                            parts.append(f"Suggested opener: {_opener}")
+                        if _milestones:
+                            parts.append(f"Milestones to celebrate: {_milestones}")
+                        if _additions:
+                            parts.append(f"Personality guidance:\n{_additions}")
+                        if parts:
+                            _personality_ctx = "\n".join(parts)
+                    except Exception:
+                        pass
+
                 _agent_context = {
                     "channel": "telegram",
                     "user_id": str(chat_id or "unknown"),
@@ -5304,6 +5326,7 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                     "mem0_context": mem0_context,
                     "identity": full_context.identity if full_context else None,
                     "message": actual_intent,
+                    "personality_context": _personality_ctx,
                     "_progress_callback": getattr(self, '_current_progress_callback', None),
                 }
 

@@ -186,10 +186,16 @@ def _get_valid_models():
             import json
             specs = json.loads(specs_file.read_text())
             _VALID_MODELS = set()
-            for spec in specs:
-                model = spec.get("model", "") or spec.get("name", "")
-                if model:
-                    _VALID_MODELS.add(model.upper().strip())
+            if isinstance(specs, dict):
+                for key, spec in specs.items():
+                    model = spec.get("model", "") or key if isinstance(spec, dict) else key
+                    if model:
+                        _VALID_MODELS.add(model.upper().strip())
+            elif isinstance(specs, list):
+                for spec in specs:
+                    model = spec.get("model", "") or spec.get("name", "")
+                    if model:
+                        _VALID_MODELS.add(model.upper().strip())
             return _VALID_MODELS
     except Exception:
         pass
@@ -556,8 +562,9 @@ class KnowledgeHealthMonitor:
                 warnings.append("Factual claims without citation backing")
         
         # Check 5: Hallucinated model numbers
+        # Broad pattern: catches any PF-series (PF1, PF2, PF3, ...), AM, IMG, FCS, ATF
         model_pattern = re.findall(
-            r"(PF1-[CXR]-\d{4}|PF2-[A-Z]?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4})",
+            r"(PF\d-[A-Z]*-?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4}|ATF-\d{4})",
             response, re.IGNORECASE,
         )
         if model_pattern:
