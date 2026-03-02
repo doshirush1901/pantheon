@@ -573,6 +573,17 @@ def generate_quote(
         pdf_path = generator.generate_pdf(quote)
         if track_in_crm:
             generator.track_quote(quote)
+
+        # Holistic: record quote generation as muscle action
+        try:
+            from openclaw.agents.ira.src.holistic.musculoskeletal_system import get_musculoskeletal_system
+            get_musculoskeletal_system().record_action(
+                "quote_generated",
+                context={"customer_id": customer_id, "machine_id": machine_id, "quantity": quantity},
+            )
+        except Exception:
+            pass
+
         return pdf_path
     
     if track_in_crm:

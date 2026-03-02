@@ -168,6 +168,17 @@ Write only the email body, no greeting line (that will be added)."""
                 subject=subject,
                 body=body,
             )
+
+            # Holistic: record email send as muscle action
+            if success:
+                try:
+                    from openclaw.agents.ira.src.holistic.musculoskeletal_system import get_musculoskeletal_system
+                    get_musculoskeletal_system().record_action(
+                        "email_sent",
+                        context={"to": to, "subject": subject[:80]},
+                    )
+                except Exception:
+                    pass
             
             return EmailSendResult(
                 success=success,

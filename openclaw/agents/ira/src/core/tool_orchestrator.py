@@ -165,6 +165,24 @@ or option from your previous response. Resolve the reference and act on it.
             final = (msg.content or "").strip()
             if final.startswith("ASK_USER:"):
                 return final[9:]
+
+            # Holistic: validate response through immune system before returning
+            try:
+                from openclaw.agents.ira.src.brain.knowledge_health import validate_response
+                is_safe, warnings = validate_response(message, final)
+                if warnings:
+                    logger.warning(f"[Athena] Validation warnings: {warnings}")
+                    try:
+                        from openclaw.agents.ira.src.holistic.immune_system import get_immune_system
+                        action = get_immune_system().process_validation_issue(message, final, warnings)
+                        if action.blocked and action.override_response:
+                            logger.warning(f"[Athena] Immune system blocked response, using safe fallback")
+                            final = action.override_response
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
             return final
 
         messages.append(msg)

@@ -69,12 +69,30 @@ class UnifiedGateway:
         -> iris -> write -> verify -> reflection.
         """
         import asyncio
+        import time
+        import uuid
+
+        _start_time = time.monotonic()
+        _request_id = request.metadata.get("request_id") or str(uuid.uuid4())[:12]
+        _phase_timings: Dict[str, float] = {}
 
         # Bind trace context for observability (correlates Athena→Clio→Vera logs)
         try:
             from openclaw.agents.ira.core.ira_logging import start_trace
             start_trace(channel=request.channel, user_id=request.user_id)
         except ImportError:
+            pass
+
+        # Sensory: record incoming perception
+        try:
+            from openclaw.agents.ira.src.holistic.sensory_system import get_sensory_integrator
+            sensory = get_sensory_integrator()
+            sensory.record_perception(
+                channel=request.channel,
+                contact_id=request.user_id,
+                content_summary=request.message[:500],
+            )
+        except Exception:
             pass
 
         context: Dict[str, Any] = {
@@ -84,6 +102,7 @@ class UnifiedGateway:
             "metadata": request.metadata,
             "iris_context": {},
             "steering": None,
+            "_request_id": _request_id,
         }
 
         # Identity (optional)
@@ -129,10 +148,24 @@ class UnifiedGateway:
         except Exception as e:
             logger.debug(f"Reflection skipped: {e}")
 
+        # Holistic: record breath (pipeline timing) and check immune status
+        try:
+            _total_ms = (time.monotonic() - _start_time) * 1000
+            from openclaw.agents.ira.src.holistic.respiratory_system import get_respiratory_system
+            get_respiratory_system().record_breath(
+                request_id=_request_id,
+                total_latency_ms=_total_ms,
+                phase_timings=_phase_timings,
+                success=True,
+                channel=request.channel,
+            )
+        except Exception:
+            pass
+
         return GatewayResponse(
             response=verified,
             intent=context["intent"],
-            metadata={"channel": request.channel},
+            metadata={"channel": request.channel, "request_id": _request_id},
         )
 
     async def process_telegram(self, message: str, user_id: str = "unknown") -> GatewayResponse:

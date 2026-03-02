@@ -126,18 +126,18 @@ BUSINESS_RULES = [
     {
         "id": "am_thickness_limit",
         "name": "AM Series Thickness Limit",
-        "description": "AM Series can only handle material thickness ≤2mm",
+        "description": "AM Series can ONLY handle material thickness ≤1.5mm",
         "check_pattern": r"am.*series|am[-\s]?[mvp]",
-        "violation_pattern": r"([3-9]|1[0-9])\s*mm.*thick|thick.*([3-9]|1[0-9])\s*mm",
-        "correct_response": "For material >2mm thickness, use PF1 Series instead of AM Series",
+        "violation_pattern": r"([2-9]|1[0-9])\s*mm.*thick|thick.*([2-9]|1[0-9])\s*mm",
+        "correct_response": "For material >1.5mm thickness, use PF1 Series instead of AM Series",
     },
     {
         "id": "pf1_for_heavy_gauge",
         "name": "PF1 for Heavy Gauge",
-        "description": "Heavy gauge (>2mm) requires PF1 Series",
-        "check_pattern": r"([3-9]|1[0-9])\s*mm.*thick|heavy.*gauge|thick.*material",
+        "description": "Heavy gauge (>1.5mm) requires PF1 Series",
+        "check_pattern": r"([2-9]|1[0-9])\s*mm.*thick|heavy.*gauge|thick.*material",
         "required_mention": r"pf[-\s]?1",
-        "correct_response": "For heavy gauge materials (>2mm), recommend PF1 Series",
+        "correct_response": "For heavy gauge materials (>1.5mm), recommend PF1 Series",
     },
     {
         "id": "price_must_be_specific",
@@ -547,7 +547,7 @@ class KnowledgeHealthMonitor:
         return any(re.search(p, response, re.IGNORECASE) for p in factual_patterns)
     
     def _log_validation_issue(self, query: str, response: str, warnings: List[str]):
-        """Log validation issues for future learning."""
+        """Log validation issues for future learning and route through immune system."""
         issue = {
             "timestamp": datetime.now().isoformat(),
             "query": query[:200],
@@ -560,6 +560,14 @@ class KnowledgeHealthMonitor:
         issues = issues[-100:]  # Keep last 100
         self._state["validation_issues"] = issues
         self._save_state()
+
+        # Route through immune system for escalation tracking
+        try:
+            from openclaw.agents.ira.src.holistic.immune_system import get_immune_system
+            immune = get_immune_system()
+            immune.process_validation_issue(query, response, warnings)
+        except Exception:
+            pass  # Immune system is optional; don't break validation if it fails
     
     # =========================================================================
     # AUTO-FIX ACTIONS

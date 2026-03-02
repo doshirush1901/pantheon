@@ -71,6 +71,7 @@ Usage:
     python dream_mode.py --status     # Show dream statistics
 """
 
+import gc
 import os
 import sys
 import json
@@ -157,6 +158,27 @@ try:
 except ImportError:
     EXTRACTOR_AVAILABLE = False
     logger.warning("Document extractor not available, using fallback")
+
+# Memory Monitor
+try:
+    from core.memory_monitor import MemoryMonitor, memory_guard, get_rss_gb
+    MEMORY_MONITOR_AVAILABLE = True
+except ImportError:
+    MEMORY_MONITOR_AVAILABLE = False
+    def get_rss_gb():
+        try:
+            import resource
+            rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            if os.uname().sysname == "Darwin":
+                return rss / (1 << 30)
+            return (rss * 1024) / (1 << 30)
+        except Exception:
+            return 0.0
+
+MAX_KNOWLEDGE_GRAPH_NODES = 5000
+MAX_KNOWLEDGE_GAPS = 50
+MAX_DOCUMENTS_PER_DREAM = 200
+EMBEDDING_BATCH_SIZE = 16
 
 # Paths
 IMPORTS_DIR = PROJECT_ROOT / "data" / "imports"
@@ -385,9 +407,16 @@ class IntegratedDreamMode:
         return DocumentPriority.LOW
     
     def _get_file_hash(self, path: Path) -> str:
-        """Get file hash for change detection."""
+        """Get file hash for change detection using chunked reads."""
         try:
-            return hashlib.md5(path.read_bytes()).hexdigest()[:16]
+            h = hashlib.md5()
+            with open(path, "rb") as f:
+                while True:
+                    chunk = f.read(1 << 20)  # 1 MB chunks
+                    if not chunk:
+                        break
+                    h.update(chunk)
+            return h.hexdigest()[:16]
         except (IOError, OSError):
             return ""
     
@@ -423,33 +452,42 @@ class IntegratedDreamMode:
     # =========================================================================
     
     def _extract_content(self, path: Path) -> str:
-        """Extract text from document using shared DocumentExtractor."""
-        # Use shared extractor if available (handles PDF, DOCX, XLSX, PPTX, TXT, CSV)
+        """Extract text from document using shared DocumentExtractor.
+        
+        Caps extracted text at 50,000 chars to prevent memory spikes
+        from very large documents.
+        """
+        MAX_EXTRACT_CHARS = 50_000
+
         if EXTRACTOR_AVAILABLE:
             text = extract_document(path)
             if text:
-                return text
+                return text[:MAX_EXTRACT_CHARS]
         
-        # Fallback if extractor unavailable
         suffix = path.suffix.lower()
         
         if suffix == ".pdf":
             try:
                 import pdfplumber
+                collected = 0
                 text_parts = []
                 with pdfplumber.open(str(path)) as pdf:
                     for page in pdf.pages[:50]:
                         text = page.extract_text()
                         if text:
                             text_parts.append(text)
-                return "\n".join(text_parts)
+                            collected += len(text)
+                            if collected >= MAX_EXTRACT_CHARS:
+                                break
+                return "\n".join(text_parts)[:MAX_EXTRACT_CHARS]
             except Exception as e:
                 logger.warning(f"PDF error {path.name}: {e}")
                 return ""
         
         elif suffix in [".txt", ".md"]:
             try:
-                return path.read_text(errors="ignore")
+                with open(path, "r", errors="ignore") as f:
+                    return f.read(MAX_EXTRACT_CHARS)
             except (IOError, OSError, UnicodeDecodeError):
                 return ""
         
@@ -741,44 +779,103 @@ Extract any:
             logger.debug(f"Contact storage error (non-fatal): {e}")
     
     # =========================================================================
+    # METADATA INDEX UPDATE — for NN Research
+    # =========================================================================
+    
+    def _update_metadata_index(self) -> Dict[str, Any]:
+        """
+        Scan data/imports/ for files that don't have metadata yet
+        and build LLM summaries for them. This keeps the NN research
+        index up to date as new files are added.
+        """
+        try:
+            from imports_metadata_index import build_index, get_index_stats
+            
+            stats_before = get_index_stats()
+            unindexed = stats_before.get("unindexed", 0)
+            
+            if unindexed == 0:
+                logger.info("Metadata index is up to date — no new files")
+                return {"new_files_indexed": 0, "already_indexed": stats_before.get("indexed", 0)}
+            
+            logger.info(f"Found {unindexed} unindexed files — building metadata...")
+            
+            result = build_index(use_llm=True, force=False)
+            
+            logger.info(f"Metadata index updated: {result['new']} new, {result['skipped']} unchanged, {result['errors']} errors")
+            
+            return {
+                "new_files_indexed": result["new"],
+                "already_indexed": result["skipped"],
+                "errors": result["errors"],
+            }
+            
+        except ImportError as e:
+            logger.warning(f"Metadata indexer not available: {e}")
+            return {"error": str(e)}
+        except Exception as e:
+            logger.warning(f"Metadata index update error: {e}")
+            return {"error": str(e)}
+    
+    # =========================================================================
     # UNIFIED STORAGE (THE KEY FIX!)
     # =========================================================================
     
     def _store_in_qdrant(self, text: str, metadata: dict) -> bool:
-        """Store knowledge in Qdrant for RAG retrieval."""
+        """Store knowledge in Qdrant for RAG retrieval.
+        
+        Queues items and flushes in batches to reduce API calls.
+        """
+        if not hasattr(self, "_qdrant_batch"):
+            self._qdrant_batch: List[Tuple[str, dict]] = []
+
+        self._qdrant_batch.append((text, metadata))
+
+        if len(self._qdrant_batch) >= EMBEDDING_BATCH_SIZE:
+            return self._flush_qdrant_batch()
+        return True
+
+    def _flush_qdrant_batch(self) -> bool:
+        """Flush queued items to Qdrant in a single batched embedding call."""
+        if not hasattr(self, "_qdrant_batch") or not self._qdrant_batch:
+            return True
+
         qdrant = self._get_qdrant()
         voyage = self._get_voyage()
-        
+
         if not qdrant or not voyage:
+            self._qdrant_batch.clear()
             return False
-        
+
+        batch = self._qdrant_batch[:]
+        self._qdrant_batch.clear()
+
         try:
-            # Generate embedding
-            embedding = voyage.embed([text], model=EMBEDDING_MODEL_VOYAGE, input_type="document").embeddings[0]
-            
-            # Create unique ID
-            point_id = uuid.uuid4().hex
-            
-            # Upsert to Qdrant
+            texts = [t for t, _ in batch]
+            embeddings = voyage.embed(
+                texts, model=EMBEDDING_MODEL_VOYAGE, input_type="document"
+            ).embeddings
+
             from qdrant_client.models import PointStruct
-            
-            qdrant.upsert(
-                collection_name=DREAM_COLLECTION,
-                points=[PointStruct(
-                    id=point_id,
+
+            points = []
+            for (text, metadata), embedding in zip(batch, embeddings):
+                points.append(PointStruct(
+                    id=uuid.uuid4().hex,
                     vector=embedding,
                     payload={
                         "text": text,
                         "raw_text": text,
                         "source": "dream_learning",
                         "indexed_at": datetime.now().isoformat(),
-                        **metadata
-                    }
-                )]
-            )
+                        **metadata,
+                    },
+                ))
+
+            qdrant.upsert(collection_name=DREAM_COLLECTION, points=points)
             return True
         except Exception as e:
-            logger.error(f"Qdrant store error: {e}")
+            logger.error(f"Qdrant batch store error: {e}")
             return False
     
     def _store_in_mem0(self, text: str, metadata: dict) -> bool:
@@ -882,10 +979,10 @@ Extract any:
             if self._store_in_mem0(text, metadata):
                 stored_mem0 += 1
             
-            # Update knowledge graph
+            # Update knowledge graph (bounded)
             subj = rel.get('subject', '').lower()
             obj = rel.get('object', '').lower()
-            if subj and obj:
+            if subj and obj and len(self.state.knowledge_graph) < MAX_KNOWLEDGE_GRAPH_NODES:
                 if subj not in self.state.knowledge_graph:
                     self.state.knowledge_graph[subj] = []
                 if obj not in self.state.knowledge_graph[subj]:
@@ -1154,8 +1251,10 @@ Return JSON:
                     result["lessons"].append(lesson)
                     logger.info(f"Lesson: {lesson[:70]}...")
                 
-                # Store lessons as knowledge gaps
+                # Store lessons as knowledge gaps (bounded)
                 for topic, queries in topics.items():
+                    if len(self.state.knowledge_gaps) >= MAX_KNOWLEDGE_GAPS:
+                        break
                     self.state.knowledge_gaps.append({
                         "topic": topic,
                         "question": f"Improve knowledge coverage for: {queries[0][:100]}",
@@ -1330,6 +1429,13 @@ Return JSON:
                 print("   No new learning to report")
                 return False
             
+            # Build metadata index summary
+            meta_index = dream_result.get("metadata_index", {})
+            new_indexed = meta_index.get("new_files_indexed", 0)
+            index_summary = ""
+            if new_indexed > 0:
+                index_summary = f"\n• 📁 Metadata indexed: {new_indexed} new files for NN research"
+            
             # Build conversation learnings summary
             conv_summary = ""
             if conv_learnings > 0:
@@ -1358,7 +1464,7 @@ Last night I learned:
 • 📄 Documents processed: {docs}
 • 🧠 Facts learned: {facts}
 • 🔍 Indexed for search: {qdrant}
-• 💡 Insights generated: {insights}{conv_summary}{consolidation_summary}
+• 💡 Insights generated: {insights}{index_summary}{conv_summary}{consolidation_summary}
 
 {"Topics covered: " + ", ".join(topics[:3]) if topics else ""}
 
@@ -1425,18 +1531,44 @@ _Dream duration: {duration:.0f}s_"""
             if priority in by_priority:
                 logger.info(f"  {priority.name}: {len(by_priority[priority])}")
         
-        # Phase 2: Extract and store
+        # Phase 1.5: Metadata Index Update — index any new/changed files
+        logger.info("Phase 1.5: Updating metadata index for NN research...")
+        index_result = self._update_metadata_index()
+        
+        # Phase 2: Extract and store (with memory monitoring)
         logger.info("Phase 2: Deep extraction & unified storage...")
-        all_knowledge = []
+        all_knowledge: List[DocumentKnowledge] = []
         total_mem0 = 0
         total_qdrant = 0
         topics_learned = set()
-        
-        for i, (path, priority) in enumerate(docs, 1):
+        docs_to_process = docs[:MAX_DOCUMENTS_PER_DREAM]
+
+        if len(docs) > MAX_DOCUMENTS_PER_DREAM:
+            logger.warning(
+                f"Capping dream to {MAX_DOCUMENTS_PER_DREAM} documents "
+                f"(found {len(docs)}). Run again for the rest."
+            )
+
+        if MEMORY_MONITOR_AVAILABLE:
+            monitor = MemoryMonitor(label="dream_mode")
+            monitor.check("phase2_start")
+        else:
+            monitor = None
+
+        for i, (path, priority) in enumerate(docs_to_process, 1):
             if priority == DocumentPriority.LOW and not deep_mode:
                 continue
+
+            # Memory safety: check before each document
+            rss = get_rss_gb()
+            if rss >= float(os.environ.get("IRA_MEMORY_LIMIT_GB", "8")):
+                logger.critical(
+                    f"Memory limit reached ({rss:.1f} GB) at doc {i}/{len(docs_to_process)}. "
+                    f"Stopping dream early to prevent system freeze."
+                )
+                break
             
-            logger.info(f"[{i}/{len(docs)}] {path.name}")
+            logger.info(f"[{i}/{len(docs_to_process)}] {path.name}")
             logger.debug(f"Priority: {priority.name}")
             
             content = self._extract_content(path)
@@ -1447,13 +1579,13 @@ _Dream duration: {duration:.0f}s_"""
             logger.debug(f"Extracted {len(content)} chars")
             
             knowledge = self._extract_knowledge(content, path.name, priority)
+            del content  # free extracted text immediately
             
             if knowledge.facts:
                 logger.info(f"Facts: {len(knowledge.facts)}, Topics: {len(knowledge.topics)}")
                 
                 all_knowledge.append(knowledge)
                 
-                # UNIFIED STORAGE - to Qdrant AND Mem0
                 mem0_stored, qdrant_stored = self._store_knowledge_unified(knowledge)
                 total_mem0 += mem0_stored
                 total_qdrant += qdrant_stored
@@ -1462,6 +1594,15 @@ _Dream duration: {duration:.0f}s_"""
                 logger.debug(f"Stored: Mem0={mem0_stored}, Qdrant={qdrant_stored}")
             
             self.state.documents_processed[str(path)] = self._get_file_hash(path)
+
+            # Periodic GC every 10 documents
+            if i % 10 == 0:
+                gc.collect()
+                if monitor:
+                    monitor.check(f"after_doc_{i}")
+
+        # Flush any remaining batched Qdrant items
+        self._flush_qdrant_batch()
         
         # Phase 3: Cross-document insights
         logger.info("Phase 3: Generating cross-document insights...")
@@ -1476,6 +1617,11 @@ _Dream duration: {duration:.0f}s_"""
             logger.info("Knowledge gaps identified:")
             for gap in self.state.knowledge_gaps[:3]:
                 logger.info(f"Gap: {gap.get('topic', '?')}: {gap.get('question', '?')[:60]}")
+        
+        # Free the large all_knowledge list now that insights are generated
+        docs_processed_count = len(all_knowledge)
+        del all_knowledge
+        gc.collect()
         
         # Phase 4: Graph Consolidation (based on daily interactions)
         logger.info("Phase 4: Knowledge graph consolidation...")
@@ -1509,10 +1655,11 @@ _Dream duration: {duration:.0f}s_"""
         
         # Build result
         result = {
-            "documents_processed": len(all_knowledge),
+            "documents_processed": docs_processed_count,
             "facts_learned": total_mem0,
             "qdrant_indexed": total_qdrant,
             "insights_generated": len(insights),
+            "metadata_index": index_result,
             "consolidation": consolidation_result,
             "conversation_analysis": conversation_analysis,
             "corrections_learned": corrections.get("corrections_found", 0),
@@ -1524,9 +1671,12 @@ _Dream duration: {duration:.0f}s_"""
         print("\n" + "=" * 60)
         print("🌅 DREAM COMPLETE - IRA WOKE UP SMARTER!")
         print("=" * 60)
-        print(f"   Documents processed: {len(all_knowledge)}")
+        print(f"   Documents processed: {docs_processed_count}")
         print(f"   Facts in Mem0: {total_mem0}")
         print(f"   Facts in Qdrant: {total_qdrant} ← NOW SEARCHABLE VIA RAG!")
+        new_indexed = index_result.get("new_files_indexed", 0)
+        if new_indexed > 0:
+            print(f"   📁 Metadata index: {new_indexed} new files indexed for NN research")
         print(f"   Insights generated: {len(insights)}")
         if consolidation_result:
             print(f"   Graph consolidation: {consolidation_result.get('edges_strengthened', 0)} edges reinforced")
@@ -1616,7 +1766,57 @@ _Dream duration: {duration:.0f}s_"""
             print(f"   ⚠ Health check error: {e}")
         
         result["customer_health"] = health_result
-        
+
+        # Phase 10.5: Holistic Body Systems Maintenance
+        print("\n🫀 Phase 10.5: Holistic body systems maintenance...")
+        holistic_result = {}
+        try:
+            from openclaw.agents.ira.src.holistic.immune_system import get_immune_system
+            sweep = get_immune_system().run_sweep()
+            holistic_result["immune_sweep"] = sweep
+            print(f"   🛡 Immune sweep: {len(sweep.get('remediated', []))} remediated, {len(sweep.get('still_active', []))} active")
+        except Exception as e:
+            print(f"   ⚠ Immune sweep error: {e}")
+
+        try:
+            from openclaw.agents.ira.src.holistic.metabolic_system import get_metabolic_system
+            cleanup = get_metabolic_system().run_cleanup_cycle()
+            holistic_result["metabolic_cleanup"] = {
+                op: r.items_cleaned for op, r in cleanup.items()
+            }
+            total_cleaned = sum(r.items_cleaned for r in cleanup.values())
+            print(f"   🔄 Metabolic cleanup: {total_cleaned} items cleaned")
+        except Exception as e:
+            print(f"   ⚠ Metabolic cleanup error: {e}")
+
+        try:
+            from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+            decayed = get_endocrine_system().apply_inactivity_decay()
+            holistic_result["endocrine_decay"] = decayed
+            if decayed:
+                print(f"   ⚗️ Endocrine decay: {decayed}")
+        except Exception as e:
+            print(f"   ⚠ Endocrine decay error: {e}")
+
+        try:
+            from openclaw.agents.ira.src.holistic.musculoskeletal_system import get_musculoskeletal_system
+            myokines = get_musculoskeletal_system().get_unprocessed_myokines(limit=50)
+            holistic_result["myokines_processed"] = len(myokines)
+            if myokines:
+                print(f"   💪 {len(myokines)} myokines (learning signals) from actions")
+        except Exception as e:
+            print(f"   ⚠ Myokine extraction error: {e}")
+
+        try:
+            from openclaw.agents.ira.src.holistic.respiratory_system import get_respiratory_system
+            resp = get_respiratory_system()
+            dream_duration = (datetime.now() - self.state.last_dream).total_seconds() if self.state.last_dream else 0
+            resp.record_dream_mode(completed=True, duration_s=dream_duration)
+        except Exception as e:
+            print(f"   ⚠ Respiratory recording error: {e}")
+
+        result["holistic"] = holistic_result
+
         # Phase 10: Send Morning Summary
         print("\n📱 Phase 10: Sending morning summary...")
         self._send_morning_summary(result)

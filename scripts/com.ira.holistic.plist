@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  Ira Holistic Daily Rhythm — launchd agent
+
+  Runs three scheduled tasks:
+    1. Heartbeat every 5 minutes (lightweight)
+    2. Morning cycle at 7:00 AM IST
+    3. Evening cycle at 11:00 PM IST
+
+  Install:
+    cp scripts/com.ira.holistic.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.ira.holistic.plist
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.ira.holistic.plist
+    rm ~/Library/LaunchAgents/com.ira.holistic.plist
+
+  Note: This plist runs the heartbeat on a 300-second interval.
+  Morning and evening cycles are triggered by the heartbeat script
+  checking the time, or you can create separate plists for them.
+  For simplicity, this single plist handles the heartbeat, and
+  the morning/evening scripts should be added to crontab:
+
+    crontab -e
+    # Add these lines:
+    0 7 * * * /Users/rushabhdoshi/Desktop/Ira/scripts/run_morning_cycle.sh >> /Users/rushabhdoshi/Desktop/Ira/logs/morning_cycle.log 2>&1
+    0 23 * * * /Users/rushabhdoshi/Desktop/Ira/scripts/run_evening_cycle.sh >> /Users/rushabhdoshi/Desktop/Ira/logs/evening_cycle.log 2>&1
+-->
+<dict>
+    <key>Label</key>
+    <string>com.ira.holistic.heartbeat</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/rushabhdoshi/Desktop/Ira/scripts/run_heartbeat.sh</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rushabhdoshi/Desktop/Ira</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rushabhdoshi/Desktop/Ira/logs/heartbeat.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/rushabhdoshi/Desktop/Ira/logs/heartbeat_error.log</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>

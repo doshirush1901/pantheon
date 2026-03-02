@@ -132,6 +132,27 @@ def handle_positive_feedback(
             logger.info(f"[FEEDBACK] Boosted {agent_name}: {old:.2f} -> {scores[agent_name]['score']:.2f}")
     _save_agent_scores(scores)
 
+    # Signal endocrine system (bidirectional reinforcement)
+    try:
+        from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+        endo = get_endocrine_system()
+        for agent_name in agents_to_boost:
+            endo.signal_success(agent_name, context={"source": "telegram_feedback"})
+    except Exception:
+        pass
+
+    # Record as muscle action with positive outcome
+    try:
+        from openclaw.agents.ira.src.holistic.musculoskeletal_system import get_musculoskeletal_system
+        musculo = get_musculoskeletal_system()
+        musculo.record_action_outcome(
+            request_id=chat_id or "unknown",
+            outcome="approval_received",
+            context={"feedback": user_message[:200]},
+        )
+    except Exception:
+        pass
+
     # Store confirmed facts from the approved response in Mem0
     _store_confirmed_facts(previous_response)
 
@@ -237,7 +258,7 @@ def handle_negative_feedback(
 
     _log_mistake(user_message, previous_response, coach_analysis)
 
-    # STEP 4: Reduce agent scores
+    # STEP 4: Reduce agent scores + signal endocrine system
     scores = _load_agent_scores()
     agents_used = _identify_agents_used(generation_path)
     for agent_name in agents_used:
@@ -246,6 +267,28 @@ def handle_negative_feedback(
             scores[agent_name]["failures"] += 1
             scores[agent_name]["score"] = max(old - 0.03, 0.1)
     _save_agent_scores(scores)
+
+    try:
+        from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+        endo = get_endocrine_system()
+        for agent_name in agents_used:
+            endo.signal_failure(agent_name, context={
+                "source": "telegram_feedback",
+                "corrections": corrections_stored[:3],
+            })
+    except Exception:
+        pass
+
+    try:
+        from openclaw.agents.ira.src.holistic.musculoskeletal_system import get_musculoskeletal_system
+        musculo = get_musculoskeletal_system()
+        musculo.record_action_outcome(
+            request_id=chat_id or "unknown",
+            outcome="correction_received",
+            context={"feedback": user_message[:200]},
+        )
+    except Exception:
+        pass
 
     # Build acknowledgment showing what was learned RIGHT NOW
     ack = "Got it. I've updated my memory immediately with your corrections."

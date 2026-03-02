@@ -201,6 +201,21 @@ async def execute_tool_call(
         except Exception:
             pass
 
+    # Holistic: track agent invocation in endocrine system
+    _tool_agent_map = {
+        "research_skill": "clio",
+        "writing_skill": "calliope",
+        "fact_checking_skill": "vera",
+        "web_search": "iris",
+    }
+    _agent_name = _tool_agent_map.get(tool_name)
+    if _agent_name:
+        try:
+            from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+            get_endocrine_system().signal_invocation(_agent_name)
+        except Exception:
+            pass
+
     if tool_name == "research_skill":
         query = arguments.get("query", "")
         results_parts = []
