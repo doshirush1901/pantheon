@@ -1,0 +1,14 @@
+{
+  "weak_categories": {
+    "product_knowledge": 0.0,
+    "applications": 0.0,
+    "specs": 0.0,
+    "pricing": 0.0,
+    "customers": 0.0,
+    "rules": 0.0
+  },
+  "reinforcements": [],
+  "total_sessions": 1,
+  "total_questions": 15,
+  "generated_at": "2026-03-02T07:58:43.856169"
+}

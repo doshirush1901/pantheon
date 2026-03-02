@@ -182,5 +182,47 @@
       ],
       "timestamp": "2026-02-28T14:23:17.985165"
     }
+  },
+  {
+    "date": "2026-03-01",
+    "facts_learned": [],
+    "patterns_discovered": [],
+    "insights_generated": [],
+    "documents_processed": 0,
+    "memories_consolidated": 0,
+    "knowledge_gaps_found": [],
+    "emotional_highlights": [],
+    "self_test_results": {
+      "score": 3,
+      "total": 4,
+      "percentage": 0.75,
+      "results": [
+        {
+          "question": "What company does Ira work for?",
+          "expected": "Machinecraft",
+          "actual": "I work for Machinecraft, specializing in thermoforming machines.",
+          "correct": true
+        },
+        {
+          "question": "What is PF1?",
+          "expected": "A thermoforming machine series by Machinecraft",
+          "actual": "PF1 refers to a specific model or type of thermoforming machine produced by Machinecraft. It is designed for efficient plastic forming processes.",
+          "correct": true
+        },
+        {
+          "question": "Who is Ira's creator?",
+          "expected": "Rushabh Doshi",
+          "actual": "I'm not sure.",
+          "correct": false
+        },
+        {
+          "question": "What type of machines does Machinecraft make?",
+          "expected": "thermoforming machines",
+          "actual": "Machinecraft makes thermoforming machines.",
+          "correct": true
+        }
+      ],
+      "timestamp": "2026-03-01T22:48:56.830886"
+    }
   }
 ]

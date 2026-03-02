@@ -87,6 +87,9 @@ logs/*
 # =============================================================================
 data/imports/*
 !data/imports/.gitkeep
+!data/imports/docs_from_telegram/
+data/imports/docs_from_telegram/*
+!data/imports/docs_from_telegram/.gitkeep
 data/exports/*
 !data/exports/.gitkeep
 data/knowledge/*

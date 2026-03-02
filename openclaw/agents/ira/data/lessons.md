@@ -154,3 +154,39 @@
 ✓ GOOD_PRACTICE: Thickness guidance provided correctly
 
 ---
+
+## 2026-03-01 15:20:38
+
+→ IMPROVEMENT: Always include pricing disclaimer for price queries
+
+---
+
+## 2026-03-01 17:32:18
+
+⚠ REMINDER: Check all responses for pricing disclaimer compliance
+
+---
+
+## 2026-03-01 17:51:01
+
+⚠ REMINDER: Check all responses for pricing disclaimer compliance
+
+---
+
+## 2026-03-01 18:15:45
+
+⚠ REMINDER: Check all responses for pricing disclaimer compliance
+
+---
+
+## 2026-03-02 07:48:31
+
+⚠ REMINDER: Check all responses for pricing disclaimer compliance
+
+---
+
+## 2026-03-02 07:49:34
+
+⚠ REMINDER: Check all responses for pricing disclaimer compliance
+
+---

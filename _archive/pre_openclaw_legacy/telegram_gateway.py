@@ -960,12 +960,12 @@ class TelegramGateway:
         if not is_image or extracted_text:
             try:
                 sys.path.insert(0, str(BRAIN_DIR))
-                from knowledge_ingestor import KnowledgeIngestor
+                from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
 
                 ingestor = KnowledgeIngestor()
+                ki_result = None
 
                 if is_image and extracted_text:
-                    from knowledge_ingestor import KnowledgeItem
                     item = KnowledgeItem(
                         text=extracted_text,
                         knowledge_type="general",
@@ -978,7 +978,7 @@ class TelegramGateway:
                             "caption": caption,
                         },
                     )
-                    result = ingestor.ingest_batch([item])
+                    ki_result = ingestor.ingest_batch([item])
                 else:
                     from document_extractor import DocumentExtractor
                     extractor = DocumentExtractor()
@@ -987,7 +987,6 @@ class TelegramGateway:
                     if not extraction.success:
                         results.append(f"⚠️ Text extraction failed: {extraction.error or 'unknown'}")
                     else:
-                        from knowledge_ingestor import KnowledgeItem
                         text_content = extraction.text
                         if caption:
                             text_content = f"[Context: {caption}]\n\n{text_content}"
@@ -1005,16 +1004,16 @@ class TelegramGateway:
                                 "caption": caption,
                             },
                         )
-                        result = ingestor.ingest_batch([item])
+                        ki_result = ingestor.ingest_batch([item])
 
-                    if 'result' in dir() and result.success:
-                        results.append(
-                            f"✅ **Knowledge ingested:** {result.items_ingested} items → "
-                            f"Qdrant ({result.qdrant_stored}), Mem0 ({result.mem0_stored})"
-                        )
-                    elif 'result' in dir():
-                        errors = ", ".join(result.errors[:2]) if result.errors else "unknown"
-                        results.append(f"⚠️ Knowledge ingestion partial: {errors}")
+                if ki_result and ki_result.success:
+                    results.append(
+                        f"✅ **Knowledge ingested:** {ki_result.items_ingested} items → "
+                        f"Qdrant ({ki_result.qdrant_stored}), Mem0 ({ki_result.mem0_stored})"
+                    )
+                elif ki_result:
+                    errors = ", ".join(ki_result.errors[:2]) if ki_result.errors else "unknown"
+                    results.append(f"⚠️ Knowledge ingestion partial: {errors}")
             except ImportError as e:
                 logger.warning(f"[INGEST] KnowledgeIngestor not available: {e}")
             except Exception as e:
@@ -4738,10 +4737,12 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
             # =====================================================================
             # NN RESEARCH FALLBACK - If still low confidence, trigger async research
             # =====================================================================
+            nn_research_triggered = False
             if result.confidence.value == "LOW":
                 try:
                     from nn_research import research_async
                     research_async(actual_intent, chat_id or "")
+                    nn_research_triggered = True
                     logger.info("[NN_RESEARCH] Triggered async research for low-confidence query")
                 except ImportError:
                     pass
@@ -4750,6 +4751,9 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
             
             # Format response text
             response_text = result.text
+            
+            if nn_research_triggered:
+                response_text += "\n\n_\U0001f50d I'm not fully confident in this answer, so I've started searching our documents for better data. I'll send you what I find shortly._"
             
             # Add clarifying question if available
             if result.clarifying_questions:

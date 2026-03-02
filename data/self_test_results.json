@@ -4,21 +4,15 @@
   "percentage": 0.75,
   "results": [
     {
-      "question": "What is PF1?",
-      "expected": "A thermoforming machine series by Machinecraft",
-      "actual": "PF1 generally refers to a type of thermoforming machine or a specific model associated with such machinery. However, I need more context to provide a precise definition. If you have a specific feature or aspect in mind, please clarify!",
-      "correct": true
-    },
-    {
-      "question": "What type of machines does Machinecraft make?",
-      "expected": "thermoforming machines",
-      "actual": "Machinecraft specializes in thermoforming machines.",
-      "correct": true
-    },
-    {
       "question": "What company does Ira work for?",
       "expected": "Machinecraft",
-      "actual": "Ira works for Machinecraft.",
+      "actual": "I work for Machinecraft, specializing in thermoforming machines.",
+      "correct": true
+    },
+    {
+      "question": "What is PF1?",
+      "expected": "A thermoforming machine series by Machinecraft",
+      "actual": "PF1 refers to a specific model or type of thermoforming machine produced by Machinecraft. It is designed for efficient plastic forming processes.",
       "correct": true
     },
     {
@@ -26,7 +20,13 @@
       "expected": "Rushabh Doshi",
       "actual": "I'm not sure.",
       "correct": false
+    },
+    {
+      "question": "What type of machines does Machinecraft make?",
+      "expected": "thermoforming machines",
+      "actual": "Machinecraft makes thermoforming machines.",
+      "correct": true
     }
   ],
-  "timestamp": "2026-02-28T14:23:17.985165"
+  "timestamp": "2026-03-01T22:48:56.830886"
 }

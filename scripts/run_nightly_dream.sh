@@ -421,6 +421,128 @@ except Exception as e:
 " 2>&1 | tee -a "$DREAM_LOG"
 
 # ==============================================================================
+# PHASE 8: WAKE-UP HEALTH DIAGNOSTIC (Send to Telegram)
+# ==============================================================================
+log ""
+log "🏥 PHASE 8: Wake-up Health Diagnostic..."
+log "----------------------------------------------"
+
+$PYTHON -c "
+import sys, os, json, requests
+from pathlib import Path
+from datetime import datetime
+
+sys.path.insert(0, 'openclaw/agents/ira')
+sys.path.insert(0, 'openclaw/agents/ira/src/brain')
+sys.path.insert(0, 'openclaw/agents/ira/src/memory')
+sys.path.insert(0, 'openclaw/agents/ira/src/common')
+
+PROJECT_ROOT = Path('.')
+lines = ['🌅 <b>Good Morning! Ira is awake.</b>', '']
+
+# Services
+lines.append('<b>Services:</b>')
+for name, check in [
+    ('Qdrant', lambda: requests.get(os.environ.get('QDRANT_URL', 'http://localhost:6333'), timeout=5).status_code == 200),
+    ('OpenAI', lambda: bool(os.environ.get('OPENAI_API_KEY'))),
+    ('Voyage', lambda: bool(os.environ.get('VOYAGE_API_KEY'))),
+    ('Mem0', lambda: bool(os.environ.get('MEM0_API_KEY'))),
+]:
+    try:
+        ok = check()
+        lines.append(f\"  {'✅' if ok else '❌'} {name}\")
+    except:
+        lines.append(f'  ❌ {name}')
+
+# Knowledge health
+try:
+    from knowledge_health import run_health_check
+    report = run_health_check()
+    lines.append(f'')
+    lines.append(f'<b>Knowledge Health:</b> {report.overall_score}/100')
+    lines.append(f'  Passed: {report.checks_passed} | Failed: {report.checks_failed}')
+    for issue in report.issues[:3]:
+        icon = '🔴' if issue.severity == 'critical' else '🟡'
+        lines.append(f'  {icon} {issue.message[:60]}')
+except Exception as e:
+    lines.append(f'Knowledge Health: unavailable')
+
+# Knowledge gaps
+try:
+    gaps_file = PROJECT_ROOT / 'data' / 'knowledge_gaps.json'
+    if gaps_file.exists():
+        gaps = json.loads(gaps_file.read_text())
+        gap_count = len(gaps) if isinstance(gaps, (list, dict)) else 0
+        lines.append(f'')
+        lines.append(f'<b>Knowledge Gaps:</b> {gap_count} topics need more data')
+except:
+    pass
+
+# Agent scores
+try:
+    scores_file = PROJECT_ROOT / 'openclaw' / 'data' / 'learned_lessons' / 'agent_scores.json'
+    if scores_file.exists():
+        scores = json.loads(scores_file.read_text())
+        lines.append(f'')
+        lines.append(f'<b>Agent Performance:</b>')
+        for agent, data in sorted(scores.items()):
+            score = data.get('score', 0)
+            s = data.get('successes', 0)
+            f = data.get('failures', 0)
+            bar = '█' * int(score * 10) + '░' * (10 - int(score * 10))
+            lines.append(f'  {agent}: {bar} {score:.2f}')
+except:
+    pass
+
+# Dream summary
+try:
+    dream_log = PROJECT_ROOT / 'logs' / f\"dream_{datetime.now().strftime('%Y-%m-%d')}.log\"
+    if dream_log.exists():
+        content = dream_log.read_text()
+        facts_count = content.count('Facts:')
+        lines.append(f'')
+        lines.append(f'<b>Last Dream:</b> just completed')
+        if 'Facts learned:' in content:
+            import re
+            m = re.search(r'Facts learned: (\d+)', content)
+            if m:
+                lines.append(f'  📄 Facts learned: {m.group(1)}')
+        if 'Documents processed:' in content:
+            m = re.search(r'Documents processed: (\d+)', content)
+            if m:
+                lines.append(f'  📁 Documents processed: {m.group(1)}')
+except:
+    pass
+
+lines.append(f'')
+lines.append(f'Type /health for full diagnostic.')
+lines.append(f'Ready for the day! 🚀')
+
+# Send to Telegram
+message = chr(10).join(lines)
+print(message)
+
+bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+chat_id = os.environ.get('TELEGRAM_CHAT_ID') or os.environ.get('TELEGRAM_ADMIN_CHAT_ID')
+
+if bot_token and chat_id:
+    try:
+        resp = requests.post(
+            f'https://api.telegram.org/bot{bot_token}/sendMessage',
+            json={'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            print('✅ Wake-up diagnostic sent to Telegram')
+        else:
+            print(f'⚠️ Telegram send failed: {resp.text[:100]}')
+    except Exception as e:
+        print(f'⚠️ Telegram send error: {e}')
+else:
+    print('⚠️ Telegram not configured for wake-up message')
+" 2>&1 | tee -a "$DREAM_LOG"
+
+# ==============================================================================
 # SUMMARY
 # ==============================================================================
 log ""

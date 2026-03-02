@@ -1,0 +1,32 @@
+{
+  "clio": {
+    "score": 0.73,
+    "successes": 3,
+    "failures": 1
+  },
+  "calliope": {
+    "score": 0.73,
+    "successes": 3,
+    "failures": 1
+  },
+  "vera": {
+    "score": 0.73,
+    "successes": 3,
+    "failures": 1
+  },
+  "iris": {
+    "score": 0.5,
+    "successes": 0,
+    "failures": 0
+  },
+  "sophia": {
+    "score": 0.7,
+    "successes": 0,
+    "failures": 0
+  },
+  "athena": {
+    "score": 0.77,
+    "successes": 5,
+    "failures": 1
+  }
+}

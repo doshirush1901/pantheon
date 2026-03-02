@@ -438,20 +438,32 @@ class QuoteGenerator:
         materials = materials or ["ABS"]
         options = options or {}
         
-        # Get price estimate
-        estimate = self.estimator.estimate_price(
-            forming_area=forming_size,
-            variant=variant,
-            options=options,
-            country=country,
-        )
-        
         # Build model name
         w_cm = forming_size[0] // 10
         h_cm = forming_size[1] // 10
         w_str = str(w_cm // 10) if w_cm >= 100 else str(w_cm)
         h_str = str(h_cm // 10) if h_cm >= 100 else str(h_cm)
         model = f"PF1-{variant}-{w_str}{h_str}"
+        
+        # Try to get real price from machine database first
+        db_machine = get_machine(model)
+        if db_machine and db_machine.price_inr:
+            estimate = self.estimator.estimate_price(
+                forming_area=forming_size,
+                variant=variant,
+                options=options,
+                country=country,
+            )
+            estimate.base_price_inr = db_machine.price_inr
+            estimate.total_price_inr = db_machine.price_inr + estimate.options_price_inr
+            estimate.total_price_usd = estimate.total_price_inr // 83
+        else:
+            estimate = self.estimator.estimate_price(
+                forming_area=forming_size,
+                variant=variant,
+                options=options,
+                country=country,
+            )
         
         # Build line items
         line_items = [

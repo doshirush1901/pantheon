@@ -1031,6 +1031,33 @@ Here's what you need to know...
             base_prompt += lesson_prompt
             logger.debug("Injected learned lessons into system prompt")
     
+    # =========================================================================
+    # TRAINING REINFORCEMENT INJECTION
+    # Load weak-area reinforcements + Rushabh's insights from brain training
+    # =========================================================================
+    _training_weights_path = Path(__file__).parent.parent.parent.parent.parent.parent / "data" / "brain" / "training_weights.json"
+    if _training_weights_path.exists():
+        try:
+            _tw = json.loads(_training_weights_path.read_text())
+            _inject_lines = []
+
+            _reinforcements = _tw.get("reinforcements", [])
+            if _reinforcements:
+                _inject_lines.append("\nTRAINING REINFORCEMENT (facts Rushabh flagged — pay extra attention):")
+                for _r in _reinforcements[:10]:
+                    _inject_lines.append(f"  - {_r['fact']}")
+
+            _insights = _tw.get("rushabh_insights", [])
+            if _insights:
+                _inject_lines.append("\nRUSHABH'S INSIGHTS (from training commentary):")
+                for _ins in _insights[:8]:
+                    _inject_lines.append(f"  - Context: {_ins['context'][:80]}... Insight: {_ins['insight'][:150]}")
+
+            if _inject_lines:
+                base_prompt += "\n".join(_inject_lines)
+                logger.debug("Injected %d training reinforcements + %d insights", len(_reinforcements), len(_insights))
+        except Exception as _e:
+            logger.warning(f"Failed to load training weights: {_e}")
 
     # P2 Audit: token budget (~128K for gpt-4o)
     _tok = _estimate_tokens(base_prompt)

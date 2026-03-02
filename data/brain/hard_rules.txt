@@ -87,4 +87,15 @@ RULE 8: STAY ON TOPIC
   If you don't understand the question, ask for clarification — don't default
   to "What materials will you be forming?"
 
+============================================================
+
+RULE (TAUGHT 2026-03-01):
+──────────────────────────
+  Batelaan Kunststoffen should be removed from the active customer list
+============================================================
+
+RULE (TAUGHT 2026-03-01):
+──────────────────────────
+  Do not refer to FRIMO as an active agent
+  Never promise faster delivery
 ======================================================================

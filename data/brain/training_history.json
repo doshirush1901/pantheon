@@ -1,0 +1,16 @@
+{
+  "sessions": 1,
+  "total_correct": 15,
+  "total_wrong": 0,
+  "category_correct": {
+    "specs": 4,
+    "product_knowledge": 5,
+    "rules": 2,
+    "customers": 2,
+    "pricing": 1,
+    "applications": 1
+  },
+  "category_wrong": {},
+  "wrong_questions": [],
+  "last_updated": "2026-03-02T07:58:43.855533"
+}

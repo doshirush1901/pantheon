@@ -20,9 +20,11 @@ import json
 import logging
 import os
 import random
+import re
 import sys
+import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional, Dict, List
@@ -125,6 +127,43 @@ IRA_EMAIL = os.getenv("IRA_EMAIL", "ira@machinecraft.org")
 MAX_REFINEMENT_ROUNDS = int(os.getenv("IRA_MAX_REFINEMENT_ROUNDS", "3"))
 MIN_RESPONSE_TIME = int(os.getenv("IRA_MIN_RESPONSE_TIME", "180"))  # minimum 3 minutes before replying
 RUSHABH_EMAIL = os.getenv("RUSHABH_EMAIL", "rushabh@machinecraft.org")
+
+# Proactive cadence configuration
+PROACTIVE_WEEKLY_ENABLED = os.getenv("IRA_PROACTIVE_WEEKLY_ENABLED", "true").lower() in ("true", "1", "yes")
+PROACTIVE_WEEKLY_DAY = int(os.getenv("IRA_PROACTIVE_WEEKLY_DAY", "0"))  # 0=Monday
+PROACTIVE_WEEKLY_HOUR = int(os.getenv("IRA_PROACTIVE_WEEKLY_HOUR", "8"))
+PROACTIVE_DAILY_ENABLED = os.getenv("IRA_PROACTIVE_DAILY_ENABLED", "true").lower() in ("true", "1", "yes")
+PROACTIVE_DAILY_HOUR = int(os.getenv("IRA_PROACTIVE_DAILY_HOUR", "9"))
+PROACTIVE_STATE_PATH = PROJECT_ROOT / "data" / "proactive_state.json"
+
+
+def _load_proactive_state() -> Dict[str, str]:
+    """Load proactive state from file. Returns dict with last_weekly, last_daily keys."""
+    if not PROACTIVE_STATE_PATH.exists():
+        return {}
+    try:
+        data = json.loads(PROACTIVE_STATE_PATH.read_text())
+        return {
+            "last_weekly": data.get("last_weekly", ""),
+            "last_daily": data.get("last_daily", ""),
+        }
+    except Exception as e:
+        logger.warning(f"Could not load proactive state: {e}")
+        return {}
+
+
+def _save_proactive_state(last_weekly: Optional[str] = None, last_daily: Optional[str] = None):
+    """Update and save proactive state. Pass only keys to update."""
+    state = _load_proactive_state()
+    if last_weekly is not None:
+        state["last_weekly"] = last_weekly
+    if last_daily is not None:
+        state["last_daily"] = last_daily
+    try:
+        PROACTIVE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        PROACTIVE_STATE_PATH.write_text(json.dumps(state, indent=2))
+    except Exception as e:
+        logger.warning(f"Could not save proactive state: {e}")
 
 
 class GmailClient:
@@ -1117,27 +1156,34 @@ class EmailIraBridge:
                                 "- NEVER infer or fabricate connections between entities from different documents.\n"
                                 "  For example, if Company A appears in one document and Event B in another,\n"
                                 "  do NOT say 'Company A attended Event B' unless the research explicitly says so.\n"
-                                "- If the research does not contain information about what was asked, say:\n"
-                                "  'I don't have [specific thing] in my knowledge base. Here's what I do have: ...'\n"
-                                "- Each fact you state must be traceable to a specific [Source] in the research.\n"
-                                "- When listing leads/customers, include the source document for each.\n\n"
+                                "- Each fact you state must be traceable to a specific [Source] in the research.\n\n"
+                                "CRITICAL DATA EXTRACTION RULES:\n"
+                                "- ALWAYS extract and list SPECIFIC names, companies, contacts, numbers.\n"
+                                "- NEVER summarize with counts like '25 leads from NCR' — list the actual names.\n"
+                                "- NEVER say 'refer to the contact lists' — YOU are the contact list. Extract the data.\n"
+                                "- If the research contains company names, list every single one.\n"
+                                "- If the research contains contact names and emails, include them.\n"
+                                "- If asked about leads/customers, give a structured list with:\n"
+                                "  Company name, Contact person, Machine interest, Location, Status\n"
+                                "- If the exact data requested isn't available, list what IS available\n"
+                                "  with the same level of specificity (names, not summaries).\n\n"
                                 "OTHER RULES:\n"
                                 "- Answer the EXACT question. If they ask for leads, give lead names.\n"
-                                "- If they ask for data, give data with numbers.\n"
                                 "- If the sender is Rushabh (internal), this is a strategy request — be direct.\n"
                                 "- Use plain text lists (dashes, not bullets or markdown).\n"
-                                "- Be concise but thorough. No filler, no deflecting with questions.\n"
+                                "- Be thorough. Include ALL relevant data from the research, not a subset.\n"
                                 "- AM series is ALWAYS ≤1.5mm only.\n"
                                 "- All prices subject to configuration and current pricing."
                             )},
                             {"role": "user", "content": (
                                 f"QUESTION:\n{query}\n\n"
-                                f"RESEARCH FINDINGS:\n{research_output[:8000]}\n\n"
-                                "Write a response that directly answers the question using the research above."
+                                f"RESEARCH FINDINGS:\n{research_output[:12000]}\n\n"
+                                "Extract ALL specific data from the research and write a detailed response. "
+                                "List every company name, contact, and detail you can find."
                             )},
                         ],
-                        temperature=0.3,
-                        max_tokens=2000,
+                        temperature=0.2,
+                        max_tokens=4000,
                     )
                     rewritten = rewrite_result.choices[0].message.content.strip()
                     if rewritten and len(rewritten) > 30:
@@ -1284,6 +1330,40 @@ class EmailIraBridge:
             logger.info(f"  Padding {remaining:.0f}s to reach {MIN_RESPONSE_TIME}s minimum response time")
             time.sleep(remaining)
     
+    @staticmethod
+    def _strip_email_signature(body: str) -> str:
+        """Remove email signatures, disclaimers, and quoted replies from body."""
+        lines = body.split('\n')
+        clean_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('With Best Regards'):
+                break
+            if stripped.startswith('Best Regards'):
+                break
+            if stripped.startswith('Kind Regards'):
+                break
+            if stripped.startswith('Regards,'):
+                break
+            if stripped.startswith('Cheers,'):
+                break
+            if stripped.startswith('--'):
+                break
+            if stripped.startswith('Sent from my'):
+                break
+            if re.match(r'^On .+ wrote:$', stripped):
+                break
+            if stripped.startswith('>'):
+                continue
+            if 'Director Responsible for Sales' in stripped:
+                break
+            if 'Click here' in stripped and 'linkedin' in stripped.lower():
+                break
+            clean_lines.append(line)
+
+        result = '\n'.join(clean_lines).strip()
+        return result if len(result) > 10 else body.strip()
+
     def _format_thread_context(self, thread_history: List[Dict], current_body: str) -> str:
         """Format thread history into context string for Ira."""
         if not thread_history or len(thread_history) <= 1:
@@ -1362,8 +1442,9 @@ class EmailIraBridge:
             else:
                 logger.info("No specific corrections - processing as normal message")
         
-        # Build the query: include subject for better retrieval
-        query_for_processing = body.strip()
+        # Build the query: strip signature noise, include subject
+        clean_body = self._strip_email_signature(body)
+        query_for_processing = clean_body
         if subject and not subject.lower().startswith("re:"):
             query_for_processing = f"{subject}: {query_for_processing}"
 
@@ -1496,79 +1577,160 @@ class EmailIraBridge:
                 import traceback
                 logger.error(traceback.format_exc())
     
-    def send_proactive_checkin(self):
-        """Send a proactive check-in email to Rushabh on startup."""
-        logger.info("Sending proactive check-in to Rushabh...")
+    def _send_proactive_email(
+        self,
+        email_type: str,  # "startup" | "daily" | "weekly"
+        research_output: str = "",
+    ) -> bool:
+        """Send a proactive email to Rushabh. Uses different research prompts and templates per type."""
+        import asyncio
+
+        def _run(coro):
+            try:
+                return asyncio.run(coro)
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+
+        research_prompts = {
+            "startup": (
+                "What are the most important pending leads, recent customer inquiries, "
+                "and any follow-ups needed for Machinecraft this week? Limit to top 2-3 items."
+            ),
+            "daily": (
+                "What are the top 3 most urgent pending items for Machinecraft today? "
+                "Include: pending deals, follow-ups due, and any urgent customer inquiries. Be concise."
+            ),
+            "weekly": (
+                "For Machinecraft's weekly briefing, research and summarize: "
+                "1) Pipeline health and pending deals (top 5 by priority), "
+                "2) Follow-ups due this week, "
+                "3) Wins from last week. "
+                "Include specific company names, contacts, and status where available."
+            ),
+        }
+        research_query = research_prompts.get(email_type, research_prompts["startup"])
 
         try:
             from openclaw.agents.ira.src.agents.researcher.agent import research
-            import asyncio
-
-            def _run(coro):
-                try:
-                    return asyncio.run(coro)
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    try:
-                        return loop.run_until_complete(coro)
-                    finally:
-                        loop.close()
-
-            # Clio: quick research on what's pending
-            research_output = ""
-            try:
+            if not research_output:
                 research_output = _run(research(
-                    "What are the most important pending leads, recent customer inquiries, "
-                    "and any follow-ups needed for Machinecraft this week?",
+                    research_query,
                     context={"user_id": RUSHABH_EMAIL, "channel": "email"}
-                ))
-            except Exception as e:
-                logger.warning(f"Research for check-in failed: {e}")
+                )) or ""
+        except Exception as e:
+            logger.warning(f"Research for {email_type} proactive failed: {e}")
 
-            # Build the check-in email
+        templates = {
+            "startup": (
+                "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies. "
+                "Write a brief, warm check-in email to Rushabh (your boss). Include: "
+                "1) A warm greeting, 2) Confirm you're online and all systems are running, "
+                "3) If you found any pending items from research, mention the top 2-3 briefly, "
+                "4) Ask if there's anything specific he'd like you to work on today. "
+                "Keep it short (5-8 sentences max). Sign off as: Cheers,\\nIra"
+            ),
+            "daily": (
+                "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies. "
+                "Write a short daily digest email to Rushabh. Start with 'Your daily digest:' "
+                "then list the top 3 pending items from the research (use plain dashes, no markdown). "
+                "End with: 'Full details in dashboard.' Keep it under 150 words. "
+                "Sign off as: Cheers,\\nIra"
+            ),
+            "weekly": (
+                "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies. "
+                "Write a longer weekly briefing email to Rushabh. Structure: "
+                "'Week ahead:' then 1) Pipeline snapshot (top 5 deals with status), "
+                "2) Follow-ups due this week, 3) Wins from last week. "
+                "Use plain text with dashes for lists. Be thorough but scannable. "
+                "Sign off as: Cheers,\\nIra"
+            ),
+        }
+        system_prompt = templates.get(email_type, templates["startup"])
+        if research_output:
+            system_prompt += f"\n\nContext from your research:\n{research_output[:4000] if email_type == 'weekly' else research_output[:2000]}"
+
+        try:
             from openai import OpenAI
             client = OpenAI()
-
-            prompt_parts = [
-                "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies.",
-                "Write a brief, warm check-in email to Rushabh (your boss).",
-                "Include:",
-                "1. A warm greeting",
-                "2. Confirm you're online and all systems are running",
-                "3. If you found any pending items from research, mention the top 2-3 briefly",
-                "4. Ask if there's anything specific he'd like you to work on today",
-                "5. Keep it short (5-8 sentences max)",
-                "Sign off as: Cheers,\nIra",
-            ]
-            if research_output:
-                prompt_parts.append(f"\nContext from your research:\n{research_output[:2000]}")
-
             result = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "\n".join(prompt_parts)},
-                    {"role": "user", "content": "Write the check-in email now."},
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": "Write the email now."},
                 ],
                 temperature=0.5,
-                max_tokens=500,
+                max_tokens=800 if email_type == "weekly" else 500,
             )
             email_body = result.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"LLM for {email_type} proactive failed: {e}")
+            return False
 
-            thread_id = self.gmail.send_new_email(
-                to=RUSHABH_EMAIL,
-                subject=f"Ira Check-in — {datetime.now().strftime('%b %d')}",
-                body=email_body,
-            )
+        subjects = {
+            "startup": f"Ira Check-in — {datetime.now().strftime('%b %d')}",
+            "daily": f"Ira Daily Digest — {datetime.now().strftime('%b %d')}",
+            "weekly": f"Ira Weekly Briefing — Week of {datetime.now().strftime('%b %d')}",
+        }
+        subject = subjects.get(email_type, subjects["startup"])
 
-            if thread_id:
-                logger.info(f"Check-in email sent to {RUSHABH_EMAIL} (thread: {thread_id})")
-            else:
-                logger.warning("Failed to send check-in email")
+        thread_id = self.gmail.send_new_email(
+            to=RUSHABH_EMAIL,
+            subject=subject,
+            body=email_body,
+        )
+        if thread_id:
+            logger.info(f"Proactive {email_type} email sent to {RUSHABH_EMAIL} (thread: {thread_id})")
+            return True
+        logger.warning(f"Failed to send proactive {email_type} email")
+        return False
 
+    def send_proactive_checkin(self):
+        """Send a proactive check-in email to Rushabh on startup (I'm online + top 2-3 pending)."""
+        logger.info("Sending proactive check-in to Rushabh...")
+        try:
+            self._send_proactive_email("startup")
         except Exception as e:
             logger.error(f"Proactive check-in failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
+
+    def _run_proactive_scheduler(self):
+        """Background thread: each cycle, check if weekly/daily proactive is due and send."""
+        while True:
+            try:
+                now = datetime.now()
+                today_str = now.strftime("%Y-%m-%d")
+                state = _load_proactive_state()
+
+                # Weekly: Monday PROACTIVE_WEEKLY_HOUR, haven't sent this week
+                if PROACTIVE_WEEKLY_ENABLED:
+                    monday_this_week = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
+                    if (
+                        now.weekday() == PROACTIVE_WEEKLY_DAY
+                        and now.hour >= PROACTIVE_WEEKLY_HOUR
+                        and state.get("last_weekly", "") < monday_this_week
+                    ):
+                        logger.info("Proactive scheduler: sending weekly briefing...")
+                        if self._send_proactive_email("weekly"):
+                            _save_proactive_state(last_weekly=today_str)
+
+                # Daily: PROACTIVE_DAILY_HOUR, haven't sent today
+                if PROACTIVE_DAILY_ENABLED:
+                    if (
+                        now.hour >= PROACTIVE_DAILY_HOUR
+                        and state.get("last_daily", "") != today_str
+                    ):
+                        logger.info("Proactive scheduler: sending daily digest...")
+                        if self._send_proactive_email("daily"):
+                            _save_proactive_state(last_daily=today_str)
+
+            except Exception as e:
+                logger.warning(f"Proactive scheduler error: {e}")
+            time.sleep(POLL_INTERVAL)
 
     def run_loop(self):
         """Continuously poll for new emails."""
@@ -1580,8 +1742,17 @@ class EmailIraBridge:
         logger.info(f"Agent: {status['agent']['name']} v{status['agent']['version']}")
         logger.info(f"Modules: {json.dumps(status['modules'], indent=2)}")
 
-        # Send proactive check-in on startup
+        # Send proactive check-in on startup (quick "I'm online" + top 2-3 pending)
         self.send_proactive_checkin()
+
+        # Start proactive scheduler in background thread (weekly/daily cadence)
+        scheduler = threading.Thread(
+            target=self._run_proactive_scheduler,
+            daemon=True,
+            name="proactive_scheduler",
+        )
+        scheduler.start()
+        logger.info("Proactive scheduler started (weekly/daily cadence)")
 
         while True:
             try:
