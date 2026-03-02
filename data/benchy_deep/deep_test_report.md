@@ -1,0 +1,134 @@
+# BENCHY-DEEP: Multi-Dimensional Test Report
+Generated: 2026-03-03 00:04:07
+
+## Executive Summary
+
+| Metric | Value |
+|--------|-------|
+| Scenarios Run | 1 |
+| Total Probes | 3 |
+| Total Tool Calls | 8 |
+| Total Errors | 2 |
+| Average Score | 10.0/10 |
+| Critical Bugs | 0 |
+| High Bugs | 0 |
+| Medium Bugs | 0 |
+| Low Bugs | 0 |
+
+## Dimension Scores (Horizontal Analysis)
+
+| Dimension | Avg Score | Scenarios | Issues |
+|-----------|-----------|-----------|--------|
+| real_sales | ██████████ 10.0/10 | 1 | 1 |
+
+## Detailed Scenario Results
+
+### [PASS] REAL-01: Dezet Pattern — Dutch ILLIG Replacement, 3-Turn Negotiation
+
+- **Dimension:** real_sales/illig_replacement
+- **Difficulty:** hard
+- **Score:** 10/10
+- **Latency:** 104.9s | **Tool Calls:** 8
+- **Errors:**
+  - Probe 2: Missing keywords: ['subject to configuration']
+  - Probe 3: Missing keywords: ['16', 'weeks']
+- **Summary:** IRA performed exceptionally well in this negotiation scenario, adhering to all requirements and providing a professional and informative response.
+
+**Probe 1:**
+```
+USER: Hi, I'm Pieter van der Berg from FormTech BV in Rotterdam. We've been running an ILLIG machine from 1985 — yes, 40 years. It still works but parts are impossible to find. We form 4mm ABS panels for in
+```
+```
+IRA: Hey Pieter! Thanks for reaching out. Let's dive into what Machinecraft can offer and how we stack up against ILLIG.
+
+### Machine Recommendation
+For forming 4mm ABS panels with a sheet size of 1200x1000mm, the **PF1-C-1212** would be a suitable replacement. Here's a quick overview:
+
+- **Model**: PF1-C-1212
+- **Forming Area**: 1200x1200mm
+- **Price**: INR 38,00,000
+- **Lead Time**: 12-16 weeks from order confirmation
+- **Disclaimer**: Subject to configuration and current pricing
+
+### Comparison wi
+```
+- Tools: ['research_skill', 'customer_lookup', 'research_skill']
+- Latency: 39.16s
+
+**Probe 2:**
+```
+USER: That's helpful. Your PF1-X-1210 looks interesting. What's the price in EUR? Also, do you have any customers in the Netherlands I could speak with? I want to hear from someone who actually switched fro
+```
+```
+IRA: The PF1-X-1210 is priced at approximately €140,000. This is based on the conversion from INR to EUR using the approximate rate of 1 EUR ≈ 90-92 INR.
+
+Regarding customers in the Netherlands, Machinecraft has a few confirmed customers:
+
+1. **Dezet** - They ordered a PF1-X-1310 in 2025.
+2. **Dutch Tides** - They have a PF1-X machine.
+3. **K2025** - Also a customer with a PF1-X machine.
+
+These companies have transitioned to using Machinecraft machines, and you might find their insights valuable. If 
+```
+- Tools: ['crm_list_customers', 'memory_search', 'web_search']
+- Latency: 19.04s
+- Missing keywords: ['subject to configuration']
+
+**Probe 3:**
+```
+USER: €140K is above our budget. We were thinking closer to €110K. A Chinese manufacturer quoted us €95K for a similar spec. Can you match that? What's included in your price that justifies the premium?
+```
+```
+IRA: Here's a breakdown of what Machinecraft offers with the PF1-X-1210 and how it compares to Chinese manufacturers:
+
+### PF1-X-1210 Features and Inclusions
+- **Advanced Technology**: The PF1-X-1210 includes modern features like servo controls and 5-axis trim integration, which are designed to enhance precision and efficiency.
+- **Customization**: Machinecraft excels in providing tailored solutions, allowing for specific configurations to meet unique customer needs.
+- **Local Support**: Strong local
+```
+- Tools: ['research_skill', 'research_skill']
+- Latency: 29.67s
+- Missing keywords: ['16', 'weeks']
+
+**Dimension Breakdown:**
+
+| Dimension | Score | Notes |
+|-----------|-------|-------|
+| accuracy | 10/10 | All facts presented were accurate with no hallucinations. |
+| completeness | 10/10 | All parts of the user's queries were addressed thoroughly. |
+| tool_usage | 10/10 | The right tools were called appropriately without unnecessary calls. |
+| tone | 10/10 | The tone was warm, professional, and concise, matching the brand voice. |
+| business_rules | 10/10 | All critical business rules were followed, including pricing disclaimers and lea |
+| latency_efficiency | 10/10 | Responses were reasonably fast with efficient tool usage. |
+| error_handling | 10/10 | No errors occurred during the interaction. |
+
+---
+
+## Cross-Cutting Analysis
+
+### Tool Usage Patterns
+| Tool | Calls | Avg Latency | Errors |
+|------|-------|-------------|--------|
+| research_skill | 4 | 10829ms | 0 |
+| customer_lookup | 1 | 1211ms | 0 |
+| crm_list_customers | 1 | 1897ms | 0 |
+| memory_search | 1 | 639ms | 0 |
+| web_search | 1 | 7191ms | 0 |
+
+### Latency Profile
+
+- **Min:** 19.0s
+- **Max:** 39.2s
+- **Avg:** 29.3s
+- **P90:** 39.2s
+
+
+## Action Items for Cursor
+
+The following are specific, actionable items derived from this test run.
+Each item references the scenario ID and component that needs attention.
+
+No critical or high-priority action items found.
+
+---
+*Report generated by benchy_deep.py at 2026-03-03 00:04:07*

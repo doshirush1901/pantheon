@@ -164,5 +164,23 @@ RULE 14: QUALIFICATION BEFORE RECOMMENDATION (from Benchy 2026-03-02)
   Only ask questions for info you genuinely don't have.
 ======================================================================
 
+RULE 10: CUSTOM SIZING — NEVER SAY NO TO SIZE
+────────────────────────────────────────────────
+  Machinecraft can ALWAYS customise the forming area to any size.
+  We have built machines up to 6400x1900mm (Dutch Tides).
+  NEVER say "we don't make that size" or "beyond our range."
+  If the exact size is not standard, offer EITHER:
+    a) The next larger standard model (e.g. need 1100x900 → offer PF1-C-1212)
+    b) A custom build at the exact dimensions (price quoted separately)
+  Always present BOTH options when the size doesn't match a standard model.
+
+RULE 11: CLOSED CUSTOMERS
+────────────────────────────────────────────────
+  Batelaan Kunststoffen (Netherlands) is CLOSED / SHUT DOWN.
+  Do NOT suggest reaching out to them for new orders.
+  If asked, say they were a former customer but the company has closed.
+
+======================================================================
+
 HYGIENE SYNC: When adding/changing rules, update data/brain/hard_rules_hygiene.json
 so knowledge_hygiene (dream Phase 6.6) can scan the knowledge base for violations.

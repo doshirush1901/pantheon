@@ -149,8 +149,9 @@ Custom sizes available on request. The -X, -C, -S suffixes indicate different co
             r"how much.*pf[-\s]?1",
             r"pf[-\s]?1.*inr|inr.*pf[-\s]?1",
         ],
-        answer="""PF1 Pneumatic Machine Prices (INR Budget Pricing):
+        answer="""PF1 Machine Prices (INR Budget Pricing):
 
+**PF1-C (Pneumatic):**
 | Model | Size (mm) | Price (INR) |
 |-------|-----------|-------------|
 | PF1-C-1008 | 1000x800 | 33,00,000 |
@@ -164,9 +165,21 @@ Custom sizes available on request. The -X, -C, -S suffixes indicate different co
 | PF1-C-2515 | 2500x1500 | 70,00,000 |
 | PF1-C-3015 | 3000x1500 | 75,00,000 |
 | PF1-C-3020 | 3000x2000 | 80,00,000 |
-| PF1-R-1510 (Roll Feeder) | 1500x1000 | 55,00,000 |
 
-Note: These are budget prices. Final quotation depends on specific configuration, automation level, tooling, and customizations. Contact sales for detailed quotation.""",
+**PF1-X (All-Servo, Premium):**
+| Model | Size (mm) | Price (INR) | ~USD |
+|-------|-----------|-------------|------|
+| PF1-X-1208 | 1200x800 | 83,00,000 | $100K |
+| PF1-X-1210 | 1200x1000 | 1,16,20,000 | $140K |
+| PF1-X-1510 | 1500x1000 | 1,32,80,000 | $160K |
+| PF1-X-2015 | 2000x1500 | ~90-96,00,000 | ~$115K |
+| PF1-X-2515 | 2500x1500 | 2,07,50,000 | $250K |
+| PF1-X-2520 | 2500x2000 | 2,24,10,000 | $270K |
+| PF1-XL-3020 | 3000x2000 | 2,49,00,000 | $300K |
+
+**PF1-R (Roll-Fed):** PF1-R-1510: INR 55,00,000
+
+Custom sizes available for all PF1 models. All prices subject to configuration and current pricing.""",
         category="product",
         keywords=["pf1", "price", "cost", "how much", "quotation", "inr", "lakh"],
         confidence=0.98,
