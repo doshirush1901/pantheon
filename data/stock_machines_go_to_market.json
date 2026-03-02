@@ -1,0 +1,255 @@
+{
+  "_title": "Stock Machine Go-To-Market Strategy — 5 Standardized Models",
+  "_generated": "2026-03-02",
+  "_premise": "Machinecraft builds these 5 machines to stock, ready for quick delivery. This document maps each machine to target customers, industries, applications, and the sales pitch.",
+
+  "machines": [
+    {
+      "rank": 1,
+      "model": "PF1-C-1510",
+      "name": "The Indian Workhorse",
+      "forming_area": "1500 × 1000 mm (1.5 m²)",
+      "price_inr": "₹40 Lakhs",
+      "price_usd": "~$48,000",
+      "lead_time_if_stock": "2-4 weeks (vs 4-6 months custom)",
+      "max_sheet_thickness": "10 mm",
+
+      "target_industries": [
+        {
+          "industry": "Automotive — Interior Trim & Protection",
+          "what_they_make": ["Wheel arch liners", "Under-bonnet covers", "Boot/trunk liners", "Door water shields", "A/B pillar covers", "Fender liners"],
+          "materials": "ABS, PP, TPO (2-5 mm)",
+          "why_this_machine": "1.5 m² covers most car interior parts. Pneumatic is cost-effective for medium volumes (500-5000 pcs/year). Indian auto Tier-1s are price-sensitive.",
+          "target_customers": ["Alphafoam (Pune — repeat buyer, 3 orders)", "Hyco (Delhi)", "RK Manoj & Co (Delhi — repeat buyer)", "Motherson Group Tier-2s", "Minda Industries suppliers", "Lumax Industries suppliers"],
+          "reference_story": "Alphafoam has bought 3 machines from us in this size range for automotive parts. They keep coming back."
+        },
+        {
+          "industry": "Pallets & Material Handling",
+          "what_they_make": ["HDPE pallets", "Stackable bins", "Material handling trays", "Warehouse dunnage"],
+          "materials": "HDPE, PP (4-8 mm)",
+          "why_this_machine": "1500×1000 is a standard pallet footprint. HDPE up to 8mm forms well on this machine. Low cost per unit for high-volume pallet production.",
+          "target_customers": ["Nilkamal (existing customer)", "Supreme Industries", "Sintex", "Time Technoplast", "Jumbo Bags Ltd"],
+          "reference_story": "Nilkamal bought this exact size for pallet production."
+        },
+        {
+          "industry": "Signage & Display",
+          "what_they_make": ["Backlit sign housings", "ATM surrounds", "Kiosk enclosures", "POS displays", "Advertising lightboxes"],
+          "materials": "Acrylic, PETG, ABS (2-4 mm)",
+          "why_this_machine": "Most signage fits within 1.5m². Quick turnaround for sign shops. Low tooling cost means profitable even at 50-piece runs.",
+          "target_customers": ["Arham Techplast (Mumbai — existing customer)", "Neon signage companies", "Retail fixture manufacturers"],
+          "reference_story": "Arham Techplast in Mumbai bought a similar machine for display/signage work."
+        },
+        {
+          "industry": "Skylights & Construction",
+          "what_they_make": ["Polycarbonate skylights", "Dome covers", "Roof ventilators", "Transparent enclosures"],
+          "materials": "Polycarbonate, PETG, Acrylic (2-6 mm)",
+          "why_this_machine": "Skylight panels typically 1-1.5m². Deep draw capability handles dome shapes. MK Daylighting already uses a Machinecraft machine for this.",
+          "target_customers": ["MK Daylighting (Hyderabad — existing)", "Tilara Polyplast", "Palram India", "Tuflite Polymers"],
+          "reference_story": "MK Daylighting in Hyderabad produces skylights on a Machinecraft machine."
+        }
+      ],
+
+      "selling_pitch": "This is our most-sold machine size. Available from stock — you can be in production within weeks, not months. At ₹40L, it's the most affordable entry into heavy-gauge thermoforming. Five of your competitors already run this machine."
+    },
+
+    {
+      "rank": 2,
+      "model": "AM-5060 Platform",
+      "name": "The Volume Machine",
+      "variants": ["AM-5060 Standard (₹7.5L)", "AM-5060-P with Press (₹15L)", "AMP-5060 Pressure Forming (₹35L)"],
+      "forming_area": "500 × 600 mm (0.3 m²)",
+      "lead_time_if_stock": "1-2 weeks",
+      "max_sheet_thickness": "1.5 mm",
+
+      "target_industries": [
+        {
+          "industry": "Food Packaging",
+          "what_they_make": ["Biscuit trays", "Sweet box inserts", "Fruit punnets", "Meal trays", "Egg cartons", "Disposable plates/bowls"],
+          "materials": "PS, PET, PP (0.2-1.0 mm)",
+          "why_this_machine": "India's food packaging market is ₹50,000 Cr+. The AM-5060 at ₹7.5L is the lowest entry point. Runs 15-20 cycles/minute. ROI in 3-6 months for a busy packaging shop.",
+          "target_customers": ["Convertex (existing — 2 machines ordered)", "Priti (existing customer)", "Small-medium packaging converters in Delhi, Mumbai, Ahmedabad", "Sweet box manufacturers (Diwali season = peak demand)"],
+          "reference_story": "Convertex ordered 2 machines and Priti ordered 1 — all in 2025. This machine pays for itself in one festive season."
+        },
+        {
+          "industry": "Blister & Clamshell Packaging",
+          "what_they_make": ["Blister packs for electronics", "Clamshell packaging", "Hardware store packaging", "Cosmetic trays"],
+          "materials": "PVC, PET, APET (0.3-0.8 mm)",
+          "why_this_machine": "AMP-5060 (pressure forming variant) gives injection-mold-quality finish at a fraction of the cost. Perfect for electronics and cosmetics packaging where appearance matters.",
+          "target_customers": ["Abhishek (existing — 2 machines)", "ALP (existing — multiple orders)", "Pharma blister pack manufacturers", "Electronics packaging companies"],
+          "reference_story": "Abhishek ordered 2 AM machines with press, ALP has ordered multiple times. The pressure forming variant gives them injection-quality looks."
+        },
+        {
+          "industry": "Disposables & FMCG",
+          "what_they_make": ["Disposable cups", "Lid forming", "Ice cream cups", "Yogurt containers"],
+          "materials": "PS, PP (0.3-0.8 mm)",
+          "why_this_machine": "High-speed thin-gauge forming. India's disposables market is booming with food delivery (Swiggy, Zomato). Every cloud kitchen needs packaging.",
+          "target_customers": ["Small converters near food processing hubs", "Startup packaging companies", "Formpack (existing — for PlastIndia demos)"],
+          "reference_story": "Formpack uses our AM machines for PlastIndia exhibition demos — it's the machine that draws the crowd."
+        }
+      ],
+
+      "selling_pitch": "Starting at ₹7.5 Lakhs, this is the most affordable thermoforming machine on the market. Available from stock — start production this week. Three variants from the same platform: standard for basic forming, with press for deeper draws, pressure forming for premium finish. Your ROI? 3-6 months."
+    },
+
+    {
+      "rank": 3,
+      "model": "PF1-XL-3020 / PF1-C-3020",
+      "name": "The Flagship",
+      "forming_area": "3000 × 2000 mm (6.0 m²)",
+      "price_inr": "₹80L (C) — ₹2.49 Cr (XL servo)",
+      "price_usd": "$96K (C) — $300K (XL)",
+      "lead_time_if_stock": "4-6 weeks (vs 8-12 months custom)",
+      "max_sheet_thickness": "10 mm",
+
+      "target_industries": [
+        {
+          "industry": "Sanitaryware — Bathtubs, Shower Trays, Spas",
+          "what_they_make": ["Acrylic bathtubs", "Shower trays", "Jacuzzi shells", "Vanity units", "Wash basins", "Facia panels"],
+          "materials": "Acrylic, Acrylic-capped ABS (3-5 mm)",
+          "why_this_machine": "A standard bathtub is 1700×750mm, a jacuzzi is 2000×2000mm — both fit in 3×2m. The zero-sag system is critical for acrylic (prevents thinning). GRP reinforcement applied after forming.",
+          "target_customers": ["Jaquar Group (existing — repeat buyer, bathtubs)", "Hindware (Somany Group)", "Cera Sanitaryware", "Parryware (Roca Group)", "Domani-Spa (Russia — quoted)", "Middle East bathroom manufacturers (KSA housing boom)"],
+          "reference_story": "Jaquar Group in Delhi has been buying Machinecraft machines for bathtub production. They came back for a second, larger machine. The KSA bathroom market is booming with Vision 2030 housing projects."
+        },
+        {
+          "industry": "Commercial Vehicle & Bus Body Parts",
+          "what_they_make": ["Bus interior panels", "Dashboard surrounds", "Overhead luggage bins", "Wheel arch covers", "Engine bay covers", "Roof panels"],
+          "materials": "ABS, ABS-FR, HDPE (3-8 mm)",
+          "why_this_machine": "Bus panels are 2-3m long. India's bus electrification (FAME II) is driving demand for new body panels. Fire-retardant ABS is mandatory for public transport.",
+          "target_customers": ["Formpack (existing — CV panels, buses)", "Pinnacle Industries (existing — ₹39.4M order)", "JBM Auto", "Olectra Greentech (EV buses)", "Tata Motors CV division suppliers", "Ashok Leyland suppliers"],
+          "reference_story": "Formpack builds CV panels and bus parts on Machinecraft machines. Pinnacle Industries just ordered a ₹39.4M PF1-X for large-format parts."
+        },
+        {
+          "industry": "Industrial — Large Enclosures & Covers",
+          "what_they_make": ["Machine covers", "Wind turbine nacelle parts", "Generator housings", "Telecom shelter panels", "Agricultural equipment covers"],
+          "materials": "ABS, HDPE, PP (4-10 mm)",
+          "why_this_machine": "6 m² forming area handles the largest industrial parts. HDPE up to 10mm for outdoor durability. These are high-value, low-volume parts — perfect margin for thermoformers.",
+          "target_customers": ["Venkateskwar (existing — PF1-X-3020 in production)", "SAPT Russia (existing)", "Wind turbine suppliers (Vestas, Suzlon, GE)", "Telecom infrastructure companies"],
+          "reference_story": "Venkateskwar is currently building a PF1-3020 with us. SAPT in Russia runs one for large industrial parts."
+        },
+        {
+          "industry": "European Export — Caravans, RVs, Marine",
+          "what_they_make": ["Caravan interior panels", "RV body parts", "Boat hulls and decks", "Camper van interiors"],
+          "materials": "ABS, PMMA, HDPE (3-8 mm)",
+          "why_this_machine": "European caravan/RV market is huge — panels are 2-3m. Machinecraft is 40-60% cheaper than European machine makers (Geiss, Illig). CE-certified. Dutch Tides ordered the biggest machine ever (6.4×1.9m).",
+          "target_customers": ["Dutch Tides (Netherlands — existing, ₹53.7M order)", "Batelaan (Netherlands — existing)", "visscher-caravelle (Netherlands — car mats/caravans)", "Hobby Wohnwagenwerk (Germany)", "Fendt Caravan (Germany)", "Trigano (France)"],
+          "reference_story": "Dutch Tides in the Netherlands ordered a ₹53.7M PF1-X — the biggest Machinecraft machine ever built. They replaced a 40-year-old European machine. Invite prospects to visit their factory."
+        }
+      ],
+
+      "selling_pitch": "This is our flagship — the largest standard machine we build. Available in pneumatic (₹80L) for cost-conscious buyers or all-servo (₹2.49Cr) for precision. From stock, you skip the 8-12 month wait. Three units are in production right now for customers in India, Netherlands, and Russia. We can arrange factory visits."
+    },
+
+    {
+      "rank": 4,
+      "model": "PF1-X-1208",
+      "name": "The European Export Machine",
+      "forming_area": "1200 × 800 mm (0.96 m²)",
+      "price_inr": "₹83 Lakhs",
+      "price_usd": "$100,000",
+      "lead_time_if_stock": "2-4 weeks (fits in standard container)",
+      "max_sheet_thickness": "8 mm (estimated)",
+
+      "target_industries": [
+        {
+          "industry": "European General Thermoforming",
+          "what_they_make": ["Technical housings", "Medical device enclosures", "Equipment covers", "Prototype parts", "Small-run production"],
+          "materials": "ABS, HIPS, PETG, PC (2-6 mm)",
+          "why_this_machine": "Compact all-servo machine that fits in a 20ft container. $100K is 40-60% less than a comparable Geiss or Illig. Servo precision for tight tolerances. Perfect replacement for aging European machines.",
+          "target_customers": ["Dezet (Netherlands — replaced 1983 Illig with PF1-X-1210)", "Thermic (Germany — existing)", "MP3 (Italy — PF1-X-0707 on order)", "Form3D (Portugal — currently CMS customer)", "Plastiart (Belgium)", "Plastika Balumag (Switzerland)"],
+          "reference_story": "Dezet in the Netherlands replaced their 1983 Illig machine with our PF1-X-1210. They make mobility vehicle components, aircraft simulator parts, and first-aid ECR boxes. 40 years of Illig, then they chose Machinecraft."
+        },
+        {
+          "industry": "K-Show & Trade Show Demo Machine",
+          "what_they_make": "Live demonstrations for prospects",
+          "materials": "Various",
+          "why_this_machine": "This is the K2025 show machine size. Compact enough to demo on a booth floor. Impressive servo speed and precision. Every demo generates 5-10 serious leads.",
+          "target_customers": ["Trade show visitors", "European distributors/agents"],
+          "reference_story": "The K2025 machine (1200×800) was ordered specifically for the show. It's the machine that sells other machines."
+        },
+        {
+          "industry": "Specialty & Niche Manufacturing",
+          "what_they_make": ["Luggage shells", "Instrument cases", "Protective equipment housings", "Laboratory equipment covers", "Aerospace interior trim (small parts)"],
+          "materials": "ABS, PC, PETG (2-5 mm)",
+          "why_this_machine": "All-servo gives repeatable precision for tight-tolerance parts. 1m² is perfect for luggage, cases, and small housings. European quality standards met with CE certification.",
+          "target_customers": ["VIP Industries (India — luggage)", "Samsonite suppliers", "Peli Cases type manufacturers", "Lab equipment OEMs"],
+          "reference_story": "We quoted a PF1-810 for luggage manufacturing. The 1208 gives more room for larger suitcase shells."
+        }
+      ],
+
+      "selling_pitch": "All-servo precision at $100K — that's 40-60% less than Geiss or Illig for comparable capability. Ships in a standard 20ft container. This is the machine that replaced a 40-year-old Illig at Dezet in the Netherlands. From stock, delivered to your European factory in 4-6 weeks."
+    },
+
+    {
+      "rank": 5,
+      "model": "PF1-C-1515",
+      "name": "The Versatile Square",
+      "forming_area": "1500 × 1500 mm (2.25 m²)",
+      "price_inr": "~₹45 Lakhs (estimated)",
+      "price_usd": "~$54,000",
+      "lead_time_if_stock": "2-4 weeks",
+      "max_sheet_thickness": "10 mm",
+
+      "target_industries": [
+        {
+          "industry": "Infrastructure — Utility Covers & Manholes",
+          "what_they_make": ["Composite manhole covers", "Utility well covers", "Cable trench covers", "Inspection chamber covers", "Drainage covers"],
+          "materials": "HDPE, PP, GRP-backed (4-8 mm)",
+          "why_this_machine": "Standard manhole/well cover is 600-1200mm diameter — fits perfectly in 1.5×1.5m. Square format means no wasted sheet. India's Smart City Mission is driving massive infrastructure upgrades.",
+          "target_customers": ["Anchor Media (Sweden — existing, well covers)", "Indian municipal contractors", "Composite manhole cover startups", "L&T infrastructure suppliers", "Reliance Infra suppliers"],
+          "reference_story": "Anchor Media in Sweden bought this exact size for well cover production. India's Smart City Mission is creating the same demand domestically."
+        },
+        {
+          "industry": "Automotive — Car Mats & Floor Liners",
+          "what_they_make": ["3D car mats (TPE/EVA)", "Boot liners", "Floor liners", "Cargo area mats"],
+          "materials": "TPE, EVA, PE (2-4 mm)",
+          "why_this_machine": "A car mat set (front + rear) fits in 1.5×1.5m. The 3D car mat market is booming — every new car model needs custom mats. Low tooling cost means profitable even for 100-piece runs per model.",
+          "target_customers": ["visscher-caravelle (Netherlands — car mats)", "3D mat startups in India", "Automotive accessory companies", "Amazon/Flipkart car accessories sellers"],
+          "reference_story": "We have extensive car mat studies and have quoted AMC1507 machines for car mat production. The 1515 gives room for full mat sets."
+        },
+        {
+          "industry": "Medical & Laboratory",
+          "what_they_make": ["Medical device housings", "Incubator covers", "Lab equipment enclosures", "Wheelchair components", "Hospital bed parts"],
+          "materials": "ABS, HIPS, PC (2-5 mm)",
+          "why_this_machine": "Medical parts need consistency — pneumatic is reliable and simple to maintain. 2.25m² handles most medical housings. Lower cost than servo for applications where extreme precision isn't needed.",
+          "target_customers": ["Anatomic SITT (Sweden — existing, medical/ergonomic)", "Medical device OEMs in Pune/Bangalore", "Hospital furniture manufacturers"],
+          "reference_story": "Anatomic SITT in Sweden bought a Machinecraft machine for ergonomic/medical products. They're in Norrköping and have been a reference customer since 2016."
+        },
+        {
+          "industry": "Refrigeration & Appliances",
+          "what_they_make": ["Refrigerator inner liners", "Freezer door liners", "Water cooler housings", "Vending machine fronts"],
+          "materials": "HIPS, ABS (1.5-3 mm)",
+          "why_this_machine": "A standard fridge liner is ~1200×600mm — fits easily. India's appliance market is growing 8-10% annually. Twin-sheet forming possible for insulated panels.",
+          "target_customers": ["Godrej Appliances suppliers", "Voltas suppliers", "Blue Star suppliers", "Small refrigerator manufacturers"],
+          "reference_story": "Refrigerator liner thermoforming is one of the largest applications globally. This machine size is the industry standard for it."
+        }
+      ],
+
+      "selling_pitch": "The square format is the most versatile — well covers, car mats, medical housings, fridge liners all fit perfectly. At ~₹45L from stock, it's an easy decision. Anchor Media in Sweden and Anatomic SITT have been running this size for years. The square shape means zero wasted sheet material."
+    }
+  ],
+
+  "cross_cutting_sales_strategy": {
+    "why_buy_from_stock": [
+      "Delivery in 2-6 weeks vs 4-12 months for custom build",
+      "No design risk — these are proven, battle-tested configurations",
+      "Lower price — standardization reduces our cost, we pass savings to you",
+      "Spare parts always available — we stock parts for these 5 models",
+      "Reference customers available for factory visits for every model",
+      "Upgrade path — start with C (pneumatic), upgrade to X (servo) later"
+    ],
+    "why_machinecraft_over_competition": [
+      "40-60% cheaper than European machines (Geiss, Illig, Kiefel) at comparable specs",
+      "CE-certified — meets European safety standards",
+      "40+ years experience, third-generation family business",
+      "35+ countries served, reference sites across India, Europe, Middle East",
+      "FRIMO technology partnership for advanced applications (IMG, vacuum lamination)",
+      "After-sales: remote diagnostics, spare parts within 48 hours, annual service contracts"
+    ],
+    "geographic_strategy": {
+      "India": "PF1-C-1510 (automotive/pallets) + AM-5060 (packaging) — volume play, price-sensitive market",
+      "Europe": "PF1-X-1208 (compact servo) + PF1-C-1515 (versatile) — replacement market, 40-60% cost advantage",
+      "Middle_East": "PF1-C-3020 (bathtubs/construction) — Vision 2030 housing boom, sanitaryware demand",
+      "Japan": "PF1-X-1208 or PF1-XL-3020 — precision servo for automotive, existing KTX/Nagoya Jushi relationships"
+    }
+  }
+}

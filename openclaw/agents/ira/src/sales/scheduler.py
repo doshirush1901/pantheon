@@ -239,6 +239,25 @@ def run_autonomous_drip() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+def run_hermes_outreach() -> Dict[str, Any]:
+    """Run Hermes pro sales outreach — contextual drip with deep personalization."""
+    try:
+        import asyncio
+        sys.path.insert(0, str(SKILLS_DIR.parent / "agents" / "hermes"))
+        from agent import get_hermes
+
+        hermes = get_hermes()
+        result = asyncio.run(hermes.run_outreach_batch(dry_run=False))
+        log_task("hermes_outreach", {
+            "summary": f"Sent {result.get('sent', 0)}/{result.get('batch_size', 0)}",
+            **{k: v for k, v in result.items() if k != "emails"},
+        })
+        return result
+    except Exception as e:
+        log_task("hermes_outreach", {"error": str(e)}, success=False)
+        return {"error": str(e)}
+
+
 def run_all_daily_tasks():
     """Run all daily tasks."""
     print(f"\n{'='*50}")
@@ -247,7 +266,7 @@ def run_all_daily_tasks():
     
     run_crm_gmail_sync()
     time.sleep(2)
-    run_autonomous_drip()
+    run_hermes_outreach()
     time.sleep(2)
     run_proactive_outreach()
     time.sleep(2)
@@ -271,7 +290,7 @@ def run_daemon():
     
     schedule.every().day.at("07:30").do(run_vital_signs)
     schedule.every(30).minutes.do(run_crm_gmail_sync)
-    schedule.every().day.at("08:30").do(run_autonomous_drip)
+    schedule.every().day.at("08:30").do(run_hermes_outreach)
     schedule.every().day.at("09:00").do(run_proactive_outreach)
     schedule.every().day.at("09:30").do(run_european_drip)
     schedule.every().day.at("10:00").do(run_follow_up_check)
@@ -280,7 +299,7 @@ def run_daemon():
     print("\nScheduled tasks:")
     print("  - Vital signs: Daily at 07:30")
     print("  - CRM Gmail sync: Every 30 minutes (Mnemosyne stays live)")
-    print("  - Autonomous drip: Daily at 08:30 (Ira sends her own emails)")
+    print("  - Hermes outreach: Daily at 08:30 (contextual drip with deep personalization)")
     print("  - Proactive outreach: Daily at 09:00")
     print("  - European drip: Daily at 09:30 (legacy manual review)")
     print("  - Follow-up check: Daily at 10:00")
@@ -298,7 +317,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sales Scheduler")
     parser.add_argument("--daemon", action="store_true", help="Run as daemon")
     parser.add_argument("--once", action="store_true", help="Run all tasks once")
-    parser.add_argument("--task", choices=["outreach", "followup", "pipeline", "drip", "vitals", "auto_drip"], help="Run specific task")
+    parser.add_argument("--task", choices=["outreach", "followup", "pipeline", "drip", "vitals", "auto_drip", "hermes"], help="Run specific task")
     args = parser.parse_args()
     
     if args.daemon:
@@ -318,5 +337,7 @@ if __name__ == "__main__":
             run_vital_signs()
         elif args.task == "auto_drip":
             run_autonomous_drip()
+        elif args.task == "hermes":
+            run_hermes_outreach()
     else:
         parser.print_help()

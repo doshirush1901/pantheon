@@ -3,7 +3,7 @@
 QUOTES 2 INGESTION SCRIPT
 =========================
 
-Ingests all PDF quotes from data/imports/Quotes 2/ folder.
+Ingests all PDF quotes from data/imports/01_Quotes_and_Proposals/ folder.
 Extracts:
 - Machine models and pricing
 - Quote dates (from filename patterns and file metadata)
@@ -51,7 +51,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-QUOTES2_DIR = PROJECT_ROOT / "data" / "imports" / "Quotes 2"
+QUOTES2_DIR = PROJECT_ROOT / "data" / "imports" / "01_Quotes_and_Proposals"
 QUOTES_KNOWLEDGE_FILE = PROJECT_ROOT / "data" / "quotes2_knowledge.json"
 
 # Patterns
@@ -386,7 +386,7 @@ def run_pricing_learner():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ingest quotes from Quotes 2 folder")
+    parser = argparse.ArgumentParser(description="Ingest quotes from 01_Quotes_and_Proposals folder")
     parser.add_argument('--dry-run', action='store_true', help="Preview without ingesting")
     parser.add_argument('--learn-only', action='store_true', help="Skip ingestion, just run pricing learner")
     parser.add_argument('--limit', type=int, default=0, help="Limit number of files to process")

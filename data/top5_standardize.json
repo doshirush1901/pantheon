@@ -1,0 +1,149 @@
+{
+  "_title": "Top 5 Machine Models to Standardize",
+  "_generated": "2026-03-02",
+  "_methodology": "Weighted scoring: historical_orders×3 + quotes×1 + order_book×2 + repeat_customers×2",
+  "top_5": [
+    {
+      "rank": 1,
+      "model_family": "PF1-1510 / PF1-C-1510 / PF1-X-1510",
+      "forming_area": "1500 x 1000 mm (1.5 m²)",
+      "evidence": {
+        "historical_orders": 5,
+        "quotes_generated": 12,
+        "order_book_2025": 0,
+        "repeat_customers": [
+          "Alphafoam (3x)",
+          "Nilkamal",
+          "SVS",
+          "MG Polyplast",
+          "Naffco"
+        ]
+      },
+      "why_standardize": "Most ordered forming area historically. Sweet spot for Indian market — automotive parts, base plates, pallets. Affordable entry into heavy-gauge thermoforming.",
+      "applications_sold": [
+        "Automotive Parts",
+        "Base Plates",
+        "Pallets",
+        "Industrial Parts"
+      ],
+      "markets": [
+        "India (primary)",
+        "UAE"
+      ],
+      "price_range_inr": "₹40L (C) — ₹1.33Cr (X)"
+    },
+    {
+      "rank": 2,
+      "model_family": "PF1-3020 / PF1-C-3020 / PF1-XL-3020",
+      "forming_area": "3000 x 2000 mm (6.0 m²)",
+      "evidence": {
+        "historical_orders": 2,
+        "quotes_generated": 9,
+        "order_book_2025": 3,
+        "repeat_customers": [
+          "Venkateskwar",
+          "Formpack",
+          "Dutch Tides",
+          "SAPT Russia"
+        ]
+      },
+      "why_standardize": "Largest standard size — commands premium pricing. Strong demand from both India and Europe. Current order book has 3 units in production. Highest revenue per unit.",
+      "applications_sold": [
+        "Large Format Parts",
+        "Automotive Panels",
+        "Bathtubs",
+        "Industrial Enclosures"
+      ],
+      "markets": [
+        "India",
+        "Netherlands",
+        "Russia",
+        "Japan"
+      ],
+      "price_range_inr": "₹80L (C) — ₹2.49Cr (XL)"
+    },
+    {
+      "rank": 3,
+      "model_family": "PF1-1515 / PF1-C-1515",
+      "forming_area": "1500 x 1500 mm (2.25 m²)",
+      "evidence": {
+        "historical_orders": 3,
+        "quotes_generated": 9,
+        "order_book_2025": 0,
+        "repeat_customers": [
+          "Anchor Media (Sweden)",
+          "Anatomic SITT (Sweden)",
+          "Walterpack"
+        ]
+      },
+      "why_standardize": "Strong European demand — well covers, medical, industrial. Square format is versatile. 2nd most quoted size. Good margin machine.",
+      "applications_sold": [
+        "Well Covers",
+        "Medical Equipment",
+        "Industrial Housings",
+        "Skylights"
+      ],
+      "markets": [
+        "Sweden",
+        "Netherlands",
+        "India"
+      ],
+      "price_range_inr": "~₹45L (C) — estimated"
+    },
+    {
+      "rank": 4,
+      "model_family": "AM-5060 / AMV-5060 / AM-5060-P",
+      "forming_area": "500 x 600 mm (0.3 m²)",
+      "evidence": {
+        "historical_orders": 2,
+        "quotes_generated": 8,
+        "order_book_2025": 4,
+        "repeat_customers": [
+          "ALP (multiple)",
+          "Formpack",
+          "Abhishek",
+          "Convertex"
+        ]
+      },
+      "why_standardize": "Highest unit volume in 2025 order book (4 orders). Low price point drives volume. Thin-gauge packaging market is huge. Multiple variants (standard, press, pressure) from same platform.",
+      "applications_sold": [
+        "Packaging",
+        "Blister Packs",
+        "Food Trays",
+        "Thin-Gauge Parts"
+      ],
+      "markets": [
+        "India (primary)"
+      ],
+      "price_range_inr": "₹7.5L (standard) — ₹35L (pressure forming)"
+    },
+    {
+      "rank": 5,
+      "model_family": "PF1-X-1208 / PF1-X-1210 / PF1-C-1208",
+      "forming_area": "1200 x 800-1000 mm (0.96-1.2 m²)",
+      "evidence": {
+        "historical_orders": 3,
+        "quotes_generated": 7,
+        "order_book_2025": 2,
+        "repeat_customers": [
+          "Batelaan (Netherlands)",
+          "K2025 show machine",
+          "MP3 (Italy)"
+        ]
+      },
+      "why_standardize": "European export workhorse — compact enough to ship in standard container. K-show demo machine size. Strong conversion from trade show leads. Good entry point for servo (X) series.",
+      "applications_sold": [
+        "General Thermoforming",
+        "Trade Show Demo",
+        "Small-Medium Parts"
+      ],
+      "markets": [
+        "Netherlands",
+        "Italy",
+        "India",
+        "UK"
+      ],
+      "price_range_inr": "₹35L (C) — ₹1.16Cr (X)"
+    }
+  ]
+}

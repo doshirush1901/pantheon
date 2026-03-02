@@ -3,7 +3,7 @@
 QUOTES & EMAIL INGESTION SCRIPT
 ===============================
 
-Scans the data/imports/Quotes folder and ingests:
+Scans the data/imports/01_Quotes_and_Proposals folder and ingests:
 1. Gmail PDFs - Email conversations with customers
 2. Quote PDFs - Machine quotations and offers
 
@@ -54,7 +54,7 @@ except ImportError:
 from document_extractor import extract_pdf
 from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
 
-QUOTES_DIR = PROJECT_ROOT / "data" / "imports" / "Quotes"
+QUOTES_DIR = PROJECT_ROOT / "data" / "imports" / "01_Quotes_and_Proposals"
 
 MACHINE_PATTERNS = [
     r'PF1-[A-Z]?-?\d{4}',

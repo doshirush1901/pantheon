@@ -1,0 +1,218 @@
+{
+  "_description": "Ira's Knowledge Coverage Map — shows what she knows deeply vs where gaps exist",
+  "_generated_at": "2026-03-02",
+  "_purpose": "Helps Ira prioritize what to ingest next to fill knowledge gaps",
+
+  "summary": {
+    "total_import_files": 502,
+    "total_ingested": 496,
+    "total_not_ingested": 6,
+    "total_machine_models_in_db": 46,
+    "models_with_zero_doc_refs": 17,
+    "knowledge_json_backups": 512
+  },
+
+  "machine_coverage": {
+    "_note": "Each machine model scored by: doc_refs (import files mentioning it), spec_completeness (% of key fields filled), knowledge_depth (JSON backups referencing it)",
+
+    "well_covered": {
+      "_description": "Models with strong documentation + complete specs — Ira is confident here",
+      "models": {
+        "PF1-C-3020":  { "doc_refs": 9, "spec_fields_filled": "12/14", "notes": "Flagship model, many quotes + manual + catalogue" },
+        "PF1-XL-3020": { "doc_refs": 9, "spec_fields_filled": "12/14", "notes": "Large format servo, well documented" },
+        "PF1-C-2015":  { "doc_refs": 8, "spec_fields_filled": "12/14", "notes": "Mid-range workhorse, good coverage" },
+        "AM-5060":     { "doc_refs": 3, "spec_fields_filled": "12/14", "notes": "Core AM model, catalogue + quotes" },
+        "AM-5060-P":   { "doc_refs": 3, "spec_fields_filled": "12/14", "notes": "Pneumatic AM variant" },
+        "AM-6060":     { "doc_refs": 3, "spec_fields_filled": "11/14", "notes": "Larger AM model" },
+        "FCS-6050-3ST":{ "doc_refs": 2, "spec_fields_filled": "12/14", "notes": "FCS brochure + quotes" },
+        "FCS-6050-4ST":{ "doc_refs": 2, "spec_fields_filled": "12/14", "notes": "4-station variant" },
+        "IMG-1350":    { "doc_refs": 2, "spec_fields_filled": "12/14", "notes": "IAC project docs + catalogue" }
+      }
+    },
+
+    "partially_covered": {
+      "_description": "Models with specs but few/no dedicated documents — Ira can answer basics but may lack depth",
+      "models": {
+        "PF1-X-1510":  { "doc_refs": 3, "gaps": ["max_draw_depth_mm", "clamping_force", "cycle_time"] },
+        "PF1-X-2520":  { "doc_refs": 3, "gaps": ["max_draw_depth_mm", "clamping_force", "cycle_time"] },
+        "PF1-C-1510":  { "doc_refs": 3, "gaps": ["price_usd", "max_draw_depth_mm", "clamping_force"] },
+        "PF1-C-2520":  { "doc_refs": 3, "gaps": ["max_draw_depth_mm", "clamping_force", "cycle_time"] },
+        "PF1-X-1520":  { "doc_refs": 4, "gaps": ["max_draw_depth_mm", "clamping_force", "cycle_time"] },
+        "PF1-R-1510":  { "doc_refs": 1, "gaps": ["price_usd", "max_draw_depth_mm", "cycle_time"] },
+        "FCS-7060-4ST":{ "doc_refs": 1, "gaps": ["price_usd", "max_draw_depth_mm", "cycle_time"] },
+        "PF1-C-1309":  { "doc_refs": 1, "gaps": ["price_usd", "max_draw_depth_mm", "cycle_time"] },
+        "PF1-C-2412":  { "doc_refs": 1, "gaps": ["price_usd", "max_draw_depth_mm", "cycle_time"] },
+        "PF1-X-2412":  { "doc_refs": 1, "gaps": ["price_usd", "max_draw_depth_mm", "cycle_time"] }
+      }
+    },
+
+    "blind_spots": {
+      "_description": "Models in specs DB but ZERO import documents reference them — Ira is guessing from specs alone",
+      "models": [
+        "DUO-0806",
+        "DUO-1208",
+        "FCS-7060-3ST",
+        "IMG-1205",
+        "IMG-2012",
+        "PF1-C-1208",
+        "PF1-C-1812",
+        "PF1-C-3015",
+        "PF1-X-1208",
+        "PF1-X-2116",
+        "PF2-P2010",
+        "PF2-P2020",
+        "PF2-P2424",
+        "PLAY-450-DT",
+        "UNO-0806",
+        "UNO-1208",
+        "UNO-1208-2H"
+      ],
+      "priority_ingestion_needed": [
+        "PF2-P2010 — entire PF2 series has zero docs, need catalogues/quotes",
+        "PF2-P2020 — bath/open frame machines, no application docs",
+        "PF2-P2424 — largest PF2, zero reference material",
+        "DUO-0806 — DUO series completely undocumented",
+        "DUO-1208 — DUO series completely undocumented",
+        "UNO-0806 — UNO series has zero docs despite 5 keyword refs",
+        "UNO-1208 — entry-level machine, needs docs for lead qualification",
+        "UNO-1208-2H — dual heater variant, no docs",
+        "PLAY-450-DT — desktop model, no docs at all",
+        "IMG-1205 — smaller IMG, no project docs",
+        "IMG-2012 — large IMG, no project docs",
+        "PF1-X-2116 — popular size (Mirsant quotes exist but not linked)"
+      ]
+    }
+  },
+
+  "spec_field_gaps": {
+    "_description": "Fields missing across ALL 46 models — these are systematic gaps",
+    "critical_gaps": {
+      "price_usd":             { "filled": 16, "total": 46, "pct": 35, "action": "Add USD pricing for 30 models — critical for international quotes" },
+      "max_draw_depth_mm":     { "filled": 5,  "total": 46, "pct": 11, "action": "Add draw depth for 41 models — customers always ask this" },
+      "clamping_force":        { "filled": 0,  "total": 46, "pct": 0,  "action": "Zero models have clamping force — need from engineering" },
+      "cycle_time":            { "filled": 0,  "total": 46, "pct": 0,  "action": "Zero models have cycle time data — need from production" },
+      "base_price_usd":        { "filled": 0,  "total": 46, "pct": 0,  "action": "No base USD prices — derive from INR or add separately" }
+    },
+    "good_coverage": {
+      "price_inr":             { "filled": 46, "pct": 100 },
+      "forming_area_mm":       { "filled": 46, "pct": 100 },
+      "heater_power_kw":       { "filled": 46, "pct": 100 },
+      "heater_type":           { "filled": 46, "pct": 100 },
+      "vacuum_pump_capacity":  { "filled": 46, "pct": 100 },
+      "source_documents":      { "filled": 46, "pct": 100 },
+      "features":              { "filled": 41, "pct": 89 },
+      "max_sheet_thickness_mm":{ "filled": 36, "pct": 78 },
+      "applications":          { "filled": 35, "pct": 76 }
+    }
+  },
+
+  "knowledge_domain_depth": {
+    "_description": "How deep Ira's knowledge is per domain, based on ingested JSON backups",
+    "domains": {
+      "pricing":              { "backups": 206, "depth": "DEEP",    "notes": "Strongest area — 206 pricing knowledge entries from quotes" },
+      "general":              { "backups": 150, "depth": "DEEP",    "notes": "Broad general knowledge, well covered" },
+      "customer":             { "backups": 30,  "depth": "MODERATE","notes": "30 customer profiles — could use more from CRM" },
+      "market_intelligence":  { "backups": 20,  "depth": "MODERATE","notes": "Market data exists but could be richer" },
+      "machine_spec":         { "backups": 15,  "depth": "MODERATE","notes": "Specs ingested but many fields still empty" },
+      "commercial":           { "backups": 12,  "depth": "LIGHT",   "notes": "Commercial terms, payment schedules — thin" },
+      "sales_playbook":       { "backups": 9,   "depth": "LIGHT",   "notes": "Sales methodology captured but could be deeper" },
+      "operational":          { "backups": 7,   "depth": "LIGHT",   "notes": "Production/operations knowledge is thin" },
+      "order":                { "backups": 7,   "depth": "LIGHT",   "notes": "Order history — 37 order docs but only 7 knowledge entries" },
+      "customer_intelligence":{ "backups": 5,   "depth": "THIN",    "notes": "Competitive intel on customers is weak" },
+      "inquiry_patterns":     { "backups": 5,   "depth": "THIN",    "notes": "What customers typically ask — needs more data" },
+      "contract":             { "backups": 4,   "depth": "THIN",    "notes": "Contract terms barely documented" },
+      "application":          { "backups": 4,   "depth": "THIN",    "notes": "Application knowledge (automotive, packaging etc) is thin" },
+      "service":              { "backups": 4,   "depth": "THIN",    "notes": "After-sales/service knowledge almost absent" },
+      "case_study":           { "backups": 2,   "depth": "MINIMAL", "notes": "Only 2 case studies despite 9 project docs" },
+      "process":              { "backups": 2,   "depth": "MINIMAL", "notes": "Thermoforming process knowledge barely captured" },
+      "partnership":          { "backups": 1,   "depth": "MINIMAL", "notes": "FRIMO partnership barely documented" }
+    }
+  },
+
+  "document_category_coverage": {
+    "_description": "File counts per category in imports — shows where raw material exists vs is thin",
+    "categories": {
+      "01_Quotes_and_Proposals":       { "files": 362, "size_mb": 899, "assessment": "ABUNDANT — massive quote library" },
+      "02_Orders_and_POs":             { "files": 37,  "size_mb": 31,  "assessment": "GOOD — solid order history" },
+      "03_Product_Catalogues":         { "files": 7,   "size_mb": 86,  "assessment": "OK — covers AM, PF1, FCS, IMG. Missing: PF2, DUO, UNO, PLAY catalogues" },
+      "04_Machine_Manuals_and_Specs":  { "files": 27,  "size_mb": 77,  "assessment": "MODERATE — manuals for AM + PF1 only. Missing: FCS, IMG, PF2, UNO, DUO manuals" },
+      "05_Presentations":              { "files": 12,  "size_mb": 82,  "assessment": "GOOD — company + product presentations" },
+      "06_Market_Research_and_Analysis":{ "files": 8,   "size_mb": 58,  "assessment": "THIN — only 8 research docs for entire market" },
+      "07_Leads_and_Contacts":         { "files": 13,  "size_mb": 4,   "assessment": "MODERATE — exhibition leads + customer lists" },
+      "08_Sales_and_CRM":              { "files": 5,   "size_mb": 1,   "assessment": "THIN — sales methodology barely documented" },
+      "09_Industry_Knowledge":         { "files": 7,   "size_mb": 11,  "assessment": "THIN — thermoforming industry knowledge is sparse" },
+      "10_Company_Internal":           { "files": 8,   "size_mb": 7,   "assessment": "LIGHT — brand, org structure, history" },
+      "11_Project_Case_Studies":       { "files": 9,   "size_mb": 21,  "assessment": "THIN — only 9 case studies for 20+ years of projects" },
+      "12_Emails_and_Correspondence":  { "files": 0,   "size_mb": 0,   "assessment": "EMPTY — email knowledge only in quotes folder" },
+      "13_Contracts_and_Legal":        { "files": 1,   "size_mb": 3,   "assessment": "ALMOST EMPTY — 1 contract doc" }
+    }
+  },
+
+  "priority_ingestion_recommendations": [
+    {
+      "priority": 1,
+      "area": "PF2/DUO/UNO/PLAY Catalogues & Specs",
+      "why": "17 machine models have ZERO document references. Entire product lines (PF2, DUO, UNO, PLAY) are blind spots.",
+      "what_to_ingest": "Product catalogues, spec sheets, brochures for PF2, DUO, UNO, PLAY series",
+      "impact": "Ira cannot confidently recommend or quote these machines"
+    },
+    {
+      "priority": 2,
+      "area": "USD Pricing for International Markets",
+      "why": "Only 35% of models have USD pricing. All have INR but international customers need USD/EUR.",
+      "what_to_ingest": "EUR/USD price lists, international quotation templates",
+      "impact": "Ira struggles with international quote generation"
+    },
+    {
+      "priority": 3,
+      "area": "Draw Depth, Clamping Force, Cycle Time specs",
+      "why": "0% clamping force, 0% cycle time, 11% draw depth across all 46 models.",
+      "what_to_ingest": "Engineering spec sheets, production data, test reports",
+      "impact": "These are top-3 customer questions Ira cannot answer precisely"
+    },
+    {
+      "priority": 4,
+      "area": "Application Knowledge & Case Studies",
+      "why": "Only 4 application knowledge entries and 2 case studies despite 20+ years of projects.",
+      "what_to_ingest": "Project completion reports, customer success stories, application notes by industry",
+      "impact": "Ira cannot tell compelling stories about what machines have achieved"
+    },
+    {
+      "priority": 5,
+      "area": "Service & After-Sales Knowledge",
+      "why": "Only 4 service knowledge entries. No maintenance guides, spare parts lists, or troubleshooting docs.",
+      "what_to_ingest": "Service manuals, maintenance schedules, spare parts catalogs, troubleshooting guides",
+      "impact": "Ira cannot help with post-sale support questions"
+    },
+    {
+      "priority": 6,
+      "area": "Market Research & Competitive Intelligence",
+      "why": "Only 8 market research docs and 5 customer intelligence entries.",
+      "what_to_ingest": "Competitor comparison sheets, industry reports (2024-2026), regional market analyses",
+      "impact": "Ira lacks context for strategic sales conversations"
+    },
+    {
+      "priority": 7,
+      "area": "Contract & Legal Templates",
+      "why": "Only 1 contract document. No standard terms, warranty docs, or legal templates.",
+      "what_to_ingest": "Standard contract templates, warranty terms, payment terms, Incoterms used",
+      "impact": "Ira cannot assist with contract-stage conversations"
+    },
+    {
+      "priority": 8,
+      "area": "FRIMO Partnership Documentation",
+      "why": "Only 1 partnership knowledge entry despite FRIMO being a key partner.",
+      "what_to_ingest": "FRIMO cooperation agreement, joint project docs, technology sharing agreements",
+      "impact": "Ira doesn't understand the FRIMO relationship well enough for partner conversations"
+    }
+  ],
+
+  "not_yet_ingested": [
+    "Machinecraft Company Presentation June 2023 - Rushabh Doshi for FRIMO.pptx",
+    "European & US Contacts for Single Station Nov 203.csv",
+    "Abhishek_PO_signed.pdf",
+    "Ridat PO.pdf",
+    "Quote - Prince - SAM 1100 x 800.pdf",
+    "M.TECHNO BALANCE SHEET AY 2021-22.pdf"
+  ]
+}

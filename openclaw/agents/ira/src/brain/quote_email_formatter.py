@@ -6,7 +6,7 @@ QUOTE EMAIL FORMATTER - Format quotes in Machinecraft style
 Takes a GeneratedQuote and formats it as a professional email
 matching Machinecraft's actual quotation format.
 
-Format learned from actual quotes in data/imports/Quotes/
+Format learned from actual quotes in data/imports/01_Quotes_and_Proposals/
 
 Usage:
     from quote_email_formatter import format_quote_email

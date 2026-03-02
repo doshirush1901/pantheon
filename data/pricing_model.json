@@ -1,0 +1,125 @@
+{
+  "_title": "Machinecraft Multi-Dimensional Pricing Model",
+  "_generated": "2026-03-02",
+  "_description": "Mathematical patterns extracted from 46 machine models across 8 product lines",
+
+  "dimension_1_price_vs_area": {
+    "_insight": "Price scales with forming area, but follows a POWER LAW (not linear) for most series. Larger machines cost more total but less per m².",
+    "formulas": {
+      "PF1-C": {
+        "model": "Price = e^15.05 × area^0.48",
+        "simplified": "Price_INR ≈ 3,450,000 × area_m²^0.48",
+        "r_squared": 0.969,
+        "interpretation": "Sub-linear scaling — doubling area only increases price ~40%"
+      },
+      "PF1-X": {
+        "model": "Price = e^16.08 × area^0.56",
+        "simplified": "Price_INR ≈ 9,680,000 × area_m²^0.56",
+        "r_squared": 0.952,
+        "interpretation": "Sub-linear scaling — doubling area increases price ~47%"
+      },
+      "PF2": {
+        "model": "Price = e^14.72 × area^0.52",
+        "simplified": "Price_INR ≈ 2,470,000 × area_m²^0.52",
+        "r_squared": 0.992,
+        "interpretation": "Near-perfect power law fit — very predictable pricing"
+      },
+      "IMG": {
+        "model": "Price = ₹2.44M × area_m² + ₹11.68M",
+        "r_squared": 0.934,
+        "interpretation": "High fixed cost (₹11.7M base) + modest area scaling — technology-driven pricing"
+      },
+      "FCS": {
+        "model": "Price = ₹41.67M × area_m² − ₹1.25M",
+        "r_squared": 0.800,
+        "interpretation": "Steepest area scaling of any series — multi-station complexity"
+      },
+      "UNO": {
+        "model": "Price = e^15.57 × area^0.20",
+        "simplified": "Price_INR ≈ 5,780,000 × area_m²^0.20",
+        "r_squared": 0.772,
+        "interpretation": "Very flat scaling — price barely changes with size"
+      }
+    }
+  },
+
+  "dimension_2_servo_vs_pneumatic": {
+    "_insight": "All-servo (X) machines cost 3.04x pneumatic (C) on average. The premium is remarkably stable across sizes.",
+    "average_multiplier": 3.04,
+    "multiplier_by_size": [
+      { "area_sqm": 0.96, "multiplier": 2.37, "models": "PF1-C-1208 → PF1-X-1208" },
+      { "area_sqm": 1.50, "multiplier": 3.32, "models": "PF1-C-1510 → PF1-X-1510" },
+      { "area_sqm": 2.88, "multiplier": 3.62, "models": "PF1-C-2412 → PF1-X-2412" },
+      { "area_sqm": 3.00, "multiplier": 2.63, "models": "PF1-C-2015 → PF1-X-1520" },
+      { "area_sqm": 3.75, "multiplier": 2.96, "models": "PF1-C-2515 → PF1-X-2515" },
+      { "area_sqm": 4.00, "multiplier": 3.19, "models": "PF1-C-2020 → PF1-X-2020" },
+      { "area_sqm": 5.00, "multiplier": 3.11, "models": "PF1-C-2520 → PF1-X-2520" },
+      { "area_sqm": 6.00, "multiplier": 3.11, "models": "PF1-C-3020 → PF1-XL-3020" }
+    ],
+    "trend": "Slight increase with size (0.067 per m²) but low R²=0.083 — essentially flat at ~3x"
+  },
+
+  "dimension_3_station_count_premium": {
+    "_insight": "Adding a 4th station to FCS costs a flat ₹2.5M regardless of size, but the percentage premium drops for larger machines.",
+    "fcs_6050_3st_to_4st": { "premium_pct": 25, "premium_inr": 2500000 },
+    "fcs_7060_3st_to_4st": { "premium_pct": 17, "premium_inr": 2500000 },
+    "pneumatic_to_servo_premium": { "premium_pct": 50 }
+  },
+
+  "dimension_4_heater_premium": {
+    "_insight": "Twin heater adds 9% (₹0.5M) to UNO at same forming area. Modest premium for doubled heating capacity.",
+    "uno_1208_single_to_twin": { "premium_pct": 9, "premium_inr": 500000 }
+  },
+
+  "dimension_5_economies_of_scale": {
+    "_insight": "Price per m² drops dramatically with size. A 6m² PF1-C costs 68% less per m² than a 0.8m² PF1-C.",
+    "PF1-C": {
+      "smallest": { "model": "PF1-C-1008", "area_sqm": 0.80, "price_per_sqm_M": 4.12 },
+      "largest":  { "model": "PF1-C-3020", "area_sqm": 6.00, "price_per_sqm_M": 1.33 },
+      "drop_pct": 68
+    },
+    "PF1-X": {
+      "smallest": { "model": "PF1-X-1006", "area_sqm": 0.60, "price_per_sqm_M": 11.76 },
+      "largest":  { "model": "PF1-X-2520", "area_sqm": 5.00, "price_per_sqm_M": 4.48 },
+      "drop_pct": 62
+    }
+  },
+
+  "dimension_6_technology_tiers": {
+    "_insight": "8 distinct technology tiers with wildly different price/m² — from ₹1.4M/m² (PF2) to ₹38.1M/m² (FCS). Technology complexity, not size, is the primary price driver.",
+    "tiers_ranked_by_price_per_sqm": [
+      { "tier": "Form-Cut-Stack (FCS)",         "avg_inr_per_sqm_M": 38.1, "range_inr_M": "10.0 - 17.5" },
+      { "tier": "In-Mold Graining (IMG)",       "avg_inr_per_sqm_M": 16.3, "range_inr_M": "12.5 - 17.5" },
+      { "tier": "Single Station (UNO/DUO)",     "avg_inr_per_sqm_M": 8.1,  "range_inr_M": "5.0 - 6.5" },
+      { "tier": "Heavy Gauge Servo (PF1-X/XL)", "avg_inr_per_sqm_M": 6.9,  "range_inr_M": "7.1 - 24.9" },
+      { "tier": "Thin Gauge (AM)",              "avg_inr_per_sqm_M": 5.4,  "range_inr_M": "0.8 - 3.5" },
+      { "tier": "Heavy Gauge Pneumatic (PF1-C)","avg_inr_per_sqm_M": 2.3,  "range_inr_M": "3.3 - 8.0" },
+      { "tier": "Entry (PLAY)",                 "avg_inr_per_sqm_M": 1.7,  "range_inr_M": "0.35" },
+      { "tier": "Open Frame (PF2)",             "avg_inr_per_sqm_M": 1.4,  "range_inr_M": "3.5 - 6.0" }
+    ]
+  },
+
+  "dimension_7_heater_power_correlation": {
+    "_insight": "Heater power (kW) is a strong proxy for price in specialized series. FCS and IMG show near-perfect correlation (R²>0.98).",
+    "formulas": {
+      "FCS": { "model": "Price = ₹0.350M × kW − ₹3.75M", "r_squared": 0.980 },
+      "IMG": { "model": "Price = ₹0.123M × kW + ₹5.23M", "r_squared": 0.997 },
+      "PF2": { "model": "Price = ₹0.062M × kW − ₹0.10M", "r_squared": 0.959 },
+      "UNO": { "model": "Price = ₹0.024M × kW + ₹4.67M", "r_squared": 0.930 }
+    }
+  },
+
+  "quick_estimation_rules": {
+    "_description": "Rules of thumb Ira can use for quick price estimation",
+    "rules": [
+      "PF1-C: Start at ₹3.3M for 0.8m², add ~₹1M per additional m²",
+      "PF1-X: Take PF1-C price and multiply by 3.0x",
+      "PF2: Start at ₹2.3M base, add ₹0.67M per m² — cheapest per m²",
+      "FCS: ₹10M base for 3-station, +₹2.5M for 4th station, +50% for servo",
+      "IMG: ₹11.7M base + ₹2.4M per m² — high fixed cost, modest scaling",
+      "UNO: ~₹5-6M regardless of size, +9% for twin heater",
+      "DUO: ~₹5.5-6.5M, slight premium over UNO for dual station",
+      "PLAY: ₹0.35M — desktop entry point"
+    ]
+  }
+}

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ira Knowledge Coverage Map</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e0; padding: 2rem; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.3rem; color: #fff; }
+  .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  .card { background: #14141f; border: 1px solid #2a2a3a; border-radius: 12px; padding: 1.5rem; }
+  .card h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #a0a0ff; }
+  .card h3 { font-size: 0.95rem; margin: 1rem 0 0.5rem; color: #80c0ff; }
+  .full-width { grid-column: 1 / -1; }
+  .stat-row { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .stat { background: #1a1a2e; border-radius: 8px; padding: 1rem 1.5rem; text-align: center; flex: 1; min-width: 120px; }
+  .stat .num { font-size: 2rem; font-weight: 700; color: #fff; }
+  .stat .label { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+  .bar-container { margin: 0.4rem 0; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 2px; }
+  .bar-bg { background: #1a1a2e; border-radius: 4px; height: 20px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.7rem; font-weight: 600; color: #fff; min-width: fit-content; }
+  .bar-fill.deep { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .bar-fill.moderate { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+  .bar-fill.light { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .bar-fill.thin { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .bar-fill.minimal { background: linear-gradient(90deg, #7f1d1d, #991b1b); }
+  .bar-fill.green { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+  .bar-fill.yellow { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .bar-fill.red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .machine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+  .machine-chip { padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; text-align: center; font-weight: 600; }
+  .machine-chip.covered { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+  .machine-chip.partial { background: #1e3a5f; color: #60a5fa; border: 1px solid #1d4ed8; }
+  .machine-chip.blind { background: #451a03; color: #fb923c; border: 1px solid #92400e; }
+  .machine-chip.zero { background: #2d0a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .priority-list { list-style: none; }
+  .priority-list li { padding: 0.8rem 1rem; margin: 0.5rem 0; background: #1a1a2e; border-radius: 8px; border-left: 4px solid; }
+  .priority-list li.p1 { border-color: #ef4444; }
+  .priority-list li.p2 { border-color: #f59e0b; }
+  .priority-list li.p3 { border-color: #f59e0b; }
+  .priority-list li.p4 { border-color: #3b82f6; }
+  .priority-list li.p5 { border-color: #3b82f6; }
+  .priority-list li.p6 { border-color: #6366f1; }
+  .priority-list li.p7 { border-color: #6366f1; }
+  .priority-list li.p8 { border-color: #8b5cf6; }
+  .priority-num { font-weight: 700; font-size: 0.85rem; color: #fff; }
+  .priority-title { font-weight: 600; color: #e0e0e0; margin: 0.2rem 0; }
+  .priority-why { font-size: 0.8rem; color: #999; }
+  .priority-action { font-size: 0.8rem; color: #60a5fa; margin-top: 0.3rem; }
+  .legend { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #aaa; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; padding: 0.5rem; color: #888; border-bottom: 1px solid #2a2a3a; font-weight: 500; }
+  td { padding: 0.5rem; border-bottom: 1px solid #1a1a2e; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .tag.abundant { background: #14532d; color: #4ade80; }
+  .tag.good { background: #1e3a5f; color: #60a5fa; }
+  .tag.moderate { background: #3b3a1a; color: #fbbf24; }
+  .tag.thin { background: #451a03; color: #fb923c; }
+  .tag.empty { background: #2d0a0a; color: #f87171; }
+</style>
+</head>
+<body>
+
+<h1>Ira Knowledge Coverage Map</h1>
+<p class="subtitle">Generated 2 March 2026 &mdash; What Ira knows deeply vs where she needs more data</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="num">502</div><div class="label">Import Files</div></div>
+  <div class="stat"><div class="num">496</div><div class="label">Ingested</div></div>
+  <div class="stat"><div class="num">46</div><div class="label">Machine Models</div></div>
+  <div class="stat"><div class="num" style="color:#f87171">17</div><div class="label">Models with Zero Docs</div></div>
+  <div class="stat"><div class="num">512</div><div class="label">Knowledge Entries</div></div>
+</div>
+
+<div class="grid">
+
+  <div class="card full-width">
+    <h2>Machine Model Coverage</h2>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Well Covered (5+ docs)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div> Partial (1-4 docs)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Blind Spot (0 docs)</div>
+    </div>
+    <h3>PF1-C Series (Pneumatic) &mdash; 14 models</h3>
+    <div class="machine-grid">
+      <div class="machine-chip covered">PF1-C-3020<br><small>9 docs</small></div>
+      <div class="machine-chip covered">PF1-C-2015<br><small>8 docs</small></div>
+      <div class="machine-chip partial">PF1-C-2020<br><small>4 docs</small></div>
+      <div class="machine-chip partial">PF1-C-2010<br><small>4 docs</small></div>
+      <div class="machine-chip partial">PF1-C-1510<br><small>3 docs</small></div>
+      <div class="machine-chip partial">PF1-C-2520<br><small>3 docs</small></div>
+      <div class="machine-chip partial">PF1-C-1008<br><small>2 docs</small></div>
+      <div class="machine-chip partial">PF1-C-1212<br><small>1 doc</small></div>
+      <div class="machine-chip partial">PF1-C-1309<br><small>1 doc</small></div>
+      <div class="machine-chip partial">PF1-C-2412<br><small>1 doc</small></div>
+      <div class="machine-chip partial">PF1-C-2515<br><small>1 doc</small></div>
+      <div class="machine-chip zero">PF1-C-1208<br><small>0 docs</small></div>
+      <div class="machine-chip zero">PF1-C-1812<br><small>0 docs</small></div>
+      <div class="machine-chip zero">PF1-C-3015<br><small>0 docs</small></div>
+    </div>
+
+    <h3>PF1-X Series (All-Servo) &mdash; 11 models</h3>
+    <div class="machine-grid">
+      <div class="machine-chip covered">PF1-XL-3020<br><small>9 docs</small></div>
+      <div class="machine-chip partial">PF1-X-1520<br><small>4 docs</small></div>
+      <div class="machine-chip partial">PF1-X-2020<br><small>4 docs</small></div>
+      <div class="machine-chip partial">PF1-X-1510<br><small>3 docs</small></div>
+      <div class="machine-chip partial">PF1-X-2520<br><small>3 docs</small></div>
+      <div class="machine-chip partial">PF1-X-1006<br><small>2 docs</small></div>
+      <div class="machine-chip partial">PF1-X-1210<br><small>2 docs</small></div>
+      <div class="machine-chip partial">PF1-X-2515<br><small>1 doc</small></div>
+      <div class="machine-chip zero">PF1-X-1208<br><small>0 docs</small></div>
+      <div class="machine-chip zero">PF1-X-2116<br><small>0 docs</small></div>
+    </div>
+
+    <h3>AM Series (Thin Gauge) &mdash; 4 models</h3>
+    <div class="machine-grid">
+      <div class="machine-chip partial">AM-5060<br><small>3 docs</small></div>
+      <div class="machine-chip partial">AM-5060-P<br><small>3 docs</small></div>
+      <div class="machine-chip partial">AMP-5060<br><small>3 docs</small></div>
+      <div class="machine-chip partial">AM-6060<br><small>3 docs</small></div>
+    </div>
+
+    <h3>FCS Series (Form-Cut-Stack) &mdash; 4 models</h3>
+    <div class="machine-grid">
+      <div class="machine-chip partial">FCS-6050-3ST<br><small>2 docs</small></div>
+      <div class="machine-chip partial">FCS-6050-4ST<br><small>2 docs</small></div>
+      <div class="machine-chip partial">FCS-7060-4ST<br><small>1 doc</small></div>
+      <div class="machine-chip zero">FCS-7060-3ST<br><small>0 docs</small></div>
+    </div>
+
+    <h3>IMG Series (In-Mold Graining) &mdash; 3 models</h3>
+    <div class="machine-grid">
+      <div class="machine-chip partial">IMG-1350<br><small>2 docs</small></div>
+      <div class="machine-chip zero">IMG-1205<br><small>0 docs</small></div>
+      <div class="machine-chip zero">IMG-2012<br><small>0 docs</small></div>
+    </div>
+
+    <h3>PF2 / DUO / UNO / PLAY &mdash; 9 models (ALL blind spots)</h3>
+    <div class="machine-grid">
+      <div class="machine-chip zero">PF2-P2010<br><small>0 docs</small></div>
+      <div class="machine-chip zero">PF2-P2020<br><small>0 docs</small></div>
+      <div class="machine-chip zero">PF2-P2424<br><small>0 docs</small></div>
+      <div class="machine-chip zero">DUO-0806<br><small>0 docs</small></div>
+      <div class="machine-chip zero">DUO-1208<br><small>0 docs</small></div>
+      <div class="machine-chip zero">UNO-0806<br><small>0 docs</small></div>
+      <div class="machine-chip zero">UNO-1208<br><small>0 docs</small></div>
+      <div class="machine-chip zero">UNO-1208-2H<br><small>0 docs</small></div>
+      <div class="machine-chip zero">PLAY-450-DT<br><small>0 docs</small></div>
+    </div>
+    <div class="machine-chip partial" style="display:inline-block; margin-top:0.5rem;">PF1-R-1510<br><small>1 doc</small></div>
+  </div>
+
+  <div class="card">
+    <h2>Spec Field Completeness (46 models)</h2>
+    <div class="bar-container">
+      <div class="bar-label"><span>price_inr</span><span>46/46</span></div>
+      <div class="bar-bg"><div class="bar-fill green" style="width:100%">100%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>forming_area_mm</span><span>46/46</span></div>
+      <div class="bar-bg"><div class="bar-fill green" style="width:100%">100%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>heater_power_kw</span><span>46/46</span></div>
+      <div class="bar-bg"><div class="bar-fill green" style="width:100%">100%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>heater_type</span><span>46/46</span></div>
+      <div class="bar-bg"><div class="bar-fill green" style="width:100%">100%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>vacuum_pump</span><span>46/46</span></div>
+      <div class="bar-bg"><div class="bar-fill green" style="width:100%">100%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>features</span><span>41/46</span></div>
+      <div class="bar-bg"><div class="bar-fill green" style="width:89%">89%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>max_thickness_mm</span><span>36/46</span></div>
+      <div class="bar-bg"><div class="bar-fill blue" style="width:78%">78%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>applications</span><span>35/46</span></div>
+      <div class="bar-bg"><div class="bar-fill blue" style="width:76%">76%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>price_usd</span><span style="color:#f87171">16/46</span></div>
+      <div class="bar-bg"><div class="bar-fill yellow" style="width:35%">35%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>max_draw_depth</span><span style="color:#f87171">5/46</span></div>
+      <div class="bar-bg"><div class="bar-fill red" style="width:11%">11%</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>clamping_force</span><span style="color:#f87171">0/46</span></div>
+      <div class="bar-bg"><div class="bar-fill red" style="width:2%"></div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>cycle_time</span><span style="color:#f87171">0/46</span></div>
+      <div class="bar-bg"><div class="bar-fill red" style="width:2%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Knowledge Domain Depth</h2>
+    <div class="bar-container">
+      <div class="bar-label"><span>Pricing</span><span>206 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill deep" style="width:100%">DEEP</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>General</span><span>150 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill deep" style="width:73%">DEEP</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Customer</span><span>30 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill moderate" style="width:30%">MODERATE</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Market Intel</span><span>20 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill moderate" style="width:20%">MODERATE</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Machine Specs</span><span>15 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill moderate" style="width:15%">MODERATE</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Commercial</span><span>12 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill light" style="width:12%">LIGHT</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Sales Playbook</span><span>9 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill light" style="width:9%">LIGHT</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Operations</span><span>7 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill light" style="width:7%">LIGHT</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Applications</span><span>4 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill thin" style="width:5%">THIN</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Service</span><span>4 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill thin" style="width:5%">THIN</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Case Studies</span><span>2 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill minimal" style="width:3%">MINIMAL</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Process</span><span>2 entries</span></div>
+      <div class="bar-bg"><div class="bar-fill minimal" style="width:3%">MINIMAL</div></div>
+    </div>
+    <div class="bar-container">
+      <div class="bar-label"><span>Partnership</span><span>1 entry</span></div>
+      <div class="bar-bg"><div class="bar-fill minimal" style="width:2%">MINIMAL</div></div>
+    </div>
+  </div>
+
+  <div class="card full-width">
+    <h2>Document Category Coverage</h2>
+    <table>
+      <thead><tr><th>Category</th><th>Files</th><th>Size</th><th>Assessment</th></tr></thead>
+      <tbody>
+        <tr><td>01 Quotes & Proposals</td><td>362</td><td>899 MB</td><td><span class="tag abundant">ABUNDANT</span></td></tr>
+        <tr><td>02 Orders & POs</td><td>37</td><td>31 MB</td><td><span class="tag good">GOOD</span></td></tr>
+        <tr><td>03 Product Catalogues</td><td>7</td><td>86 MB</td><td><span class="tag moderate">OK &mdash; Missing PF2, DUO, UNO, PLAY</span></td></tr>
+        <tr><td>04 Machine Manuals & Specs</td><td>27</td><td>77 MB</td><td><span class="tag moderate">MODERATE &mdash; AM + PF1 only</span></td></tr>
+        <tr><td>05 Presentations</td><td>12</td><td>82 MB</td><td><span class="tag good">GOOD</span></td></tr>
+        <tr><td>06 Market Research</td><td>8</td><td>58 MB</td><td><span class="tag thin">THIN &mdash; 8 docs for entire market</span></td></tr>
+        <tr><td>07 Leads & Contacts</td><td>13</td><td>4 MB</td><td><span class="tag moderate">MODERATE</span></td></tr>
+        <tr><td>08 Sales & CRM</td><td>5</td><td>1 MB</td><td><span class="tag thin">THIN</span></td></tr>
+        <tr><td>09 Industry Knowledge</td><td>7</td><td>11 MB</td><td><span class="tag thin">THIN</span></td></tr>
+        <tr><td>10 Company Internal</td><td>8</td><td>7 MB</td><td><span class="tag moderate">LIGHT</span></td></tr>
+        <tr><td>11 Project Case Studies</td><td>9</td><td>21 MB</td><td><span class="tag thin">THIN &mdash; 9 studies for 20+ years</span></td></tr>
+        <tr><td>12 Emails</td><td>0</td><td>0 MB</td><td><span class="tag empty">EMPTY</span></td></tr>
+        <tr><td>13 Contracts & Legal</td><td>1</td><td>3 MB</td><td><span class="tag empty">ALMOST EMPTY</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card full-width">
+    <h2>Priority Ingestion Recommendations</h2>
+    <ul class="priority-list">
+      <li class="p1">
+        <div class="priority-num">P1 &mdash; CRITICAL</div>
+        <div class="priority-title">PF2 / DUO / UNO / PLAY Catalogues & Specs</div>
+        <div class="priority-why">17 machine models have ZERO document references. Entire product lines are blind spots.</div>
+        <div class="priority-action">Ingest: Product catalogues, spec sheets, brochures for PF2, DUO, UNO, PLAY series</div>
+      </li>
+      <li class="p2">
+        <div class="priority-num">P2 &mdash; HIGH</div>
+        <div class="priority-title">USD Pricing for International Markets</div>
+        <div class="priority-why">Only 35% of models have USD pricing. International customers need USD/EUR quotes.</div>
+        <div class="priority-action">Ingest: EUR/USD price lists, international quotation templates</div>
+      </li>
+      <li class="p3">
+        <div class="priority-num">P3 &mdash; HIGH</div>
+        <div class="priority-title">Draw Depth, Clamping Force, Cycle Time</div>
+        <div class="priority-why">0% clamping force, 0% cycle time, 11% draw depth. Top customer questions Ira can't answer.</div>
+        <div class="priority-action">Ingest: Engineering spec sheets, production data, test reports</div>
+      </li>
+      <li class="p4">
+        <div class="priority-num">P4 &mdash; MEDIUM</div>
+        <div class="priority-title">Application Knowledge & Case Studies</div>
+        <div class="priority-why">Only 4 application entries and 2 case studies despite 20+ years of projects.</div>
+        <div class="priority-action">Ingest: Project completion reports, customer success stories, application notes by industry</div>
+      </li>
+      <li class="p5">
+        <div class="priority-num">P5 &mdash; MEDIUM</div>
+        <div class="priority-title">Service & After-Sales Knowledge</div>
+        <div class="priority-why">Only 4 service entries. No maintenance guides, spare parts, or troubleshooting docs.</div>
+        <div class="priority-action">Ingest: Service manuals, maintenance schedules, spare parts catalogs</div>
+      </li>
+      <li class="p6">
+        <div class="priority-num">P6 &mdash; USEFUL</div>
+        <div class="priority-title">Market Research & Competitive Intelligence</div>
+        <div class="priority-why">Only 8 market research docs and 5 customer intelligence entries.</div>
+        <div class="priority-action">Ingest: Competitor comparisons, industry reports (2024-2026), regional analyses</div>
+      </li>
+      <li class="p7">
+        <div class="priority-num">P7 &mdash; USEFUL</div>
+        <div class="priority-title">Contract & Legal Templates</div>
+        <div class="priority-why">Only 1 contract document. No standard terms, warranty docs, or legal templates.</div>
+        <div class="priority-action">Ingest: Standard contracts, warranty terms, payment terms, Incoterms</div>
+      </li>
+      <li class="p8">
+        <div class="priority-num">P8 &mdash; NICE TO HAVE</div>
+        <div class="priority-title">FRIMO Partnership Documentation</div>
+        <div class="priority-why">Only 1 partnership entry despite FRIMO being a key technology partner.</div>
+        <div class="priority-action">Ingest: Cooperation agreement, joint project docs, technology sharing</div>
+      </li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machinecraft Pricing Model — Multi-Dimensional Analysis</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e0; padding: 2rem; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.3rem; color: #fff; }
+  .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .card { background: #14141f; border: 1px solid #2a2a3a; border-radius: 12px; padding: 1.5rem; }
+  .card h2 { font-size: 1.05rem; margin-bottom: 0.5rem; color: #a0a0ff; }
+  .card .insight { font-size: 0.85rem; color: #999; margin-bottom: 1rem; font-style: italic; }
+  .full-width { grid-column: 1 / -1; }
+  .chart-container { position: relative; height: 350px; }
+  .chart-container.tall { height: 420px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.5rem; }
+  th { text-align: left; padding: 6px 8px; color: #888; border-bottom: 1px solid #2a2a3a; font-weight: 500; }
+  td { padding: 6px 8px; border-bottom: 1px solid #1a1a2e; }
+  .formula { background: #1a1a2e; border-radius: 6px; padding: 8px 12px; font-family: 'SF Mono', monospace; font-size: 0.85rem; margin: 6px 0; color: #60a5fa; }
+  .rule-list { list-style: none; }
+  .rule-list li { padding: 6px 0; border-bottom: 1px solid #1a1a2e; font-size: 0.85rem; }
+  .rule-list li:last-child { border: none; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-left: 6px; }
+  .tag.high { background: #14532d; color: #4ade80; }
+  .tag.med { background: #3b3a1a; color: #fbbf24; }
+  .tag.low { background: #451a03; color: #fb923c; }
+  .mult-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .mult-bar .bar { height: 18px; border-radius: 4px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); display: flex; align-items: center; padding: 0 6px; font-size: 0.7rem; color: #fff; font-weight: 600; }
+  .mult-bar .label { font-size: 0.75rem; color: #aaa; min-width: 80px; }
+</style>
+</head>
+<body>
+
+<h1>Machinecraft Pricing Model</h1>
+<p class="subtitle">Multi-dimensional mathematical analysis of 46 machine models across 8 product lines</p>
+
+<div class="grid">
+
+  <!-- Chart 1: Price vs Area scatter -->
+  <div class="card full-width">
+    <h2>Dimension 1: Price vs Forming Area (all series)</h2>
+    <p class="insight">Power law fits better than linear for most series — larger machines cost more total but significantly less per m²</p>
+    <div class="chart-container tall">
+      <canvas id="priceVsArea"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 2: Price per m² decay -->
+  <div class="card">
+    <h2>Dimension 5: Economies of Scale</h2>
+    <p class="insight">Price/m² drops 68% (PF1-C) and 62% (PF1-X) from smallest to largest</p>
+    <div class="chart-container">
+      <canvas id="pricePerSqm"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3: Servo vs Pneumatic multiplier -->
+  <div class="card">
+    <h2>Dimension 2: Servo Premium (X/C Multiplier)</h2>
+    <p class="insight">All-servo costs 3.04x pneumatic on average — remarkably stable across sizes</p>
+    <div class="chart-container">
+      <canvas id="servoMultiplier"></canvas>
+    </div>
+  </div>
+
+  <!-- Technology Tier ranking -->
+  <div class="card">
+    <h2>Dimension 6: Technology Tier Pricing</h2>
+    <p class="insight">Technology complexity, not size, is the primary price driver</p>
+    <div class="chart-container">
+      <canvas id="techTiers"></canvas>
+    </div>
+  </div>
+
+  <!-- Formulas card -->
+  <div class="card">
+    <h2>Dimension 1: Best-Fit Pricing Formulas</h2>
+    <p class="insight">Use these to estimate price for any forming area within each series</p>
+    <div class="formula">PF1-C: Price ≈ ₹34.5L × area<sup>0.48</sup> <span class="tag high">R²=0.97</span></div>
+    <div class="formula">PF1-X: Price ≈ ₹96.8L × area<sup>0.56</sup> <span class="tag high">R²=0.95</span></div>
+    <div class="formula">PF2: Price ≈ ₹24.7L × area<sup>0.52</sup> <span class="tag high">R²=0.99</span></div>
+    <div class="formula">IMG: Price = ₹24.4L × area + ₹1.17Cr <span class="tag high">R²=0.93</span></div>
+    <div class="formula">FCS: Price = ₹4.17Cr × area − ₹12.5L <span class="tag med">R²=0.80</span></div>
+    <div class="formula">UNO: Price ≈ ₹57.8L × area<sup>0.20</sup> <span class="tag med">R²=0.77</span></div>
+    <p style="font-size:0.75rem; color:#666; margin-top:8px;">area = forming area in m². Power law: Price = coefficient × area^exponent</p>
+  </div>
+
+  <!-- Premiums card -->
+  <div class="card full-width">
+    <h2>Dimensions 3 & 4: Configuration Premiums</h2>
+    <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+      <div>
+        <h3 style="font-size:0.9rem; color:#80c0ff; margin-bottom:8px;">Servo vs Pneumatic</h3>
+        <div class="mult-bar"><span class="label">0.96 m²</span><div class="bar" style="width:158px">2.37x</div></div>
+        <div class="mult-bar"><span class="label">1.50 m²</span><div class="bar" style="width:221px">3.32x</div></div>
+        <div class="mult-bar"><span class="label">2.88 m²</span><div class="bar" style="width:241px">3.62x</div></div>
+        <div class="mult-bar"><span class="label">3.75 m²</span><div class="bar" style="width:197px">2.96x</div></div>
+        <div class="mult-bar"><span class="label">4.00 m²</span><div class="bar" style="width:213px">3.19x</div></div>
+        <div class="mult-bar"><span class="label">5.00 m²</span><div class="bar" style="width:207px">3.11x</div></div>
+        <div class="mult-bar"><span class="label">6.00 m²</span><div class="bar" style="width:207px">3.11x</div></div>
+        <p style="font-size:0.8rem; color:#60a5fa; margin-top:8px;">Average: <strong>3.04x</strong></p>
+      </div>
+      <div>
+        <h3 style="font-size:0.9rem; color:#80c0ff; margin-bottom:8px;">FCS Station Count</h3>
+        <table>
+          <tr><td>3ST → 4ST (6050)</td><td style="color:#fbbf24">+25%</td><td>+₹25L</td></tr>
+          <tr><td>3ST → 4ST (7060)</td><td style="color:#fbbf24">+17%</td><td>+₹25L</td></tr>
+          <tr><td>Pneumatic → Servo</td><td style="color:#f87171">+50%</td><td>+₹50L</td></tr>
+        </table>
+        <h3 style="font-size:0.9rem; color:#80c0ff; margin: 12px 0 8px;">UNO Heater</h3>
+        <table>
+          <tr><td>Single → Twin heater</td><td style="color:#4ade80">+9%</td><td>+₹5L</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3 style="font-size:0.9rem; color:#80c0ff; margin-bottom:8px;">Quick Estimation Rules</h3>
+        <ul class="rule-list">
+          <li><strong>PF1-C:</strong> ₹33L base + ~₹10L/m²</li>
+          <li><strong>PF1-X:</strong> PF1-C price × 3.0</li>
+          <li><strong>PF2:</strong> ₹23L base + ₹6.7L/m²</li>
+          <li><strong>FCS:</strong> ₹1Cr base, +₹25L per station, +50% servo</li>
+          <li><strong>IMG:</strong> ₹1.17Cr base + ₹24L/m²</li>
+          <li><strong>UNO:</strong> ~₹50-60L flat</li>
+          <li><strong>PLAY:</strong> ₹3.5L</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heater power correlation -->
+  <div class="card full-width">
+    <h2>Dimension 7: Heater Power as Price Predictor</h2>
+    <p class="insight">For specialized series (FCS, IMG), heater kW predicts price with R² > 0.98 — better than forming area</p>
+    <div class="chart-container">
+      <canvas id="heaterPrice"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#2a2a3a';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+const seriesColors = {
+  'PF1-C': '#3b82f6', 'PF1-X': '#8b5cf6', 'PF1-XL': '#a855f7', 'PF1-R': '#6366f1',
+  'PF2': '#22c55e', 'AM': '#f59e0b', 'AMP': '#f59e0b',
+  'FCS': '#ef4444', 'IMG': '#ec4899', 'UNO': '#14b8a6', 'DUO': '#06b6d4', 'PLAY': '#94a3b8'
+};
+
+const machines = [
+  {m:'PLAY-450-DT',s:'PLAY',a:0.20,p:0.35,kw:3},
+  {m:'AM-5060',s:'AM',a:0.30,p:0.75,kw:12},{m:'AM-5060-P',s:'AM',a:0.30,p:1.50,kw:15},
+  {m:'AMP-5060',s:'AMP',a:0.30,p:3.50,kw:18},{m:'AM-6060',s:'AM',a:0.36,p:0.90,kw:15},
+  {m:'FCS-6050-3ST',s:'FCS',a:0.30,p:10.0,kw:40},{m:'FCS-6050-4ST',s:'FCS',a:0.30,p:12.5,kw:45},
+  {m:'FCS-7060-3ST',s:'FCS',a:0.42,p:15.0,kw:55},{m:'FCS-7060-4ST',s:'FCS',a:0.42,p:17.5,kw:60},
+  {m:'UNO-0806',s:'UNO',a:0.48,p:5.0,kw:18},{m:'DUO-0806',s:'DUO',a:0.48,p:5.5,kw:18},
+  {m:'PF1-X-1006',s:'PF1-X',a:0.60,p:7.06,kw:26},
+  {m:'IMG-1205',s:'IMG',a:0.60,p:12.5,kw:60},{m:'IMG-1350',s:'IMG',a:0.68,p:14.0,kw:70},
+  {m:'PF1-C-1008',s:'PF1-C',a:0.80,p:3.3,kw:30},
+  {m:'PF1-X-1208',s:'PF1-X',a:0.96,p:8.3,kw:40},{m:'PF1-C-1208',s:'PF1-C',a:0.96,p:3.5,kw:36},
+  {m:'UNO-1208',s:'UNO',a:0.96,p:5.5,kw:28},{m:'UNO-1208-2H',s:'UNO',a:0.96,p:6.0,kw:56},
+  {m:'DUO-1208',s:'DUO',a:0.96,p:6.5,kw:28},
+  {m:'PF1-C-1309',s:'PF1-C',a:1.17,p:3.6,kw:44},
+  {m:'PF1-X-1210',s:'PF1-X',a:1.20,p:11.62,kw:48},
+  {m:'PF1-C-1212',s:'PF1-C',a:1.44,p:3.8,kw:44},
+  {m:'PF1-X-1510',s:'PF1-X',a:1.50,p:13.28,kw:58},{m:'PF1-C-1510',s:'PF1-C',a:1.50,p:4.0,kw:56},
+  {m:'PF1-R-1510',s:'PF1-R',a:1.50,p:5.5,kw:56},
+  {m:'PF1-C-2010',s:'PF1-C',a:2.00,p:5.0,kw:76},{m:'PF2-P2010',s:'PF2',a:2.00,p:3.5,kw:60},
+  {m:'PF1-C-1812',s:'PF1-C',a:2.16,p:4.5,kw:80},
+  {m:'IMG-2012',s:'IMG',a:2.40,p:17.5,kw:100},
+  {m:'PF1-X-2412',s:'PF1-X',a:2.88,p:19.92,kw:101},{m:'PF1-C-2412',s:'PF1-C',a:2.88,p:5.5,kw:110},
+  {m:'PF1-X-1520',s:'PF1-X',a:3.00,p:15.77,kw:115},{m:'PF1-C-2015',s:'PF1-C',a:3.00,p:6.0,kw:125},
+  {m:'PF1-X-2116',s:'PF1-X',a:3.36,p:18.26,kw:128},
+  {m:'PF1-X-2515',s:'PF1-X',a:3.75,p:20.75,kw:144},{m:'PF1-C-2515',s:'PF1-C',a:3.75,p:7.0,kw:144},
+  {m:'PF1-X-2020',s:'PF1-X',a:4.00,p:20.75,kw:154},{m:'PF1-C-2020',s:'PF1-C',a:4.00,p:6.5,kw:154},
+  {m:'PF2-P2020',s:'PF2',a:4.00,p:5.2,kw:80},
+  {m:'PF1-C-3015',s:'PF1-C',a:4.50,p:7.5,kw:170},
+  {m:'PF1-X-2520',s:'PF1-X',a:5.00,p:22.41,kw:192},{m:'PF1-C-2520',s:'PF1-C',a:5.00,p:7.2,kw:192},
+  {m:'PF2-P2424',s:'PF2',a:5.76,p:6.0,kw:100},
+  {m:'PF1-XL-3020',s:'PF1-XL',a:6.00,p:24.9,kw:230},{m:'PF1-C-3020',s:'PF1-C',a:6.00,p:8.0,kw:260},
+];
+
+// Chart 1: Price vs Area
+const seriesGroups = {};
+machines.forEach(m => {
+  if (!seriesGroups[m.s]) seriesGroups[m.s] = [];
+  seriesGroups[m.s].push(m);
+});
+
+const datasets1 = Object.entries(seriesGroups).map(([s, ms]) => ({
+  label: s,
+  data: ms.map(m => ({x: m.a, y: m.p, label: m.m})),
+  backgroundColor: seriesColors[s] || '#888',
+  borderColor: seriesColors[s] || '#888',
+  pointRadius: 6,
+  pointHoverRadius: 9,
+}));
+
+new Chart(document.getElementById('priceVsArea'), {
+  type: 'scatter',
+  data: { datasets: datasets1 },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.raw.label}: ₹${ctx.raw.y.toFixed(1)}M @ ${ctx.raw.x.toFixed(2)}m²`
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Forming Area (m²)', color: '#aaa' }, grid: { color: '#1a1a2e' } },
+      y: { title: { display: true, text: 'Price (₹ Millions)', color: '#aaa' }, grid: { color: '#1a1a2e' } }
+    }
+  }
+});
+
+// Chart 2: Price per m² decay
+const pf1c = machines.filter(m => m.s === 'PF1-C').sort((a,b) => a.a - b.a);
+const pf1x = machines.filter(m => m.s === 'PF1-X' || m.s === 'PF1-XL').sort((a,b) => a.a - b.a);
+
+new Chart(document.getElementById('pricePerSqm'), {
+  type: 'line',
+  data: {
+    datasets: [
+      { label: 'PF1-C (₹M/m²)', data: pf1c.map(m => ({x: m.a, y: m.p/m.a})), borderColor: '#3b82f6', backgroundColor: '#3b82f630', fill: true, tension: 0.3, pointRadius: 4 },
+      { label: 'PF1-X (₹M/m²)', data: pf1x.map(m => ({x: m.a, y: m.p/m.a})), borderColor: '#8b5cf6', backgroundColor: '#8b5cf630', fill: true, tension: 0.3, pointRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { type: 'linear', title: { display: true, text: 'Forming Area (m²)', color: '#aaa' }, grid: { color: '#1a1a2e' } },
+      y: { title: { display: true, text: '₹ Millions per m²', color: '#aaa' }, grid: { color: '#1a1a2e' } }
+    }
+  }
+});
+
+// Chart 3: Servo multiplier
+const multData = [
+  {a: 0.96, m: 2.37}, {a: 1.50, m: 3.32}, {a: 2.88, m: 3.62},
+  {a: 3.00, m: 2.63}, {a: 3.75, m: 2.96}, {a: 4.00, m: 3.19},
+  {a: 5.00, m: 3.11}, {a: 6.00, m: 3.11}
+];
+
+new Chart(document.getElementById('servoMultiplier'), {
+  type: 'bar',
+  data: {
+    labels: multData.map(d => d.a + 'm²'),
+    datasets: [{
+      label: 'X/C Price Multiplier',
+      data: multData.map(d => d.m),
+      backgroundColor: multData.map(d => d.m > 3.0 ? '#8b5cf6' : '#3b82f6'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      annotation: {
+        annotations: { line1: { type: 'line', yMin: 3.04, yMax: 3.04, borderColor: '#ef4444', borderDash: [5,5] } }
+      }
+    },
+    scales: {
+      y: { min: 0, max: 4.5, title: { display: true, text: 'Multiplier (X ÷ C)', color: '#aaa' }, grid: { color: '#1a1a2e' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Chart 4: Technology tiers
+const tiers = [
+  {t: 'FCS', v: 38.1, c: '#ef4444'}, {t: 'IMG', v: 16.3, c: '#ec4899'},
+  {t: 'UNO/DUO', v: 8.1, c: '#14b8a6'}, {t: 'PF1-X', v: 6.9, c: '#8b5cf6'},
+  {t: 'AM', v: 5.4, c: '#f59e0b'}, {t: 'PF1-C', v: 2.3, c: '#3b82f6'},
+  {t: 'PLAY', v: 1.7, c: '#94a3b8'}, {t: 'PF2', v: 1.4, c: '#22c55e'},
+];
+
+new Chart(document.getElementById('techTiers'), {
+  type: 'bar',
+  data: {
+    labels: tiers.map(t => t.t),
+    datasets: [{
+      label: 'Avg ₹M per m²',
+      data: tiers.map(t => t.v),
+      backgroundColor: tiers.map(t => t.c),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { title: { display: true, text: 'Average ₹ Millions per m²', color: '#aaa' }, grid: { color: '#1a1a2e' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// Chart 5: Heater power vs price
+const heaterSeries = ['FCS', 'IMG', 'PF1-C', 'PF1-X', 'PF1-XL'];
+const hDatasets = heaterSeries.map(s => ({
+  label: s,
+  data: machines.filter(m => m.s === s).map(m => ({x: m.kw, y: m.p, label: m.m})),
+  backgroundColor: seriesColors[s] || '#888',
+  borderColor: seriesColors[s] || '#888',
+  pointRadius: 5,
+  showLine: true,
+  tension: 0.2,
+  fill: false,
+}));
+
+new Chart(document.getElementById('heaterPrice'), {
+  type: 'scatter',
+  data: { datasets: hDatasets },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.raw.label}: ₹${ctx.raw.y.toFixed(1)}M @ ${ctx.raw.x}kW`
+        }
+      }
+    },
+    scales: {
+      x: { title: { display: true, text: 'Heater Power (kW)', color: '#aaa' }, grid: { color: '#1a1a2e' } },
+      y: { title: { display: true, text: 'Price (₹ Millions)', color: '#aaa' }, grid: { color: '#1a1a2e' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@ QUOTE GENERATOR - Automated Quote Generation for Machinecraft
 ==============================================================
 
 Automatically generates professional quotes matching Machinecraft's 
-actual quotation format as found in data/imports/Quotes/.
+actual quotation format as found in data/imports/01_Quotes_and_Proposals/.
 
 Format learned from:
 - PF1-C-3520 _ Machinecraft PF1 Quotation.pdf
@@ -560,7 +560,7 @@ class QuoteGenerator:
         """
         Format detailed quote matching Machinecraft's actual quotation format.
         
-        Based on real quotes from data/imports/Quotes/
+        Based on real quotes from data/imports/01_Quotes_and_Proposals/
         """
         w, h = quote.forming_area_mm
         is_servo = quote.machine_variant in ["X", "S"]
