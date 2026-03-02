@@ -1,81 +1,102 @@
 """
 Service Health Tracker
 
-Makes failures in external services (Mem0, Qdrant, Neo4j) visible instead of
-silently degrading to empty results. Tracks failure counts over a rolling window
-and escalates logging when a service is degraded.
+Tracks the health of external services (Mem0, Qdrant, Neo4j, OpenAI) so that
+silent failures become visible. When a service fails repeatedly, it escalates
+from debug to WARNING to ERROR level logging.
 
 Usage:
     from openclaw.agents.ira.src.core.service_health import record_failure, record_success, get_health_summary
 
     try:
-        result = mem0.search(query, uid)
+        result = mem0.search(query, user_id)
         record_success("mem0")
     except Exception as e:
         record_failure("mem0", str(e))
+
+    # In /health command:
+    summary = get_health_summary()
 """
 
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Dict, Optional
 
 logger = logging.getLogger("ira.service_health")
 
-WINDOW_SECONDS = 600  # 10-minute rolling window
-DEGRADED_THRESHOLD = 3  # failures in window before escalating to ERROR
-
 _failures: Dict[str, list] = defaultdict(list)
 _last_success: Dict[str, float] = {}
+_failure_window_seconds = 600  # 10 minutes
 
 
 def record_failure(service: str, error: str) -> None:
+    """Record a service failure. Escalates log level based on failure frequency."""
     now = time.time()
     _failures[service].append(now)
-    _failures[service] = [t for t in _failures[service] if now - t < WINDOW_SECONDS]
+    _failures[service] = [t for t in _failures[service] if now - t < _failure_window_seconds]
     count = len(_failures[service])
 
-    if count >= DEGRADED_THRESHOLD:
-        logger.error(
-            "SERVICE_DEGRADED: %s has failed %d times in %ds. Latest: %s",
-            service, count, WINDOW_SECONDS, error,
-        )
+    if count >= 5:
+        logger.error(f"SERVICE_DOWN: {service} has failed {count} times in 10 min. Latest: {error}")
+    elif count >= 3:
+        logger.warning(f"SERVICE_DEGRADED: {service} has failed {count} times in 10 min. Latest: {error}")
     else:
-        logger.warning("SERVICE_FAILURE: %s: %s", service, error)
+        logger.warning(f"SERVICE_FAILURE: {service}: {error}")
 
 
 def record_success(service: str) -> None:
+    """Record a successful service call. Clears the failure window."""
     _last_success[service] = time.time()
-    _failures[service].clear()
+    if service in _failures:
+        _failures[service].clear()
 
 
-def get_health_summary() -> Dict[str, Any]:
-    """Return a snapshot of service health for /health command or monitoring."""
+def get_health_summary() -> Dict[str, dict]:
+    """Get a summary of all tracked services for diagnostics.
+    
+    Returns dict like:
+        {"mem0": {"status": "healthy", "failures_10m": 0, "last_success_ago_s": 12},
+         "qdrant": {"status": "degraded", "failures_10m": 4, "last_success_ago_s": 300}}
+    """
     now = time.time()
-    summary = {}
     all_services = set(list(_failures.keys()) + list(_last_success.keys()))
+    summary = {}
 
     for svc in sorted(all_services):
-        recent_failures = [t for t in _failures.get(svc, []) if now - t < WINDOW_SECONDS]
+        recent_failures = len([t for t in _failures.get(svc, []) if now - t < _failure_window_seconds])
         last_ok = _last_success.get(svc)
+        last_ok_ago: Optional[int] = round(now - last_ok) if last_ok else None
+
+        if recent_failures >= 5:
+            status = "down"
+        elif recent_failures >= 3:
+            status = "degraded"
+        elif recent_failures >= 1:
+            status = "flaky"
+        else:
+            status = "healthy"
+
         summary[svc] = {
-            "status": "degraded" if len(recent_failures) >= DEGRADED_THRESHOLD else "ok",
-            "failures_10m": len(recent_failures),
-            "last_success_ago_s": round(now - last_ok) if last_ok else None,
+            "status": status,
+            "failures_10m": recent_failures,
+            "last_success_ago_s": last_ok_ago,
         }
 
     return summary
 
 
 def format_health_report() -> str:
-    """Human-readable health report for Telegram /health command."""
+    """Format health summary as a human-readable string for Telegram /health."""
     summary = get_health_summary()
     if not summary:
-        return "No service activity recorded yet."
+        return "No service activity tracked yet."
 
-    lines = ["Service Health:"]
+    status_icons = {"healthy": "✅", "flaky": "⚠️", "degraded": "🟡", "down": "🔴"}
+    lines = ["**Service Health Report**\n"]
     for svc, info in summary.items():
-        icon = "RED" if info["status"] == "degraded" else "GREEN"
+        icon = status_icons.get(info["status"], "❓")
         ago = f"{info['last_success_ago_s']}s ago" if info["last_success_ago_s"] is not None else "never"
-        lines.append(f"  [{icon}] {svc}: {info['failures_10m']} failures (last OK: {ago})")
+        lines.append(f"{icon} **{svc}**: {info['status']} ({info['failures_10m']} failures/10m, last OK: {ago})")
+
     return "\n".join(lines)

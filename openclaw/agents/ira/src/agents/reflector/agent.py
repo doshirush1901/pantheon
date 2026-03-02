@@ -9,6 +9,7 @@ This module provides reflection functions that can be invoked by the LLM
 through OpenClaw's native tool system.
 """
 
+import json
 import logging
 import os
 from dataclasses import dataclass, field
@@ -91,8 +92,12 @@ async def reflect(interaction_data: Dict[str, Any]) -> ReflectionResult:
     intent = interaction_data.get("intent") or "general"
     results = interaction_data.get("results") or {}
     
-    # Evaluate quality
-    quality = _evaluate_quality(user_message, response, intent)
+    # Evaluate quality — try LLM for substantive responses, fall back to heuristic
+    quality = None
+    if len(response) > 100:
+        quality = await _evaluate_quality_llm(user_message, response, intent)
+    if quality is None:
+        quality = _evaluate_quality(user_message, response, intent)
     
     # Identify issues
     issues = _identify_issues(user_message, response, results)
@@ -203,9 +208,15 @@ def _identify_issues(user_message: str, response: str, results: Dict) -> List[st
             if "1.5" not in response and "AM" not in response.lower():
                 issues.append(f"AM_WARNING_MISSING: {thickness}mm material query without AM series guidance")
     
-    # Check for empty or very short response
+    # Check for empty or very short response — but allow short replies to
+    # greetings, acknowledgments, and commands (these are valid short exchanges)
     if len(response) < 50:
-        issues.append("RESPONSE_TOO_SHORT: Response may be incomplete")
+        msg_lower = user_message.lower().strip()
+        is_greeting = any(g in msg_lower for g in ["hi", "hello", "hey", "good morning", "good evening", "good afternoon"])
+        is_ack = any(a in msg_lower for a in ["thanks", "thank you", "ok", "got it", "cool", "great", "nice"])
+        is_command = msg_lower.startswith("/")
+        if not (is_greeting or is_ack or is_command):
+            issues.append("RESPONSE_TOO_SHORT: Response may be incomplete")
     
     # Check for apology-heavy responses
     apology_count = response.lower().count("sorry") + response.lower().count("apologize")
@@ -317,6 +328,64 @@ def _log_lessons(lessons: List[str], interaction_data: Dict) -> None:
         
     except Exception as e:
         logger.error(f"Failed to log lessons: {e}")
+
+
+# =============================================================================
+# LLM-BASED QUALITY EVALUATION
+# =============================================================================
+
+async def _evaluate_quality_llm(user_message: str, response: str, intent: str) -> Optional[QualityScore]:
+    """LLM-based quality evaluation for substantive responses.
+    
+    Returns None on failure so the caller can fall back to the heuristic.
+    """
+    try:
+        import openai
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if not api_key:
+            return None
+
+        client = openai.OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": (
+                    "Rate this customer service response on 6 dimensions (0.0-1.0).\n"
+                    "Consider the context: this is for Machinecraft Technologies, a thermoforming machine company.\n\n"
+                    "Dimensions:\n"
+                    "- factual_accuracy: Are claims specific and verifiable? Are disclaimers present where needed?\n"
+                    "- helpfulness: Does it answer the question with useful, actionable information?\n"
+                    "- completeness: Are all parts of the query addressed?\n"
+                    "- tone: Professional, warm, confident? Not overly apologetic?\n"
+                    "- structure: Well-organized with formatting where appropriate?\n"
+                    "- responsiveness: Direct and to-the-point?\n\n"
+                    "Output ONLY valid JSON: {\"factual_accuracy\": 0.8, \"helpfulness\": 0.7, "
+                    "\"completeness\": 0.9, \"tone\": 0.8, \"structure\": 0.7, \"responsiveness\": 0.8}"
+                )},
+                {"role": "user", "content": f"QUERY: {user_message[:200]}\nRESPONSE: {response[:500]}"},
+            ],
+            max_tokens=100,
+            temperature=0.1,
+        )
+        raw = resp.choices[0].message.content.strip()
+        # Handle markdown-wrapped JSON
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        scores = json.loads(raw)
+        return QualityScore(
+            factual_accuracy=float(scores.get("factual_accuracy", 0.5)),
+            helpfulness=float(scores.get("helpfulness", 0.5)),
+            completeness=float(scores.get("completeness", 0.5)),
+            tone=float(scores.get("tone", 0.5)),
+            structure=float(scores.get("structure", 0.5)),
+            responsiveness=float(scores.get("responsiveness", 0.5)),
+        )
+    except Exception as e:
+        logger.debug(f"Sophia: LLM quality evaluation failed, using heuristic: {e}")
+        return None
 
 
 # =============================================================================

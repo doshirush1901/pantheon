@@ -3,35 +3,26 @@
 MACHINECRAFT MACHINE DATABASE
 =============================
 
-Pre-extracted technical specifications for all machines.
-This is the SOURCE OF TRUTH for machine specs.
+Source of truth for machine specs. Loads from data/brain/machine_specs.json
+so specs can be updated without code changes.
 
-Data sources:
-- Price List PDF (prices)
-- Individual Catalogues (detailed specs)
-- Quotation PDFs (additional details)
-- Spec Sheet Excel files
-
-Run `build_database()` to refresh from source documents.
+Use reload_specs() to hot-reload after editing the JSON file.
 """
 
-import os
-import re
 import json
 import logging
-import pdfplumber
-
-logger = logging.getLogger(__name__)
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+logger = logging.getLogger(__name__)
 
-# Data sources
-IMPORTS_DIR = PROJECT_ROOT / "data" / "imports"
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+SPECS_FILE = PROJECT_ROOT / "data" / "brain" / "machine_specs.json"
 DATABASE_FILE = PROJECT_ROOT / "data" / "machine_database.json"
+IMPORTS_DIR = PROJECT_ROOT / "data" / "imports"
 
 # ============================================================================
 # DATA STRUCTURES
@@ -89,15 +80,45 @@ class MachineSpec:
 
 
 # ============================================================================
-# HARD-CODED MACHINE SPECS (from catalogues)
+# LOAD MACHINE SPECS FROM JSON
 # ============================================================================
 
-# This is pre-extracted from the catalogues for instant lookup
-MACHINE_SPECS = {
-    # =========================================================================
-    # AM SERIES - Thin Gauge Roll-Fed
-    # =========================================================================
-    "AM-5060": MachineSpec(
+def _load_specs_from_json() -> Dict[str, "MachineSpec"]:
+    """Load machine specs from the JSON file. Falls back to empty dict on error."""
+    if not SPECS_FILE.exists():
+        logger.warning(f"Machine specs file not found: {SPECS_FILE}")
+        return {}
+    try:
+        raw = json.loads(SPECS_FILE.read_text())
+        specs = {}
+        for model_key, data in raw.items():
+            raw_area = data.pop("forming_area_raw", [])
+            if isinstance(raw_area, list) and len(raw_area) == 2:
+                data["forming_area_raw"] = tuple(raw_area)
+            else:
+                data["forming_area_raw"] = ()
+            data["last_updated"] = datetime.now().isoformat()
+            specs[model_key] = MachineSpec(**data)
+        logger.info(f"Loaded {len(specs)} machine specs from {SPECS_FILE}")
+        return specs
+    except Exception as e:
+        logger.error(f"Failed to load machine specs: {e}")
+        return {}
+
+
+def reload_specs() -> int:
+    """Hot-reload machine specs from JSON. Returns count of loaded specs."""
+    global MACHINE_SPECS
+    MACHINE_SPECS = _load_specs_from_json()
+    return len(MACHINE_SPECS)
+
+
+MACHINE_SPECS: Dict[str, MachineSpec] = _load_specs_from_json()
+
+
+# Hardcoded specs removed in v3 — all 46 machines now in data/brain/machine_specs.json.
+# To add a machine: edit that JSON file, then call reload_specs() or restart.
+_REMOVED_LEGACY_BLOCK = "REMOVED(
         model="AM-5060",
         series="AM",
         variant="standard",
@@ -996,11 +1017,6 @@ MACHINE_SPECS = {
         source_documents=["Price List"]
     ),
 }
-
-# Update all specs with current timestamp
-for model, spec in MACHINE_SPECS.items():
-    spec.last_updated = datetime.now().isoformat()
-
 
 # ============================================================================
 # DATABASE FUNCTIONS
