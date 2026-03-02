@@ -55,10 +55,24 @@ def detect_feedback(message: str) -> Tuple[Optional[str], float]:
     if len(msg_lower) < 3:
         return None, 0.0
 
+    # Long substantive messages are queries, not feedback.
+    # Feedback is short: "great!", "that's wrong", "thanks", "fix this".
+    if len(msg_lower) > 200:
+        return None, 0.0
+
+    # Messages with numbered lists or multiple questions are queries, not feedback.
+    if msg_lower.count("\n") > 3 or sum(1 for c in msg_lower if c in "12345") >= 3:
+        return None, 0.0
+
     pos_hits = sum(1 for p in POSITIVE_PATTERNS if p in msg_lower)
     neg_hits = sum(1 for p in NEGATIVE_PATTERNS if p in msg_lower)
 
     if pos_hits == 0 and neg_hits == 0:
+        return None, 0.0
+
+    # Require stronger signal: at least 2 pattern hits, or 1 hit in a short message
+    total_hits = pos_hits + neg_hits
+    if total_hits == 1 and len(msg_lower) > 80:
         return None, 0.0
 
     if pos_hits > neg_hits:
