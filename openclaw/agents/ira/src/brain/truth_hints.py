@@ -103,7 +103,7 @@ TRUTH_HINTS: List[TruthHint] = [
         ],
         answer="""PF1 is our flagship HEAVY-GAUGE vacuum forming machine series (single-station, closed chamber).
 
-**Material Thickness:** 2mm to 8mm (some models up to 10mm). This is NOT a thin-gauge or flexible materials machine.
+**Material Thickness:** >1.5mm up to 8mm (some models up to 10mm). This is NOT a thin-gauge or flexible materials machine.
 
 **Materials:** ABS, HDPE, PC (Polycarbonate), PMMA (Acrylic), PP, HIPS, TPO, PVC — all in HEAVY GAUGE (thick sheets).
 
@@ -189,7 +189,7 @@ Note: These are budget prices. Final quotation depends on specific configuration
         answer="""PF1 Series — Heavy-Gauge Thermoforming Machine:
 
 **What PF1 is for:**
-The PF1 is a HEAVY-GAUGE vacuum forming machine for thick plastic sheets (2–8mm, some models up to 10mm).
+The PF1 is a HEAVY-GAUGE vacuum forming machine for thick plastic sheets (>1.5mm up to 8mm, some models up to 10mm).
 
 **Materials:** ABS, HDPE, PC (Polycarbonate), PMMA (Acrylic), HIPS, TPO, PP — all in heavy gauge.
 
