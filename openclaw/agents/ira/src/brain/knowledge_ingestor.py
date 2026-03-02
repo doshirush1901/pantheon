@@ -747,20 +747,32 @@ class KnowledgeIngestor:
         self._log(str(result))
         return result
     
+    @staticmethod
+    def _deterministic_point_id(source_file: str, chunk_index: int, text: str) -> str:
+        """Generate a deterministic UUID from source file + chunk index.
+
+        Re-ingesting the same file overwrites existing points instead of
+        creating duplicates. The text hash is included so that if the same
+        source file is re-chunked differently, old chunks get replaced.
+        """
+        key = f"{source_file}::chunk{chunk_index}::{hashlib.sha256(text.encode()).hexdigest()[:12]}"
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, key))
+
     def _ingest_to_qdrant_main(self, items: List[KnowledgeItem]) -> bool:
         """Ingest to main Qdrant collection."""
         collection = COLLECTIONS.get("chunks_voyage", "ira_chunks_v4_voyage")
-        
+
         try:
             from qdrant_client.models import PointStruct
-            
+
             qdrant = self._get_qdrant()
             self._ensure_collection(collection)
-            
+
             points = []
-            for item in items:
+            for idx, item in enumerate(items):
+                point_id = self._deterministic_point_id(item.source_file, idx, item.text)
                 points.append(PointStruct(
-                    id=str(uuid.uuid4()),
+                    id=point_id,
                     vector=item.embedding,
                     payload={
                         "text": item.text,
@@ -776,11 +788,11 @@ class KnowledgeIngestor:
                         **item.metadata,
                     }
                 ))
-            
+
             qdrant.upsert(collection_name=collection, points=points)
             self._log(f"  ✓ Qdrant main ({collection}): {len(points)} points")
             return True
-            
+
         except Exception as e:
             self._log(f"  ✗ Qdrant main error: {e}")
             return False
@@ -788,17 +800,20 @@ class KnowledgeIngestor:
     def _ingest_to_qdrant_discovered(self, items: List[KnowledgeItem]) -> bool:
         """Ingest to discovered knowledge collection."""
         collection = COLLECTIONS.get("discovered_knowledge", "ira_discovered_knowledge")
-        
+
         try:
             from qdrant_client.models import PointStruct
-            
+
             qdrant = self._get_qdrant()
             self._ensure_collection(collection)
-            
+
             points = []
-            for item in items:
+            for idx, item in enumerate(items):
+                point_id = self._deterministic_point_id(
+                    f"discovered::{item.source_file}", idx, item.text,
+                )
                 points.append(PointStruct(
-                    id=str(uuid.uuid4()),
+                    id=point_id,
                     vector=item.embedding,
                     payload={
                         "text": item.text,
@@ -816,11 +831,11 @@ class KnowledgeIngestor:
                         **item.metadata,
                     }
                 ))
-            
+
             qdrant.upsert(collection_name=collection, points=points)
             self._log(f"  ✓ Qdrant discovered ({collection}): {len(points)} points")
             return True
-            
+
         except Exception as e:
             self._log(f"  ✗ Qdrant discovered error: {e}")
             return False

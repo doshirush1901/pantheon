@@ -383,6 +383,24 @@ class Mem0MemoryService:
     # CONVENIENCE METHODS FOR IRA
     # =========================================================================
     
+    @staticmethod
+    def _contains_suspect_claims(text: str) -> bool:
+        """Check if user text contains pricing or spec claims that could
+        pollute the knowledge base if Mem0 extracts them as facts.
+
+        We don't block storage entirely — we just strip the user message
+        so Mem0 only extracts facts from the assistant response (which has
+        already been validated by knowledge_health).
+        """
+        import re
+        suspect_patterns = [
+            r"(?:your|the)\s+(?:price|cost)\s+(?:is|was|should be)\s+[\$₹€]?\s*[\d,]+",
+            r"(?:PF\d|AM|IMG|FCS)\S*\s+(?:costs?|price[ds]?)\s+[\$₹€]?\s*[\d,]+",
+            r"(?:i\s+(?:heard|read|think|saw)\s+(?:that\s+)?(?:it|the|your))\s+.*(?:price|cost|spec)",
+        ]
+        text_lower = text.lower()
+        return any(re.search(p, text_lower) for p in suspect_patterns)
+
     def remember_from_message(
         self,
         user_message: str,
@@ -392,14 +410,25 @@ class Mem0MemoryService:
     ) -> MemoryAddResult:
         """
         Process a single exchange and extract memories.
-        
+
         This is the main integration point - call after each message.
+
+        If the user message contains suspect pricing/spec claims, we only
+        feed the assistant response to Mem0 (which has been validated by
+        knowledge_health). This prevents user-stated wrong facts from
+        polluting the knowledge base.
         """
-        messages = [
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": assistant_response},
-        ]
-        
+        if self._contains_suspect_claims(user_message):
+            logger.info("Mem0: user message contains suspect claims, extracting only from assistant response")
+            messages = [
+                {"role": "assistant", "content": assistant_response},
+            ]
+        else:
+            messages = [
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": assistant_response},
+            ]
+
         return self.add_conversation(
             messages=messages,
             user_id=user_id,

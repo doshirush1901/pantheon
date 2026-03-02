@@ -706,9 +706,57 @@ The dream makes me smarter overnight — new facts become searchable, weak memor
 ]
 
 
+def _check_price_staleness():
+    """Compare truth hint prices against machine_specs.json on first load.
+
+    Logs warnings for any price that has drifted so operators know to update
+    the truth hints. Does not modify hints at runtime — that would be unsafe.
+    """
+    import json as _json
+    import logging as _logging
+    _log = _logging.getLogger("ira.truth_hints")
+    specs_path = Path(__file__).parent.parent.parent.parent.parent / "data" / "brain" / "machine_specs.json"
+    if not specs_path.exists():
+        return
+    try:
+        specs = _json.loads(specs_path.read_text())
+        canonical_prices = {}
+        for key, spec in specs.items():
+            price = spec.get("price_inr", 0)
+            if price:
+                canonical_prices[key.upper()] = price
+
+        # Scan all truth hint answers for INR prices and compare
+        price_pattern = re.compile(r"((?:PF\d-[A-Z]{0,2}-?\d{4}|AM[P]?-\d{4}(?:-[A-Z]+)?|IMG-\d{4}|FCS-\d{4}(?:-\d[A-Z]+)?|UNO-\d{4}|DUO-\d{4}))\S*\s*(?:[:,|])\s*(?:INR\s*)?(\d[\d,]+)",
+                                   re.IGNORECASE)
+        stale = []
+        for hint in TRUTH_HINTS:
+            for match in price_pattern.finditer(hint.answer):
+                model = match.group(1).upper()
+                hint_price_str = match.group(2).replace(",", "")
+                try:
+                    hint_price = int(hint_price_str)
+                except ValueError:
+                    continue
+                canonical = canonical_prices.get(model)
+                if canonical and canonical != hint_price:
+                    stale.append((hint.id, model, hint_price, canonical))
+
+        if stale:
+            _log.warning("[TruthHints] PRICE STALENESS DETECTED — %d hint prices differ from machine_specs.json:", len(stale))
+            for hint_id, model, hint_p, canon_p in stale:
+                _log.warning("  hint=%s model=%s hint_price=%d canonical=%d", hint_id, model, hint_p, canon_p)
+    except Exception as e:
+        _log.debug("Truth hint price staleness check failed: %s", e)
+
+# Run staleness check on module load (cheap — just JSON parse + regex)
+from pathlib import Path
+_check_price_staleness()
+
+
 class TruthHintMatcher:
     """Matches queries to truth hints."""
-    
+
     def __init__(self, hints: List[TruthHint] = None):
         self.hints = hints or TRUTH_HINTS
     

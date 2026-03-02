@@ -15,8 +15,8 @@ Ira parallel:
     ones for complex asks, matching the user's communication style, and
     adapting to channel constraints.
 
-    It learns over time by tracking which response formats the user engages
-    with (short vs. long, tables vs. prose, technical vs. casual).
+    It applies deterministic rules for trimming, formatting, and length
+    enforcement based on channel and message complexity.
 
 Usage:
     from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
@@ -171,7 +171,6 @@ class VoiceSystem:
             "total_trims": 0,
             "total_expansions": 0,
             "avg_compression_ratio": 1.0,
-            "user_preferences": {},
             "channel_stats": {},
             "last_updated": datetime.now().isoformat(),
         }
@@ -469,20 +468,30 @@ class VoiceSystem:
     # -- Dream mode maintenance ---------------------------------------------
 
     def run_voice_maintenance(self) -> Dict:
-        """
-        Called during dream mode Phase 10.5.
-        Analyzes voice patterns and adjusts thresholds.
+        """Called during dream mode Phase 10.5.
+
+        Analyzes voice patterns and adjusts the Telegram max_length threshold
+        based on observed trimming rates. If >80% of reshapes are trims, the
+        limit is too tight. If avg compression ratio > 1.3, responses are
+        expanding and the limit should tighten.
         """
         report = self.get_voice_report()
         adjustments = []
 
-        if report["status"] == "over_trimming":
-            adjustments.append("Voice is trimming too aggressively — consider raising ideal lengths")
-            logger.info("[Voice] Over-trimming detected during dream maintenance")
+        tg = CHANNEL_PROFILES.get("telegram", {})
+        current_max = tg.get("max_length", 2000)
 
-        if report["status"] == "verbose":
-            adjustments.append("Responses are expanding — consider tighter formatting")
-            logger.info("[Voice] Verbosity detected during dream maintenance")
+        if report["status"] == "over_trimming" and current_max < 3000:
+            new_max = min(current_max + 200, 3000)
+            tg["max_length"] = new_max
+            adjustments.append(f"Raised Telegram max_length {current_max} → {new_max}")
+            logger.info("[Voice] Over-trimming: raised Telegram max_length to %d", new_max)
+
+        if report["status"] == "verbose" and current_max > 1500:
+            new_max = max(current_max - 200, 1500)
+            tg["max_length"] = new_max
+            adjustments.append(f"Lowered Telegram max_length {current_max} → {new_max}")
+            logger.info("[Voice] Verbose: lowered Telegram max_length to %d", new_max)
 
         self._save_state()
 

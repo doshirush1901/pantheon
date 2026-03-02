@@ -151,7 +151,7 @@ BUSINESS_RULES = [
         "name": "Lead Time Must Be 12-16 Weeks",
         "description": "Lead time is ALWAYS 12-16 weeks. Never promise faster.",
         "check_pattern": r"lead\s*time|deliver|week|month|ship",
-        "violation_pattern": r"(?<!\d)([1-9]|1[01])\s*week|[2-8]\s*week|4\s*week|6\s*week|8\s*week|2\s*month|3\s*month",
+        "violation_pattern": r"(?<!\d)([1-9]|1[01])\s*weeks?\b|(?<!\d)[2-8]\s*weeks?\b|(?<!\d)[23]\s*months?\b",
         "correct_response": "Lead time is 12-16 weeks from order confirmation. Never promise faster.",
     },
     {
@@ -562,9 +562,15 @@ class KnowledgeHealthMonitor:
                 warnings.append("Factual claims without citation backing")
         
         # Check 5: Hallucinated model numbers
-        # Broad pattern: catches any PF-series (PF1, PF2, PF3, ...), AM, IMG, FCS, ATF
+        # Covers: PF1-C-2015, PF1-XL-3020, PF1-R-1510, AM-7080-CM, AMP-5060,
+        #         IMG-1205, FCS-6050-3ST, FCS-7060-4ST, ATF-1520, UNO-0806, DUO-1208
         model_pattern = re.findall(
-            r"(PF\d-[A-Z]*-?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4}|ATF-\d{4})",
+            r"(PF\d-[A-Z]{0,2}-?\d{4}"       # PF1-C-2015, PF1-XL-3020, PF2-P2010
+            r"|AM[P]?-\d{4}(?:-[A-Z]{1,3})?"  # AM-5060, AMP-5060, AM-7080-CM
+            r"|IMG-\d{4}"                       # IMG-1205
+            r"|FCS-\d{4}(?:-\d[A-Z]{2})?"      # FCS-6050, FCS-6050-3ST
+            r"|ATF-\d{3,4}"                     # ATF-1520
+            r"|(?:UNO|DUO)-\d{4})",            # UNO-0806, DUO-1208
             response, re.IGNORECASE,
         )
         if model_pattern:
@@ -644,8 +650,8 @@ class KnowledgeHealthMonitor:
             from openclaw.agents.ira.src.holistic.immune_system import get_immune_system
             immune = get_immune_system()
             immune.process_validation_issue(query, response, warnings)
-        except Exception:
-            pass  # Immune system is optional; don't break validation if it fails
+        except Exception as e:
+            logger.warning("Immune system routing failed (non-fatal): %s", e)
     
     # =========================================================================
     # AUTO-FIX ACTIONS

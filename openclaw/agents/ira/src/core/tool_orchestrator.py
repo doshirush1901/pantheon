@@ -12,6 +12,7 @@ After tool rounds on a sales inquiry, Athena is nudged to stop researching
 and commit to a concrete proposal: machine model + price + lead time.
 """
 
+import asyncio
 import logging
 import re
 from typing import Any, Dict, List
@@ -20,6 +21,102 @@ logger = logging.getLogger("ira.tool_orchestrator")
 
 MAX_TOOL_ROUNDS = 25
 PROPOSAL_NUDGE_ROUND = 6
+TOOL_TIMEOUT_SECONDS = 45
+LLM_MAX_RETRIES = 3
+
+# GPT-4o context window: 128K tokens. Reserve space for the response (4K)
+# and a safety margin. 1 token ≈ 4 chars for English text.
+_MODEL_CONTEXT_LIMIT = 128_000
+_RESPONSE_RESERVE = 4_096
+_TOKEN_BUDGET = _MODEL_CONTEXT_LIMIT - _RESPONSE_RESERVE
+_CHARS_PER_TOKEN_ESTIMATE = 3.5
+
+
+def _estimate_tokens(text: str) -> int:
+    """Fast token estimate without importing tiktoken (which is slow to load)."""
+    return int(len(text) / _CHARS_PER_TOKEN_ESTIMATE) + 1
+
+
+def _estimate_messages_tokens(messages: List[Any]) -> int:
+    """Estimate total tokens across all messages in the conversation."""
+    total = 0
+    for msg in messages:
+        content = (msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")) or ""
+        total += _estimate_tokens(content) + 4  # per-message overhead
+        if hasattr(msg, "tool_calls") and msg.tool_calls:
+            for tc in msg.tool_calls:
+                total += _estimate_tokens(getattr(tc.function, "name", "") or "")
+                total += _estimate_tokens(getattr(tc.function, "arguments", "") or "")
+    return total
+
+
+def _compact_tool_results(messages: List[Dict[str, Any]], budget: int) -> List[Dict[str, Any]]:
+    """Trim older tool results when approaching the context window limit.
+
+    Strategy: keep system + user + last 2 rounds intact. For older rounds,
+    truncate tool results to a short summary. This preserves the most recent
+    context while freeing space.
+    """
+    current_tokens = _estimate_messages_tokens(messages)
+    if current_tokens <= budget:
+        return messages
+
+    overshoot = current_tokens - budget
+    logger.warning("[Athena] Context approaching limit (%d est. tokens, budget %d). "
+                   "Compacting older tool results to free ~%d tokens.",
+                   current_tokens, budget, overshoot)
+
+    tool_indices = [
+        i for i, m in enumerate(messages)
+        if isinstance(m, dict) and m.get("role") == "tool"
+    ]
+    if len(tool_indices) <= 4:
+        return messages
+
+    freed = 0
+    for idx in tool_indices[:-4]:
+        msg = messages[idx]
+        old_content = msg.get("content", "")
+        if len(old_content) > 500:
+            truncated = old_content[:200] + "\n...[truncated — earlier tool result compacted to save context space]..."
+            freed += _estimate_tokens(old_content) - _estimate_tokens(truncated)
+            messages[idx] = {**msg, "content": truncated}
+            if freed >= overshoot:
+                break
+
+    logger.info("[Athena] Compacted context, freed ~%d estimated tokens", freed)
+    return messages
+
+_TOOL_AGENT_MAP = {
+    "research_skill": "clio", "writing_skill": "calliope",
+    "fact_checking_skill": "vera", "web_search": "iris",
+    "lead_intelligence": "iris", "customer_lookup": "mnemosyne",
+    "crm_list_customers": "mnemosyne", "crm_pipeline": "mnemosyne",
+    "crm_drip_candidates": "mnemosyne", "discovery_scan": "prometheus",
+    "finance_overview": "plutus", "order_book_status": "plutus",
+    "cashflow_forecast": "plutus", "revenue_history": "plutus",
+    "draft_email": "hermes", "run_analysis": "hephaestus",
+}
+
+
+def _signal_tool_outcome(tool_name: str, result: str):
+    """Signal success/failure to the endocrine system based on tool result."""
+    agent = _TOOL_AGENT_MAP.get(tool_name)
+    if not agent:
+        return
+    try:
+        from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+        endo = get_endocrine_system()
+        is_error = (
+            result.startswith("(") and "error" in result[:80].lower()
+        ) or result.startswith("Error:") or "timed out" in result[:80].lower()
+        if is_error:
+            endo.signal_failure(agent, context={"tool": tool_name})
+        elif len(result) > 50:
+            endo.signal_success(agent, context={"tool": tool_name})
+    except Exception:
+        pass
+
 
 _INJECTION_PATTERNS = re.compile(
     r"ignore.*(?:previous|all|above).*instructions|"
@@ -114,7 +211,8 @@ def _get_training_guidance() -> str:
             f"\nCAUTION: You have historically been weak on: {', '.join(weak_areas)}. "
             f"Double-check any claims in these areas against the knowledge base."
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("[Athena] Failed to load training guidance: %s", e)
         return ""
 
 
@@ -135,7 +233,8 @@ def _get_user_memories(context: Dict) -> str:
             if content:
                 lines.append(f"- {content[:200]}")
         return "\n".join(lines)
-    except Exception:
+    except Exception as e:
+        logger.warning("[Athena] Failed to load user memories: %s", e)
         return ""
 
 
@@ -162,8 +261,8 @@ async def _run_pantheon_post_pipeline(
         if progress_fn:
             try:
                 progress_fn("vera_verify")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("[Pantheon] Progress callback failed: %s", e)
         try:
             from openclaw.agents.ira.src.skills.invocation import invoke_verify
             verified = await invoke_verify(raw_response, message, context)
@@ -178,8 +277,8 @@ async def _run_pantheon_post_pipeline(
     if progress_fn:
         try:
             progress_fn("sophia_reflect")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("[Pantheon] Progress callback failed: %s", e)
     try:
         from openclaw.agents.ira.src.skills.invocation import invoke_reflect
         await invoke_reflect({
@@ -664,11 +763,22 @@ or option from your previous response. Resolve the reference and act on it.
             hint = get_truth_hint(message)
             if hint and hint.confidence >= 0.9:
                 logger.info(f"[Athena] Truth hint matched: {hint.id} (conf={hint.confidence})")
-                return hint.answer
+                # Run validation even on truth hints — they can go stale
+                try:
+                    from openclaw.agents.ira.src.brain.knowledge_health import validate_response
+                    _safe, _warnings = validate_response(message, hint.answer)
+                    if _warnings:
+                        logger.warning("[Athena] Truth hint %s failed validation: %s — falling through to full pipeline",
+                                       hint.id, _warnings)
+                        hint = None  # Don't return stale/invalid hint
+                except Exception as e:
+                    logger.debug("[Athena] Could not validate truth hint: %s", e)
+                if hint:
+                    return hint.answer
         except ImportError:
-            pass
-        except Exception:
-            pass
+            logger.debug("[Athena] truth_hints module not available")
+        except Exception as e:
+            logger.warning("[Athena] Truth hint lookup failed: %s", e)
     else:
         logger.info(f"[Athena] Complex request detected ({len(message)} chars, {message.count(chr(10))} lines) — skipping truth hints, using full pipeline")
 
@@ -681,7 +791,7 @@ or option from your previous response. Resolve the reference and act on it.
     is_sales = _is_sales_inquiry(message)
     proposal_nudged = False
 
-    client = openai.OpenAI(api_key=api_key)
+    client = openai.AsyncOpenAI(api_key=api_key)
     tool_call_log = []
 
     for round_num in range(MAX_TOOL_ROUNDS):
@@ -693,31 +803,47 @@ or option from your previous response. Resolve the reference and act on it.
             proposal_nudged = True
             logger.info("[Athena] Proposal checkpoint injected at round %d", round_num + 1)
 
-        # Only force tool_choice="none" for ONE round after the nudge, then let Athena
-        # decide freely again — she may need more tools to finalize the proposal.
+        # Compact older tool results if approaching context window limit
+        messages = _compact_tool_results(messages, _TOKEN_BUDGET)
+
         force_no_tools = proposal_nudged and round_num == PROPOSAL_NUDGE_ROUND
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=messages,
-                tools=tools,
-                tool_choice="none" if force_no_tools else "auto",
-                max_tokens=4096,
-                temperature=0.3,
-            )
-        except openai.RateLimitError as e:
-            logger.error(f"[Athena] OpenAI rate limit hit: {e}")
-            return "I'm temporarily overloaded — please try again in a minute."
-        except openai.APITimeoutError as e:
-            logger.error(f"[Athena] OpenAI API timeout: {e}")
-            return "My connection to the AI service timed out. Please try again."
-        except openai.APIConnectionError as e:
-            logger.error(f"[Athena] OpenAI connection error: {e}")
-            return "I couldn't reach the AI service. Please check the connection and try again."
-        except openai.APIError as e:
-            logger.error(f"[Athena] OpenAI API error: {e}")
-            return "Something went wrong with the AI service. Please try again shortly."
+        response = None
+        for attempt in range(1, LLM_MAX_RETRIES + 1):
+            try:
+                response = await client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="none" if force_no_tools else "auto",
+                    max_tokens=4096,
+                    temperature=0.3,
+                )
+                break
+            except openai.RateLimitError as e:
+                if attempt < LLM_MAX_RETRIES:
+                    wait = 2 ** attempt
+                    logger.warning("[Athena] Rate limit hit (attempt %d/%d), retrying in %ds: %s",
+                                   attempt, LLM_MAX_RETRIES, wait, e)
+                    await asyncio.sleep(wait)
+                else:
+                    logger.error("[Athena] Rate limit hit, all retries exhausted: %s", e)
+                    return "I'm temporarily overloaded — please try again in a minute."
+            except (openai.APITimeoutError, openai.APIConnectionError) as e:
+                if attempt < LLM_MAX_RETRIES:
+                    wait = 2 ** attempt
+                    logger.warning("[Athena] Transient API error (attempt %d/%d), retrying in %ds: %s",
+                                   attempt, LLM_MAX_RETRIES, wait, e)
+                    await asyncio.sleep(wait)
+                else:
+                    logger.error("[Athena] API connection failed, all retries exhausted: %s", e)
+                    return "My connection to the AI service timed out. Please try again."
+            except openai.APIError as e:
+                logger.error("[Athena] OpenAI API error (non-retryable): %s", e)
+                return "Something went wrong with the AI service. Please try again shortly."
+
+        if response is None:
+            return "I couldn't reach the AI service after multiple attempts. Please try again."
 
         if not response.choices:
             logger.error("[Athena] Empty response from OpenAI")
@@ -744,17 +870,17 @@ or option from your previous response. Resolve the reference and act on it.
                 from openclaw.agents.ira.src.brain.knowledge_health import validate_response
                 is_safe, warnings = validate_response(message, final)
                 if warnings:
-                    logger.warning(f"[Athena] Validation warnings: {warnings}")
+                    logger.warning("[Athena] Validation warnings: %s", warnings)
                     try:
                         from openclaw.agents.ira.src.holistic.immune_system import get_immune_system
                         action = get_immune_system().process_validation_issue(message, final, warnings)
                         if action.blocked and action.override_response:
                             logger.warning("[Athena] Immune system blocked response, using safe fallback")
                             final = action.override_response
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    except Exception as e:
+                        logger.error("[Athena] Immune system failed (response sent unblocked): %s", e)
+            except Exception as e:
+                logger.error("[Athena] knowledge_health validation FAILED — response sent UNVALIDATED: %s", e)
 
             # Voice: reshape for channel tone
             try:
@@ -762,8 +888,8 @@ or option from your previous response. Resolve the reference and act on it.
                 final = get_voice_system().reshape(
                     final, channel=channel, message=message,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("[Athena] Voice system reshape failed: %s", e)
 
             return final
 
@@ -775,16 +901,23 @@ or option from your previous response. Resolve the reference and act on it.
             logger.info(f"[Athena] Round {round_num+1}: calling {name}({list(args.keys())})")
             tool_call_log.append(name)
             try:
-                result = await execute_tool_call(name, args, context)
+                result = await asyncio.wait_for(
+                    execute_tool_call(name, args, context),
+                    timeout=TOOL_TIMEOUT_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                logger.error("[Athena] Tool %s timed out after %ds", name, TOOL_TIMEOUT_SECONDS)
+                result = f"(Tool timed out after {TOOL_TIMEOUT_SECONDS}s — try a different approach or narrower query)"
             except Exception as e:
                 logger.error(f"[Athena] Tool {name} raised: {e}")
                 result = f"(Tool error: {type(e).__name__} — {e})"
-            if result.startswith("ASK_USER:"):
+            _signal_tool_outcome(name, result or "")
+            if result and result.startswith("ASK_USER:"):
                 return result[9:]
             messages.append({
                 "role": "tool",
                 "tool_call_id": tc.id,
-                "content": result[:16000],
+                "content": (result or "")[:16000],
             })
 
     # Max rounds reached — ask the LLM to summarize what it found so far
@@ -799,7 +932,7 @@ or option from your previous response. Resolve the reference and act on it.
                 "is still missing, tell the user what you couldn't find and suggest next steps."
             ),
         })
-        summary_resp = client.chat.completions.create(
+        summary_resp = await client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
             tools=tools,
@@ -821,7 +954,7 @@ or option from your previous response. Resolve the reference and act on it.
     try:
         from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
         final = get_voice_system().reshape(final, channel=channel, message=message)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("[Athena] Voice system reshape failed (max-rounds path): %s", e)
 
     return final
