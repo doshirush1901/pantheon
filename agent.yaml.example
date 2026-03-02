@@ -1,0 +1,47 @@
+# =============================================================================
+# Pantheon Agent Configuration
+# =============================================================================
+# Copy this file to agent.yaml and customize for your company.
+# See examples/sales_agent/ for a complete working example.
+
+company:
+  name: "Your Company Name"
+  domain: "yourcompany.com"
+  agent_name: "Your Agent Name"
+  agent_email: "agent@yourcompany.com"
+  admin_email: "you@yourcompany.com"
+  admin_telegram_id: "${ADMIN_TELEGRAM_ID}"
+  tagline: "What your company does in one line"
+
+persona:
+  role: "AI Sales Assistant"
+  tone: "Professional, warm, data-driven"
+  style: "Clear, confident, backs claims with data"
+  avoid: "Jargon, vague claims, excessive exclamation marks"
+
+memory:
+  namespaces:
+    customers: "yourco_customers"
+    knowledge: "yourco_knowledge"
+    pricing: "yourco_pricing"
+    processes: "yourco_processes"
+    general: "yourco_general"
+    corrections: "system_agent_corrections"
+
+products:
+  specs_file: "data/brain/product_specs.json"
+  rules_file: "data/brain/rules.txt"
+  critical_rules:
+    - "All prices must include 'subject to configuration and current pricing'."
+    - "Never fabricate specifications. If uncertain, say so."
+    - "External communications always require human approval before sending."
+
+competitors:
+  our_positioning: "Describe your competitive advantage here"
+  entries:
+    - name: "Competitor A"
+      country: "Country"
+      positioning: "Their positioning"
+    - name: "Competitor B"
+      country: "Country"
+      positioning: "Their positioning"
