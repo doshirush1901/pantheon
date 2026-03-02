@@ -944,6 +944,27 @@ or option from your previous response. Resolve the reference and act on it.
             if final.startswith("ASK_USER:"):
                 return final[9:]
 
+            # Minimum research depth: on complex queries, nudge Athena to keep
+            # digging if she tries to stop too early. Unique tools used is a
+            # better signal than raw round count — 3 rounds of the same tool
+            # isn't depth.
+            unique_tools = len(set(tool_call_log))
+            if _is_complex and round_num + 1 < MIN_RESEARCH_ROUNDS and unique_tools < 3:
+                logger.info("[Athena] Early stop at round %d with %d unique tools — nudging deeper research",
+                            round_num + 1, unique_tools)
+                messages.append(msg)
+                messages.append({
+                    "role": "system",
+                    "content": (
+                        "You stopped too early. This is a complex request — you've only used "
+                        f"{unique_tools} tool(s) in {round_num + 1} round(s). "
+                        "Dig deeper: try different search terms, check CRM/memory/finance, "
+                        "look for customer references or similar deals. "
+                        "A thorough answer is worth the extra rounds."
+                    ),
+                })
+                continue
+
             logger.info("[Athena] Tool loop complete after %d rounds. Tools: %s",
                         round_num + 1, tool_call_log)
 
