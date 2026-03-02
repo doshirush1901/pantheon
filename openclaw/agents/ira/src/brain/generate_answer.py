@@ -1455,10 +1455,10 @@ def _validate_business_rules(
         if re.search(pattern, response_lower):
             warnings.append("Business rule violation: Response contains placeholder or deflects pricing when data may be available.")
     
-    # Rule: Heavy gauge requires PF1
-    if re.search(r'([3-9]|1[0-9])\s*mm.*thick|heavy.*gauge', query_lower):
+    # Rule: Heavy gauge requires PF1 (anything >1.5mm)
+    if re.search(r'([2-9]|1[0-9])\s*mm.*thick|heavy.*gauge', query_lower):
         if not re.search(r'pf[-\s]?1', response_lower):
-            warnings.append("Business rule: Heavy gauge (>2mm) should recommend PF1 Series.")
+            warnings.append("Business rule: Heavy gauge (>1.5mm) should recommend PF1 Series.")
     
     is_valid = len(warnings) == 0
     return is_valid, warnings
