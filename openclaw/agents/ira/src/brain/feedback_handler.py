@@ -524,3 +524,68 @@ def _log_mistake(user_feedback: str, ira_response: str, coach_analysis: Optional
     })
 
     MISTAKE_LOG.write_text(json.dumps(mistakes, indent=2))
+
+
+# =============================================================================
+# CUSTOMER POSITIVE FEEDBACK (Beyond the Brain Phase 9)
+# =============================================================================
+
+CUSTOMER_POSITIVE_PATTERNS = [
+    "thank you", "thanks", "looks good", "sounds good", "perfect",
+    "great", "excellent", "let's proceed", "let's go ahead", "we accept",
+    "we agree", "approved", "go ahead", "confirmed", "we'll take it",
+    "place the order", "send the quote", "send the invoice",
+    "interested", "very helpful", "impressive", "well done",
+    "good job", "nice work", "exactly what we need",
+]
+
+
+def detect_customer_positive(message: str, from_email: str = "") -> bool:
+    """Detect if a customer (non-Rushabh) reply is positive."""
+    if not message or len(message) < 3:
+        return False
+    # Skip internal emails
+    if from_email and ("machinecraft" in from_email.lower() or "rushabh" in from_email.lower()):
+        return False
+    msg_lower = message.lower()
+    hits = sum(1 for p in CUSTOMER_POSITIVE_PATTERNS if p in msg_lower)
+    return hits >= 1
+
+
+def handle_customer_positive_feedback(
+    customer_message: str,
+    ira_previous_response: str,
+    from_email: str = "",
+    generation_path: str = "",
+) -> None:
+    """
+    When a customer replies positively, boost agent scores.
+    This is the external feedback loop - customers validating Ira's work.
+    """
+    if not detect_customer_positive(customer_message, from_email):
+        return
+
+    logger.info(f"[FEEDBACK] Customer positive signal from {from_email[:30]}: {customer_message[:50]}")
+
+    _append_jsonl(FEEDBACK_LOG, {
+        "timestamp": datetime.now().isoformat(),
+        "type": "customer_positive",
+        "from": from_email[:100],
+        "user_message": customer_message[:500],
+        "previous_response": ira_previous_response[:500],
+        "generation_path": generation_path,
+    })
+
+    scores = _load_agent_scores()
+    # Customer positive = moderate boost to all pipeline agents
+    for agent_name in ["athena", "clio", "calliope", "vera"]:
+        if agent_name in scores:
+            old = scores[agent_name]["score"]
+            scores[agent_name]["successes"] += 1
+            scores[agent_name]["score"] = min(old + 0.01, 1.0)
+    # If Iris was used (lead enrichment), boost Iris too
+    if generation_path and ("iris" in generation_path.lower() or "enrich" in generation_path.lower()):
+        if "iris" in scores:
+            scores["iris"]["successes"] += 1
+            scores["iris"]["score"] = min(scores["iris"]["score"] + 0.01, 1.0)
+    _save_agent_scores(scores)

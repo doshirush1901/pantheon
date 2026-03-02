@@ -5233,6 +5233,21 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 except Exception as _id_err:
                     logger.debug(f"Identity bridge (non-fatal): {_id_err}")
 
+                # Beyond the Brain Phase 5: Iris enrichment for known contacts
+                if _agent_context.get("company"):
+                    try:
+                        from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
+                        _iris_loop = asyncio.new_event_loop()
+                        try:
+                            _iris_ctx = _iris_loop.run_until_complete(iris_enrich(_agent_context))
+                            if _iris_ctx:
+                                _agent_context["iris_context"] = _iris_ctx
+                                logger.info(f"[IRIS] Enriched: {list(_iris_ctx.keys())}")
+                        finally:
+                            _iris_loop.close()
+                    except Exception as _iris_err:
+                        logger.debug(f"Iris enrichment (non-fatal): {_iris_err}")
+
                 _loop = asyncio.new_event_loop()
                 try:
                     _agent_response = _loop.run_until_complete(
@@ -5259,6 +5274,21 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                         'consolidated_knowledge_ids': [],
                     })()
                     logger.info(f"[AGENT] Response via agentic pipeline")
+                    # Beyond the Brain Phase 5: Sophia reflection (fire-and-forget)
+                    try:
+                        from openclaw.agents.ira.src.skills.invocation import invoke_reflect
+                        _reflect_loop = asyncio.new_event_loop()
+                        try:
+                            _reflect_loop.run_until_complete(invoke_reflect({
+                                "user_message": actual_intent,
+                                "response": _agent_response[:500],
+                                "intent": "agent",
+                                "results": _agent_context,
+                            }))
+                        finally:
+                            _reflect_loop.close()
+                    except Exception:
+                        pass
             except Exception as _agent_err:
                 logger.warning(f"Agentic pipeline error (falling back to generate_answer): {_agent_err}")
                 import traceback

@@ -791,6 +791,19 @@ class IraAgentBridge:
         except Exception as e:
             logger.warning(f"Error recording quote: {e}")
     
+    def _check_customer_positive_feedback(self, from_email: str, body: str, previous_response: str):
+        """Beyond the Brain Phase 9: Detect customer positive feedback and boost agent scores."""
+        try:
+            from openclaw.agents.ira.src.brain.feedback_handler import handle_customer_positive_feedback
+            handle_customer_positive_feedback(
+                customer_message=body,
+                ira_previous_response=previous_response or "",
+                from_email=from_email,
+                generation_path="email_pipeline",
+            )
+        except Exception as e:
+            logger.debug(f"Customer feedback detection (non-fatal): {e}")
+
     def _update_customer_engagement(self, from_email: str):
         """Update customer engagement metrics after interaction."""
         if not self.health_scorer_available or not self.health_scorer:
