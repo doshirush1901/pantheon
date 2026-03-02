@@ -94,7 +94,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "finance_overview",
-            "description": "Ask Plutus (Chief of Finance) any financial question — revenue, P&L, cashflow, receivables, order book value, payment status, margins. Use for ANY money-related query.",
+            "description": "Ask Plutus (Chief of Finance) any financial question. Returns a pre-formatted CFO report with KPIs, visual bars, risk register, and recommendations. IMPORTANT: relay the output VERBATIM to the user without summarizing or reformatting.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -108,7 +108,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "order_book_status",
-            "description": "Ask Plutus for the current order book: total booked value, amount collected, outstanding receivables, per-project breakdown, and concentration risk. Use when asked about 'order book', 'outstanding', 'receivables', 'how much we are owed'.",
+            "description": "Ask Plutus for the current order book with per-project breakdown. Returns pre-formatted report. RELAY VERBATIM to user.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -120,7 +120,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "cashflow_forecast",
-            "description": "Ask Plutus for cashflow projections: when money is expected, from which customers, based on dispatch dates and payment milestones. Use when asked about 'cashflow', 'when will we get paid', 'expected payments'.",
+            "description": "Ask Plutus for week-by-week cashflow projections from payment schedule. Returns pre-formatted report. RELAY VERBATIM to user.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -132,7 +132,7 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "revenue_history",
-            "description": "Ask Plutus for historical revenue: annual turnover, revenue by year, export revenue breakdown, cumulative sales. Use when asked about 'turnover', 'revenue history', 'how much did we sell', 'annual revenue'.",
+            "description": "Ask Plutus for historical revenue by year and export breakdown. Returns pre-formatted report. RELAY VERBATIM to user.",
             "parameters": {
                 "type": "object",
                 "properties": {

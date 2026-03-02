@@ -466,7 +466,7 @@ async def cashflow_forecast(context: Optional[Dict] = None) -> str:
                 f"Scheduled: {_fmt_inr(total_scheduled):>12s}"
             )
             if unscheduled > 10000:
-                lines.append(f"    ⚠ {_fmt_inr(unscheduled)} not yet scheduled in any week")
+                lines.append(f"    >> {_fmt_inr(unscheduled)} not yet scheduled in any week")
 
     # --- Fallback: MCT Orders dispatch-date based ---
     elif projects:
@@ -580,20 +580,20 @@ async def revenue_history(query: str = "", context: Optional[Dict] = None) -> st
     return "\n".join(lines)
 
 
-def _bar(pct: float, width: int = 20) -> str:
-    """Render a text progress bar: [████████░░░░░░░░░░░░] 42%"""
+def _bar(pct: float, width: int = 15) -> str:
+    """Render a Telegram-safe text progress bar (no brackets)."""
     filled = int(pct / 100 * width)
-    return f"[{'█' * filled}{'░' * (width - filled)}] {pct:.0f}%"
+    return f"{'#' * filled}{'-' * (width - filled)} {pct:.0f}%"
 
 
 def _risk_badge(level: str) -> str:
     if level == "CRITICAL":
-        return "🔴 CRITICAL"
+        return "CRITICAL"
     if level == "HIGH":
-        return "🟠 HIGH"
+        return "HIGH"
     if level == "MEDIUM":
-        return "🟡 MEDIUM"
-    return "🟢 LOW"
+        return "MEDIUM"
+    return "LOW"
 
 
 async def cfo_dashboard(context: Optional[Dict] = None) -> str:
@@ -606,10 +606,10 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
     to_orders = _load_orders_to_sheet()
 
     lines = []
-    lines.append("╔══════════════════════════════════════════════════════════╗")
-    lines.append("║        MACHINECRAFT — CFO FINANCIAL DASHBOARD          ║")
-    lines.append("║        Plutus Report • Generated: " + datetime.now().strftime("%d %b %Y") + "        ║")
-    lines.append("╚══════════════════════════════════════════════════════════╝")
+    lines.append("=" * 58)
+    lines.append("  MACHINECRAFT -- CFO FINANCIAL DASHBOARD")
+    lines.append("  Plutus Report -- Generated: " + datetime.now().strftime("%d %b %Y"))
+    lines.append("=" * 58)
 
     # ================================================================
     # SECTION 1: KEY FINANCIAL METRICS
@@ -626,14 +626,14 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
     collection_rate = (total_advance / total_order_book * 100) if total_order_book else 0
     schedule_coverage = (total_scheduled / total_pending * 100) if total_pending else 0
 
-    lines.append("\n━━━ KEY PERFORMANCE INDICATORS ━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("\n--- KEY PERFORMANCE INDICATORS " + "-" * 27)
     lines.append("")
     lines.append(f"  Order Book Value:      {_fmt_inr(total_order_book):>14s}   ({num_machines} machines)")
     lines.append(f"  Advance Collected:     {_fmt_inr(total_advance):>14s}   {_bar(collection_rate)}")
     lines.append(f"  Outstanding (A/R):     {_fmt_inr(total_pending):>14s}")
     lines.append(f"  Scheduled Inflows:     {_fmt_inr(total_scheduled):>14s}   {_bar(schedule_coverage)}")
     if unscheduled > 0:
-        lines.append(f"  Unscheduled Risk:      {_fmt_inr(unscheduled):>14s}   ⚠ No collection date")
+        lines.append(f"  Unscheduled Risk:      {_fmt_inr(unscheduled):>14s}   WARNING: No collection date")
     lines.append("")
 
     # Avg order value
@@ -653,7 +653,7 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
     # ================================================================
     # SECTION 2: CONCENTRATION RISK ANALYSIS
     # ================================================================
-    lines.append("\n━━━ CONCENTRATION RISK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("\n--- CONCENTRATION RISK " + "-" * 35)
     if machines_list:
         sorted_machines = sorted(machines_list, key=lambda x: -x["pending_amount"])
         top1_pct = (sorted_machines[0]["pending_amount"] / total_pending * 100) if total_pending else 0
@@ -676,13 +676,13 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
         lines.append("  Customer Exposure:")
         for m in sorted_machines[:5]:
             pct = (m["pending_amount"] / total_pending * 100) if total_pending else 0
-            bar_w = int(pct / 100 * 30)
-            lines.append(f"    {m['name']:<35s} {_fmt_inr(m['pending_amount']):>12s} {'█' * bar_w}{'░' * (30 - bar_w)} {pct:.0f}%")
+            bar_w = int(pct / 100 * 15)
+            lines.append(f"    {m['name']:<30s} {_fmt_inr(m['pending_amount']):>10s} {'#' * bar_w}{'-' * (15 - bar_w)} {pct:.0f}%")
 
     # ================================================================
     # SECTION 3: CASHFLOW TIMELINE (visual)
     # ================================================================
-    lines.append("\n━━━ CASHFLOW TIMELINE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("\n--- CASHFLOW TIMELINE " + "-" * 36)
     weekly_totals = schedule.get("weekly_totals", {})
     week_dates = schedule.get("week_dates", {})
     if weekly_totals:
@@ -694,19 +694,19 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
             if amt <= 0:
                 continue
             running_total += amt
-            bar_w = int(amt / max_amt * 25) if max_amt else 0
+            bar_w = int(amt / max_amt * 20) if max_amt else 0
             date_str = week_dates.get(cw, "")
-            lines.append(f"  {cw:>4s} {date_str:>8s}  {'█' * bar_w:<25s} {_fmt_inr(amt):>12s}  (cum: {_fmt_inr(running_total)})")
+            lines.append(f"  {cw:>4s} {date_str:>8s}  {'#' * bar_w:<20s} {_fmt_inr(amt):>12s}  (cum: {_fmt_inr(running_total)})")
 
         lines.append(f"\n  Total scheduled: {_fmt_inr(running_total)}")
         if total_pending > running_total:
             gap = total_pending - running_total
-            lines.append(f"  Gap (unscheduled): {_fmt_inr(gap)} — needs collection dates assigned")
+            lines.append(f"  Gap (unscheduled): {_fmt_inr(gap)} - needs collection dates assigned")
 
     # ================================================================
     # SECTION 4: RISK REGISTER
     # ================================================================
-    lines.append("\n━━━ RISK REGISTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("\n--- RISK REGISTER " + "-" * 39)
     risks = []
 
     for m in machines_list:
@@ -777,19 +777,20 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
 
     if risks:
         lines.append("")
-        for i, r in enumerate(risks, 1):
-            lines.append(f"  {i}. {_risk_badge(r['level'])}  [{r['project']}] {r['machine']}")
-            lines.append(f"     Issue:  {r['issue']}")
-            lines.append(f"     Amount: {_fmt_inr(r['amount'])}")
-            lines.append(f"     Action: {r['action']}")
+        for i, r in enumerate(risks[:5], 1):
+            lines.append(f"  {i}. {_risk_badge(r['level'])} - {r['machine']}")
+            lines.append(f"     {r['issue']}")
+            lines.append(f"     -> {r['action'][:80]}")
             lines.append("")
+        if len(risks) > 5:
+            lines.append(f"  + {len(risks) - 5} more risks (ask for details)")
     else:
-        lines.append("  No significant risks identified. 🟢")
+        lines.append("  No significant risks identified.")
 
     # ================================================================
     # SECTION 5: CFO RECOMMENDATIONS
     # ================================================================
-    lines.append("━━━ CFO RECOMMENDATIONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("--- CFO RECOMMENDATIONS " + "-" * 34)
     lines.append("")
 
     recs = []
@@ -798,31 +799,31 @@ async def cfo_dashboard(context: Optional[Dict] = None) -> str:
     zero_advance = [m for m in machines_list if m["advance_received"] == 0 and m["pending_amount"] > 0]
 
     if critical_count:
-        recs.append(f"🔴 URGENT: {critical_count} critical risk(s) require immediate attention. Stalled projects should be escalated this week.")
+        recs.append(f"URGENT: {critical_count} critical risk(s). Escalate stalled projects this week.")
 
     if zero_advance:
         names = ", ".join(m["name"].split()[0] for m in zero_advance[:3])
-        recs.append(f"🟠 COLLECTIONS: {len(zero_advance)} machines ({names}) have zero advance. Halt fabrication until advance is received per standard terms.")
+        recs.append(f"COLLECTIONS: {len(zero_advance)} machines ({names}) have zero advance. Halt fabrication.")
 
     if collection_rate < 30:
-        recs.append(f"🟠 CASH CONVERSION: Collection rate is {collection_rate:.0f}% vs 25-30% benchmark. Push milestone payments — especially pre-dispatch (65-70% should be collected before shipping).")
+        recs.append(f"CASH CONVERSION: {collection_rate:.0f}% vs 25-30% target. Push milestone payments pre-dispatch.")
 
     if unscheduled > 5000000:
-        recs.append(f"🟡 SCHEDULING: {_fmt_inr(unscheduled)} in receivables has no collection date. Work with project managers to assign payment milestones to calendar weeks.")
+        recs.append(f"SCHEDULING: {_fmt_inr(unscheduled)} has no collection date. Assign milestones to weeks.")
 
     top3_pct_val = (sum(m["pending_amount"] for m in sorted(machines_list, key=lambda x: -x["pending_amount"])[:3]) / total_pending * 100) if total_pending and machines_list else 0
     if top3_pct_val > 55:
-        recs.append(f"🟡 DIVERSIFICATION: Top 3 customers = {top3_pct_val:.0f}% of receivables. Accelerate collections from largest accounts and build pipeline diversity.")
+        recs.append(f"DIVERSIFY: Top 3 = {top3_pct_val:.0f}% of A/R. Accelerate collections from largest accounts.")
 
     if not recs:
-        recs.append("🟢 Financial position is healthy. Continue monitoring weekly.")
+        recs.append("Financial position healthy. Continue monitoring weekly.")
 
     for i, rec in enumerate(recs, 1):
         lines.append(f"  {i}. {rec}")
         lines.append("")
 
-    lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    lines.append("End of CFO Report — Plutus, Chief of Finance")
+    lines.append("=" * 58)
+    lines.append("End of CFO Report -- Plutus, Chief of Finance")
 
     return "\n".join(lines)
 

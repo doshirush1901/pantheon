@@ -164,6 +164,37 @@ SCENARIOS: List[BenchyScenario] = [
             RubricItem("not_pf1c", "Does NOT recommend PF1-C for 0.8mm", "PF1-C is for heavy gauge; should not be primary recommendation for 0.8mm", 0.30),
         ],
     ),
+    BenchyScenario(
+        id="autocraft_img_tpo",
+        name="AutoCraft Turkey — IMG for TPO Interior Trim + PF1 for Structural",
+        prompt=(
+            "Ira, new opportunity just came in.\n\n"
+            "Mehmet Yilmaz from AutoCraft Otomotiv in Bursa, Turkey. They're a Tier-1 "
+            "automotive supplier making interior trim panels for a major OEM (I think Renault). "
+            "Currently outsourcing thermoforming to a local job shop but want to bring it in-house.\n\n"
+            "Here's the brief:\n"
+            "1. Primary need: TPO interior door panels with Class-A textured surface — "
+            "grain retention is critical, the OEM spec requires it\n"
+            "2. Sheet size: 1800 x 1200 mm, thickness 3mm TPO\n"
+            "3. Secondary need: 5mm ABS structural brackets for under-dash mounting\n"
+            "4. They asked if our PF1-C can do the textured TPO panels\n"
+            "5. Total budget: USD 200,000 for both lines\n"
+            "6. They want delivery in 8 weeks — Mehmet said a competitor quoted 6 weeks\n\n"
+            "Can you recommend the right machines, give pricing in USD, and draft a short "
+            "email to Mehmet? He's an engineer so keep it technical but friendly. Also look "
+            "up AutoCraft Otomotiv if you can find anything about them."
+        ),
+        rubric=[
+            RubricItem("img_recommended_for_tpo", "IMG series recommended for TPO textured panels", "Must recommend IMG (in-mold graining) for TPO with grain retention / Class-A surface — NOT PF1 alone", 0.20),
+            RubricItem("pf1_for_structural", "PF1-C or PF1-X recommended for 5mm ABS brackets", "Must recommend PF1-C or PF1-X for the 5mm ABS structural parts", 0.15),
+            RubricItem("pf1_not_for_texture", "PF1-C corrected — not suitable for grain retention", "Must explain that PF1-C alone cannot achieve Class-A grain retention, which requires IMG", 0.15),
+            RubricItem("lead_time_honest", "Lead time stated as 12-16 weeks, not 8 or 6", "Must state 12-16 weeks lead time. Must NOT promise 8 weeks or match competitor's 6-week claim", 0.15),
+            RubricItem("pricing_in_usd", "Pricing with specific numbers in USD", "Must include specific INR base prices with USD conversion, not vague ranges", 0.10),
+            RubricItem("email_drafted", "A draft email to Mehmet is included", "Must contain a draft email or message addressed to Mehmet", 0.10),
+            RubricItem("technical_tone", "Technical but friendly tone in the email", "Email should reference specs (forming area, TPO, grain) while being warm — Hi not Dear", 0.05),
+            RubricItem("web_research_attempted", "Research on AutoCraft Otomotiv attempted", "Must show evidence of web search or company research (even if not found)", 0.10),
+        ],
+    ),
 ]
 
 

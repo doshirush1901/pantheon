@@ -29,9 +29,19 @@
       "context": "material thickness",
       "timestamp": "2026-03-02T13:05:49.396284",
       "confidence": 1.0
+    },
+    {
+      "id": "generic_20260302_215610",
+      "correction_type": "fact",
+      "original": "Our current order book status is as follows:\n- **Total Booked**: \u20b918.07 Cr\n- **Collected**: \u20b93.07 Cr\n- **Outstanding**: \u20b914.99 Cr\n- **Collection Rate**: 17%\n- **Active Projects**: 19\n1. **Dutch Tides*",
+      "corrected": "dutch tides only 2 cr is pending, rest is paid - pls correct this info",
+      "entity": "",
+      "context": "dutch tides only 2 cr is pending, rest is paid - pls correct this info",
+      "timestamp": "2026-03-02T21:56:10.098536",
+      "confidence": 1.0
     }
   ],
   "competitors": [],
   "existing_customers": [],
-  "last_updated": "2026-03-02T13:05:49.396292"
+  "last_updated": "2026-03-02T21:56:10.098635"
 }

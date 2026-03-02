@@ -316,6 +316,76 @@ The model number indicates forming area: PF1-C-XXYY = XX00 x YY00 mm""",
         confidence=0.90,
     ),
     TruthHint(
+        id="img_grain_retention",
+        question_patterns=[
+            r"grain.*retention|retention.*grain",
+            r"class[\s-]?a.*surface|surface.*class[\s-]?a",
+            r"tpo.*texture|texture.*tpo",
+            r"tpo.*door.*panel|door.*panel.*tpo",
+            r"tpo.*interior|interior.*tpo",
+            r"in[\s-]?mold.*grain",
+            r"grain.*tpo|tpo.*grain",
+            r"class[\s-]?a.*tpo|tpo.*class[\s-]?a",
+            r"pf1.*grain|grain.*pf1",
+            r"pf1.*class[\s-]?a|class[\s-]?a.*pf1",
+            r"pf1.*texture.*tpo|tpo.*texture.*pf1",
+        ],
+        answer="""For TPO parts requiring grain retention or Class-A textured surfaces, you need our **IMG (In-Mold Graining) Series** — NOT PF1 alone.
+
+**Why IMG, not PF1?**
+PF1 is a vacuum forming machine — it cannot retain grain texture on TPO. The grain gets washed out during heating. IMG uses in-mold graining technology where the texture is applied DURING the forming process, achieving Class-A surface finish that OEMs require.
+
+**IMG is REQUIRED when the customer mentions ANY of these:**
+- Grain retention
+- Class-A surface finish
+- TPO interior trim with texture
+- OEM texture specifications
+
+**Important notes:**
+- IMG machines are custom-built to order — not standard catalog items
+- Lead time: 12-16 weeks from order confirmation (subject to configuration)
+- We have built IMG machines previously (e.g. PF1-0513 for IAC)
+- Pricing depends on size and configuration — contact us for a detailed quote
+
+**If the customer also needs non-textured heavy-gauge parts (e.g. ABS structural brackets), they need a SEPARATE PF1-C or PF1-X machine for those.**
+
+Let me know the forming area, material thickness, and your budget so I can provide a specific proposal.""",
+        category="product",
+        keywords=["grain", "class-a", "class a", "tpo", "texture", "img", "in-mold", "retention"],
+        confidence=0.97,
+    ),
+    TruthHint(
+        id="thin_gauge_budget",
+        question_patterns=[
+            r"cheap.*machine.*thin|affordable.*thin|budget.*thin",
+            r"cheap.*machine.*tray|affordable.*tray|budget.*tray",
+            r"cheap.*machine.*packaging|affordable.*packaging",
+            r"most affordable|cheapest.*machine|lowest.*price.*machine",
+            r"startup.*machine|entry.*level.*machine",
+            r"0\.[2-9]\s*mm.*machine|machine.*0\.[2-9]\s*mm",
+        ],
+        answer="""For thin-gauge thermoforming (≤1.5mm), our most affordable option is the **AM-5060**:
+
+**AM-5060 — Entry-Level Vacuum Forming**
+- Forming area: 500 × 600 mm
+- Max thickness: 1.5mm (1.8mm with duplex chain option)
+- Price: **INR 7,50,000** (~USD 9,000) — subject to configuration and current pricing
+- Applications: Food trays, blister packs, clamshells, small packaging
+- Lead time: 12-16 weeks from order confirmation
+
+**Other AM options:**
+- AM-6060: 600×600mm — INR 9,00,000
+- AM-5060-P: 500×600mm with inline press — INR 15,00,000
+- AMP-5060: Pressure forming version — INR 35,00,000
+
+**Training:** 3-5 days included with every machine purchase.
+
+What is your sheet size and material? I can recommend the best fit for your budget.""",
+        category="product",
+        keywords=["cheap", "affordable", "budget", "startup", "entry", "lowest", "most affordable"],
+        confidence=0.92,
+    ),
+    TruthHint(
         id="fcs_trimming",
         question_patterns=[
             r"what is fcs|fcs.*what",
@@ -547,20 +617,55 @@ When you ask a question, I search across all these layers in parallel to build t
             r"tell me about yourself",
             r"introduce yourself",
             r"what.*your.*role|your.*purpose",
+            r"what can you do|what do you do",
+            r"what can we do|what.*we.*do.*together",
+            r"what are your.*capabilit|your.*abilities",
+            r"what.*you.*help.*with|how can you help",
+            r"what.*you.*offer|what.*you.*good at",
+            r"what.*your.*function|what.*your.*job",
+            r"give me.*use.?cases|cool.*use.?cases",
+            r"what.*things.*can.*do",
         ],
-        answer="""I'm Ira, the Intelligent Revenue Assistant for Machinecraft Technologies. I'm an AI sales assistant that helps the team with:
+        answer="""I'm Ira, the Intelligent Revenue Assistant for Machinecraft Technologies. Here's what we can do together:
 
-- Answering questions about thermoforming machines and applications
-- Recommending machines based on customer requirements
-- Looking up customer history and relationship context
-- Drafting professional sales emails and quotations
-- Tracking orders, follow-ups, and customer health
+**Sales & Lead Intelligence**
+- Recommend the right machine for any customer inquiry (material, thickness, size, budget)
+- Generate professional quotations (/quote)
+- Draft personalized sales emails (/email)
+- Run drip campaigns and outreach batches via Hermes
 
-I operate as a Pantheon of 5 specialist agents (Athena, Clio, Calliope, Vera, Sophia) coordinated by Athena. I learn from every interaction and improve during nightly dream cycles.
+**Customer & CRM**
+- Look up any customer, lead, or contact history (/crm)
+- Track relationship health, at-risk accounts, and priorities (/dashboard)
+- Manage the full sales pipeline from lead to order
 
-I'm available on Telegram and email (ira@machinecraft.org).""",
+**Research & Knowledge**
+- Deep research on any topic — companies, industries, competitors (/research)
+- Scan for new market opportunities via Prometheus (/discovery)
+- Answer questions from ingested documents, order books, and financial data
+
+**Finance (Plutus)**
+- Order book status, cashflow forecasts, revenue history
+- Payment tracking and concentration risk analysis
+
+**Brain Training & Learning**
+- Quiz mode to test and improve my knowledge (/train)
+- Teach me new facts and corrections (/teach, /learn)
+- I learn overnight during dream cycles and get smarter every day
+
+**Document Processing**
+- Ingest PDFs, spreadsheets, web pages into my knowledge base (/ingest, /url)
+- Extract and remember key data from uploaded files
+
+I operate as a Pantheon of specialist roles — Athena (strategy), Clio (research), Calliope (writing), Vera (fact-checking), Sophia (learning), Mnemosyne (CRM), Hermes (outreach), Prometheus (discovery), and Plutus (finance).
+
+Type /help to see all commands, or just ask me anything naturally!""",
         category="self_knowledge",
-        keywords=["who are you", "what are you", "yourself", "introduce", "role", "purpose"],
+        keywords=["who are you", "what are you", "yourself", "introduce", "role", "purpose",
+                  "what can", "capabilities", "abilities", "help with", "help me",
+                  "what do you", "how can you",
+                  "use cases", "usecases", "things we can", "things you can", "do together",
+                  "what you offer", "good at", "function", "your job"],
     ),
     TruthHint(
         id="ira_dream_cycle",

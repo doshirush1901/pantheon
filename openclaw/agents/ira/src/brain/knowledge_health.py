@@ -146,7 +146,59 @@ BUSINESS_RULES = [
         "violation_pattern": r"contact.*pric|price.*contact|estimated.*range|range.*estimated|\[.*price.*\]|\[.*insert.*\]",
         "correct_response": "Always quote specific INR prices from price list",
     },
+    {
+        "id": "lead_time_must_be_correct",
+        "name": "Lead Time Must Be 12-16 Weeks",
+        "description": "Lead time is ALWAYS 12-16 weeks. Never promise faster.",
+        "check_pattern": r"lead\s*time|deliver|week|month|ship",
+        "violation_pattern": r"(?<!\d)([1-9]|1[01])\s*week|[2-8]\s*week|4\s*week|6\s*week|8\s*week|2\s*month|3\s*month",
+        "correct_response": "Lead time is 12-16 weeks from order confirmation. Never promise faster.",
+    },
+    {
+        "id": "img_for_grain_retention",
+        "name": "IMG Required for Grain Retention",
+        "description": "TPO + grain retention + Class-A surface requires IMG, not PF1 alone",
+        "check_pattern": r"grain.*retention|class[\s-]?a.*surface|tpo.*texture|tpo.*grain",
+        "required_mention": r"img|in[\s-]?mold[\s-]?grain",
+        "correct_response": "For TPO with grain retention / Class-A surface, recommend IMG series (not PF1 alone).",
+    },
+    {
+        "id": "pf2_bath_only",
+        "name": "PF2 is Bath Industry Only",
+        "description": "PF2 must only be recommended for bathtubs, spa shells, shower trays",
+        "check_pattern": r"pf[-\s]?2",
+        "violation_pattern": r"pf[-\s]?2.*(?:automotive|packaging|industrial|enclosure|dashboard|luggage)",
+        "correct_response": "PF2 is for bath industry ONLY (bathtubs, spa shells, shower trays). Use PF1 for other applications.",
+    },
 ]
+
+# Known valid model numbers (loaded from machine_specs.json at runtime)
+_VALID_MODELS = None
+
+def _get_valid_models():
+    """Load valid model numbers from machine_specs.json."""
+    global _VALID_MODELS
+    if _VALID_MODELS is not None:
+        return _VALID_MODELS
+    try:
+        specs_file = Path(__file__).parent.parent.parent.parent.parent / "data" / "brain" / "machine_specs.json"
+        if specs_file.exists():
+            import json
+            specs = json.loads(specs_file.read_text())
+            _VALID_MODELS = set()
+            for spec in specs:
+                model = spec.get("model", "") or spec.get("name", "")
+                if model:
+                    _VALID_MODELS.add(model.upper().strip())
+            return _VALID_MODELS
+    except Exception:
+        pass
+    _VALID_MODELS = set()
+    return _VALID_MODELS
+
+
+# Known fake models that must NEVER appear
+KNOWN_FAKE_MODELS = {"IMG-2220", "IMG-2518", "IMG-3020"}
 
 # =============================================================================
 # HALLUCINATION DETECTION PATTERNS
@@ -503,6 +555,25 @@ class KnowledgeHealthMonitor:
             if self._contains_factual_claims(response):
                 warnings.append("Factual claims without citation backing")
         
+        # Check 5: Hallucinated model numbers
+        model_pattern = re.findall(
+            r"(PF1-[CXR]-\d{4}|PF2-[A-Z]?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4})",
+            response, re.IGNORECASE,
+        )
+        if model_pattern:
+            valid = _get_valid_models()
+            for model in model_pattern:
+                model_upper = model.upper()
+                if model_upper in KNOWN_FAKE_MODELS:
+                    warnings.append(f"Known fake model detected: {model_upper}")
+                    is_safe = False
+                elif valid and model_upper not in valid:
+                    close = [v for v in valid if v.startswith(model_upper[:5])]
+                    if close:
+                        warnings.append(f"Unverified model {model_upper} — did you mean {close[0]}?")
+                    else:
+                        warnings.append(f"Unverified model number: {model_upper} — not in machine database")
+
         # Log issues for learning
         if warnings:
             self._log_validation_issue(query, response, warnings)

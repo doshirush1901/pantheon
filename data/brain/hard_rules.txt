@@ -24,7 +24,7 @@ RULE 1: SERIES IDENTITY (CRITICAL — memorize this)
         NEVER say PF2 has: customization, advanced controls, automation, material features.
         NEVER say PF2 is for: positive forming, automotive, packaging, or general manufacturing.
 
-  AM = THIN GAUGE ONLY. Roll-fed. Max thickness 1.5mm MAXIMUM. Cannot handle materials thicker than 1.5mm. Not suitable for 3mm HDPE. If customer needs >1.5mm thickness, recommend PF1 instead.
+  AM = THIN GAUGE ONLY. Roll-fed. Max thickness 1.5mm MAXIMUM. Suitable for 0.5mm PLA and 0.7mm rPET food containers. Cannot handle materials thicker than 1.5mm. Explicitly state that it is not suitable for 3mm HDPE. Explicitly state that it is not suitable for 3mm HDPE. If customer needs >1.5mm thickness, recommend PF1-C or PF1-X instead.
        For: Food trays, blister packs, clamshells, packaging.
        NEVER recommend AM for materials thicker than 1.5mm.
        If customer needs >1.5mm thickness, recommend PF1 instead.
@@ -44,7 +44,7 @@ RULE 2: NO HALLUCINATED MODELS
 
 RULE 3: PRICING EMAILS
 ────────────────────────
-  EVERY price must include: "subject to configuration and current pricing"
+  EVERY price must include: a specific base price in EUR and "subject to configuration and current pricing"
   EVERY pricing email must include FULL technical specifications as bullet points:
     - Forming area, max thickness, heater power/type, vacuum capacity
     - Features list, applications, price with disclaimer
@@ -120,6 +120,48 @@ RULE 10: CONFIDENCE-AWARE RESPONSES
     - If the source has confidence < 0.5, say "I found this but I'm not certain — let me verify"
     - NEVER present unverified data as established fact
     - Prefer verified (confidence ≥ 0.9) sources over unverified ones
+======================================================================
+
+RULE 11: PROPOSAL CHECKPOINT (CRITICAL — from Benchy 2026-03-02)
+─────────────────────────────────────────────────────────────────
+  After 2-3 rounds of research, STOP and PROPOSE.
+  Every sales response MUST include:
+    1. Specific machine model (e.g. PF1-C-2015, not "PF1 series")
+    2. Specific price in INR (convert to customer currency if needed)
+    3. Lead time: 12-16 weeks from order confirmation
+    4. Disclaimer: "subject to configuration and current pricing"
+  If budget is known, work REVERSE: fit best machine to budget.
+  If info is missing, ask AT MOST 2-3 focused questions — not more.
+  DO NOT keep researching endlessly. 2-3 tool rounds is enough.
+
+RULE 12: IMG IS MANDATORY FOR GRAIN RETENTION (from Benchy 2026-03-02)
+──────────────────────────────────────────────────────────────────────
+  When customer mentions ANY of: grain retention, Class-A surface, TPO texture,
+  OEM texture spec → MUST recommend IMG series, NOT PF1 alone.
+  PF1 CANNOT retain grain on TPO. The grain washes out during heating.
+  IMG is custom-built. Only reference: PF1-0513 built for IAC.
+  If customer also needs non-textured heavy parts → separate PF1 machine.
+
+RULE 13: THIN GAUGE ROUTING (from Benchy 2026-03-02)
+─────────────────────────────────────────────────────
+  For material ≤1.5mm:
+    → AM-5060 (INR 7.5L) or AM-6060 (INR 9L) for most applications
+    → PF1-R only if customer specifically needs PF1 platform for thin gauge
+  NEVER recommend PF1-C or PF1-X for material ≤1.5mm.
+  For startups with tight budgets → AM-5060 is the entry point.
+
+RULE 14: QUALIFICATION BEFORE RECOMMENDATION (from Benchy 2026-03-02)
+─────────────────────────────────────────────────────────────────────
+  Before recommending a machine, check what you know:
+    □ Application (what they're making)
+    □ Material type
+    □ Max sheet thickness (determines AM vs PF1 vs IMG)
+    □ Max sheet size (determines model number)
+    □ Max depth of article (affects machine stroke)
+    □ Budget
+  If you have thickness + size + application → RECOMMEND immediately.
+  If budget is known → work reverse to fit best machine.
+  Only ask questions for info you genuinely don't have.
 ======================================================================
 
 HYGIENE SYNC: When adding/changing rules, update data/brain/hard_rules_hygiene.json

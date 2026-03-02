@@ -55,9 +55,12 @@ def build_main_menu_keyboard():
     """Build main menu inline keyboard."""
     return {"inline_keyboard": [
         [{"text": "📊 Status", "callback_data": "menu_status"},
-         {"text": "📧 Email", "callback_data": "menu_email"}],
+         {"text": "💰 Finance", "callback_data": "menu_finance"}],
         [{"text": "🔍 Research", "callback_data": "menu_research"},
-         {"text": "💡 Help", "callback_data": "menu_help"}],
+         {"text": "📧 Email", "callback_data": "menu_email"}],
+        [{"text": "🎯 CRM", "callback_data": "menu_crm"},
+         {"text": "🧠 Train", "callback_data": "menu_train"}],
+        [{"text": "💡 Help", "callback_data": "menu_help"}],
     ]}
 
 def build_error_keyboard(retry_action="retry"):
@@ -1529,18 +1532,37 @@ class TelegramGateway:
         )
 
     def set_my_commands(self) -> bool:
-        """Configure bot menu commands."""
+        """Configure bot menu commands (Telegram allows max 100)."""
         url = f"{TELEGRAM_API_BASE.format(token=self.bot_token)}/setMyCommands"
         commands = [
             {"command": "start", "description": "Welcome & quick tour"},
             {"command": "menu", "description": "Main menu with quick actions"},
-            {"command": "status", "description": "Brain score & system status"},
-            {"command": "brief", "description": "Generate topic briefing"},
-            {"command": "dashboard", "description": "Relationship overview"},
-            {"command": "research", "description": "Deep research on a topic"},
-            {"command": "docs", "description": "List uploaded documents"},
             {"command": "help", "description": "Show all commands"},
-            {"command": "crm", "description": "Mnemosyne CRM - pipeline, leads, drip"},
+            {"command": "status", "description": "Brain score & system status"},
+            {"command": "train", "description": "Brain training mode (Duolingo-style)"},
+            {"command": "research", "description": "Deep research on a topic"},
+            {"command": "ingest", "description": "Ingest a document into memory"},
+            {"command": "teach", "description": "Teach Ira new facts"},
+            {"command": "crm", "description": "CRM - pipeline, leads, drip"},
+            {"command": "dashboard", "description": "Relationship overview"},
+            {"command": "quote", "description": "Generate a quick quote"},
+            {"command": "email", "description": "Draft an email"},
+            {"command": "leads", "description": "Show sales leads"},
+            {"command": "memories", "description": "What Ira remembers about you"},
+            {"command": "docs", "description": "List uploaded documents"},
+            {"command": "conflicts", "description": "Show memory conflicts"},
+            {"command": "outreach", "description": "Proactive outreach suggestions"},
+            {"command": "brief", "description": "Generate topic briefing"},
+            {"command": "takeout", "description": "Email ingestion stats"},
+            {"command": "personality", "description": "View personality traits"},
+            {"command": "think", "description": "Force deep thinking on a topic"},
+            {"command": "deepdive", "description": "Multi-topic research session"},
+            {"command": "learn", "description": "Teach Ira a specific fact"},
+            {"command": "knowledge_quality", "description": "Knowledge quality report"},
+            {"command": "health", "description": "Full system diagnostic"},
+            {"command": "memory_stats", "description": "Memory analytics"},
+            {"command": "fail", "description": "Failure tracking & fix plans"},
+            {"command": "price_conflicts", "description": "Show pricing conflicts"},
         ]
         try:
             response = requests.post(url, json={"commands": commands}, timeout=10)
@@ -2261,29 +2283,90 @@ I'm your AI assistant for MachineCraft. Here's what I can do:
             )
     
     def handle_start(self) -> GatewayResponse:
-        """Handle /start command - welcome and onboarding."""
-        welcome_text = """👋 *Welcome to Ira!*
+        """Handle /start command - rich onboarding flow."""
+        import time as _time
 
-I'm your AI assistant for MachineCraft.
+        # --- Message 1: Welcome ---
+        msg1 = (
+            "👋 *Hey! I'm Ira* — your Intelligent Revenue Assistant.\n\n"
+            "I'm not a chatbot. I'm a *team of AI specialists* working for Machinecraft, "
+            "each with a Greek-god codename and a real job to do.\n\n"
+            "Let me introduce the crew 👇"
+        )
+        self.send_message(msg1, parse_mode="Markdown")
+        _time.sleep(0.8)
 
-I can help you:
-• Answer questions about products, specs & pricing
-• Research companies and contacts
-• Draft and send emails
-• Track relationships and priorities
+        # --- Message 2: The Pantheon ---
+        msg2 = (
+            "⚡ *The Pantheon*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "🦉 *Athena* — Strategist & orchestrator (that's me)\n"
+            "📚 *Clio* — Deep researcher (knowledge base + web)\n"
+            "✍️ *Calliope* — Writer (emails, quotes, reports)\n"
+            "🔍 *Vera* — Fact-checker (catches errors before you see them)\n"
+            "🧠 *Sophia* — Learner (improves from every interaction)\n"
+            "💾 *Mnemosyne* — CRM keeper (contacts, deals, history)\n"
+            "📨 *Hermes* — Sales outreach (drip campaigns, personalized emails)\n"
+            "🔥 *Prometheus* — Market scout (new industries & opportunities)\n"
+            "💰 *Plutus* — Finance chief (order book, cashflow, revenue)"
+        )
+        self.send_message(msg2, parse_mode="Markdown")
+        _time.sleep(0.8)
 
-Let's get started!"""
-        
-        keyboard = self._build_onboarding_keyboard("welcome")
-        self.send_message(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+        # --- Message 3: Power prompts ---
+        msg3 = (
+            "🚀 *Try these power prompts* — just paste any of them:\n"
+            "━━━━━━━━━━━━━━━━━━━━\n\n"
+            "*Sales & Machines*\n"
+            "`Suggest the right machine for 4mm ABS, 2x1.5m sheet, 500mm deep, budget customer in India`\n\n"
+            "`We have a customer in Germany running Kiefel machines for door panels. They need 3mm ABS forming at 2500x1800mm. Draft a competitive proposal.`\n\n"
+            "*Finance*\n"
+            "`What's our current order book status?`\n"
+            "`Give me the CFO dashboard`\n\n"
+            "*Research*\n"
+            "`/research PlastIndia 2025 leads`\n"
+            "`/deepdive European market strategy 2026`\n\n"
+            "*CRM & Outreach*\n"
+            "`/crm pipeline` — see your deal pipeline\n"
+            "`/email john@bmw.de BMW John follow_up`\n\n"
+            "*Knowledge & Training*\n"
+            "`/train start` — quiz me to sharpen my brain\n"
+            "`/teach Dezet ordered PF1-X-1310 in 2025, Netherlands`"
+        )
+        self.send_message(msg3, parse_mode="Markdown")
+        _time.sleep(0.8)
+
+        # --- Message 4: Pro tips + menu ---
+        msg4 = (
+            "💡 *Pro tips*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "• Just *chat naturally* — I understand context and follow-ups\n"
+            "• Send a *PDF or document* — I'll ingest it into my brain\n"
+            "• Paste a *URL* — I'll read and remember the page\n"
+            "• Say `/good` or `/bad` after my response — I learn from feedback\n"
+            "• I run a *dream cycle* every night at 2 AM — processing docs, "
+            "consolidating memories, and getting smarter\n\n"
+            "Type /help for the full command list, or just ask me anything 👇"
+        )
+        keyboard = self._build_main_menu_keyboard()
+        self.send_message(msg4, parse_mode="Markdown", reply_markup=keyboard)
+
         return GatewayResponse(text="", success=True)
     
     def handle_menu(self) -> GatewayResponse:
         """Handle /menu command - show main menu with buttons."""
-        menu_text = """📋 *Main Menu*
-
-Tap a button below or just ask me anything in plain English."""
-        
+        menu_text = (
+            "📋 *Quick Actions*\n\n"
+            "Tap a button or type a command:\n\n"
+            "🔧 `/quote 2000x1500` — instant quote\n"
+            "📊 `/status` — brain health\n"
+            "🎯 `/crm pipeline` — deal pipeline\n"
+            "🔍 `/research <topic>` — deep dive\n"
+            "🧠 `/train start` — quiz mode\n"
+            "📨 `/email <addr>` — draft email\n"
+            "💰 `What's our order book?` — finance\n\n"
+            "Or just ask me anything in plain English 👇"
+        )
         keyboard = self._build_main_menu_keyboard()
         self.send_message(menu_text, parse_mode="Markdown", reply_markup=keyboard)
         return GatewayResponse(text="", success=True)
@@ -2477,124 +2560,127 @@ SAFETY:
         return GatewayResponse(text=help_text)
     
     def handle_status(self) -> GatewayResponse:
-        """Show Ira status including brain health."""
-        lines = ["📊 IRA STATUS\n"]
-        
-        # Load agent state for brain health
-        state_file = AGENT_DIR / "workspace" / "state.json"
-        agent_state = load_json_file(state_file) or {}
-        
-        # Brain Health Section
-        brain_status = agent_state.get('brain_status', 'unknown')
-        brain_engine = agent_state.get('brain_engine', 'unknown')
-        brain_message = agent_state.get('brain_message', '')
-        brain_last_query = agent_state.get('brain_last_query')
-        degraded_mode = agent_state.get('degraded_mode', False)
-        
-        # Status emoji mapping
-        status_emoji = {
-            'ok': '✅',
-            'partial': '⚠️',
-            'degraded': '❌',
-            'unknown': '❓'
-        }
-        emoji = status_emoji.get(brain_status, '❓')
-        
-        lines.append(f"🧠 BRAIN RETRIEVAL")
-        lines.append(f"   Status: {emoji} {brain_status.upper()}")
-        lines.append(f"   Engine: {brain_engine}")
-        if brain_message:
-            lines.append(f"   Info: {brain_message[:60]}")
-        if brain_last_query:
-            lines.append(f"   Last Query: {brain_last_query[:19]}")
-        if degraded_mode:
-            lines.append(f"   ⚠️ DEGRADED MODE - QA may be limited")
-        
-        # Brain Score Section
-        score_history = load_json_file(SCORE_HISTORY_FILE) or []
-        if score_history:
-            latest = score_history[-1]
-            lines.append(f"\n📈 Brain Score: {latest.get('total', 0):.1f}/100")
-            lines.append(f"   Coverage: {latest.get('coverage', 0):.1f}")
-            lines.append(f"   Consistency: {latest.get('consistency', 0):.1f}")
-            lines.append(f"   Confidence: {latest.get('confidence', 0):.1f}")
-        else:
-            lines.append("\n📈 Brain Score: Not computed")
-        
-        # Knowledge DB Section - PostgreSQL primary, SQLite fallback
+        """Show Ira status — live check of all real data sources."""
+        lines = ["📊 *IRA STATUS*\n"]
+
+        # --- 1. Qdrant (primary knowledge store) ---
+        qdrant_url = os.environ.get("QDRANT_URL", "http://localhost:6333")
+        qdrant_ok = False
+        total_points = 0
+        collection_details = []
+        key_collections = [
+            ("ira_chunks_v4_voyage", "Knowledge Chunks"),
+            ("ira_discovered_knowledge", "Discovered Knowledge"),
+            ("ira_dream_knowledge_v1", "Dream Knowledge"),
+            ("ira_emails_voyage_v2", "Emails"),
+            ("ira_customers", "Customers"),
+            ("ira_truth_hints", "Truth Hints"),
+        ]
         try:
-            import psycopg2
-            db_url = DATABASE_URL or os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
-            if db_url:
-                conn = psycopg2.connect(db_url)
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM ira_knowledge.documents WHERE status='active'")
-                docs = cursor.fetchone()[0]
-                cursor.execute("SELECT COUNT(*) FROM ira_knowledge.chunks")
-                chunks = cursor.fetchone()[0]
-                conn.close()
-                lines.append(f"\n📚 Documents: {docs}")
-                lines.append(f"📄 Chunks: {chunks}")
-            else:
-                raise Exception("No PostgreSQL URL configured")
-        except Exception as pg_err:
-            # SQLite fallback (deprecated)
-            if KNOWLEDGE_DB.exists():
+            resp = requests.get(f"{qdrant_url}/collections", timeout=3)
+            if resp.status_code == 200:
+                qdrant_ok = True
+                all_collections = resp.json().get("result", {}).get("collections", [])
+                for cname, label in key_collections:
+                    try:
+                        cr = requests.get(f"{qdrant_url}/collections/{cname}", timeout=2)
+                        pts = cr.json().get("result", {}).get("points_count", 0)
+                        total_points += pts
+                        collection_details.append((label, pts))
+                    except Exception:
+                        collection_details.append((label, "?"))
+        except Exception:
+            pass
+
+        lines.append(f"{'✅' if qdrant_ok else '❌'} *Qdrant* — {total_points:,} data points")
+        if qdrant_ok:
+            for label, pts in collection_details:
+                count_str = f"{pts:,}" if isinstance(pts, int) else pts
+                lines.append(f"   {label}: {count_str}")
+        else:
+            lines.append("   Not reachable — knowledge search offline")
+
+        # --- 2. Mem0 (long-term AI memory) ---
+        mem0_ok = False
+        mem0_info = ""
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            m0 = get_mem0_service()
+            if m0:
+                mem0_ok = True
                 try:
-                    conn = sqlite3.connect(str(KNOWLEDGE_DB))
-                    docs = conn.execute("SELECT COUNT(*) FROM documents WHERE status='active'").fetchone()[0]
-                    chunks = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
-                    conn.close()
-                    lines.append(f"\n📚 Documents: {docs} (SQLite)")
-                    lines.append(f"📄 Chunks: {chunks}")
+                    results = m0.get_all(user_id="machinecraft_knowledge")
+                    count = len(results) if isinstance(results, list) else 0
+                    mem0_info = f"{count} memories"
                 except Exception:
-                    lines.append("\n📚 Knowledge DB: Error reading")
-            else:
-                lines.append("\n📚 Knowledge DB: Not found")
-        
-        # Conflicts and Decisions
+                    mem0_info = "connected"
+        except ImportError:
+            mem0_info = "module not available"
+        except Exception as e:
+            mem0_info = str(e)[:40]
+        lines.append(f"\n{'✅' if mem0_ok else '⚠️'} *Mem0* — {mem0_info}")
+
+        # --- 3. OpenAI API ---
+        openai_ok = bool(os.environ.get("OPENAI_API_KEY"))
+        lines.append(f"{'✅' if openai_ok else '❌'} *OpenAI* — {'API key set' if openai_ok else 'MISSING'}")
+
+        # --- 4. Voyage AI (embeddings) ---
+        voyage_ok = bool(os.environ.get("VOYAGE_API_KEY"))
+        lines.append(f"{'✅' if voyage_ok else '❌'} *Voyage AI* — {'API key set' if voyage_ok else 'MISSING'}")
+
+        # --- 5. Knowledge Health ---
+        try:
+            from openclaw.agents.ira.src.brain.knowledge_health import run_health_check
+            report = run_health_check()
+            score = report.overall_score
+            score_emoji = "🟢" if score >= 80 else "🟡" if score >= 60 else "🔴"
+            lines.append(f"\n{score_emoji} *Knowledge Health:* {score}/100")
+            lines.append(f"   Passed: {report.checks_passed} | Failed: {report.checks_failed}")
+            if report.issues:
+                for issue in report.issues[:3]:
+                    icon = "🔴" if issue.severity == "critical" else "🟡"
+                    lines.append(f"   {icon} {issue.message[:55]}")
+        except Exception as e:
+            lines.append(f"\n⚠️ Knowledge Health: unavailable")
+
+        # --- 6. Truth Hints ---
+        try:
+            from openclaw.agents.ira.src.brain.truth_hints import TRUTH_HINTS
+            lines.append(f"\n📌 *Truth Hints:* {len(TRUTH_HINTS)} verified answers loaded")
+        except Exception:
+            pass
+
+        # --- 7. Conflicts & Decisions ---
         review_queue = load_json_file(REVIEW_QUEUE_FILE) or []
         pending_conflicts = len([r for r in review_queue if r.get("status") == "pending"])
-        lines.append(f"\n⚠️ Pending conflicts: {pending_conflicts}")
-        
         pending_decisions = load_json_file(PENDING_DECISIONS_FILE) or []
         awaiting = len([d for d in pending_decisions if d.get("status") == "pending"])
-        lines.append(f"❓ Awaiting answers: {awaiting}")
-        
-        # Memory Stats
+        if pending_conflicts or awaiting:
+            lines.append(f"\n⚠️ Pending conflicts: {pending_conflicts}")
+            lines.append(f"❓ Awaiting answers: {awaiting}")
+
+        # --- 8. Persistent Memory ---
         if PERSISTENT_MEMORY_AVAILABLE:
             try:
                 pm = get_persistent_memory()
                 stats = pm.get_stats()
                 user_mem = stats.get("user_memories", {})
                 entity_mem = stats.get("entity_memories", {})
-                
-                lines.append(f"\n🧠 PERSISTENT MEMORY")
-                lines.append(f"   User memories: {user_mem.get('total', 0)}")
-                lines.append(f"   Users tracked: {user_mem.get('users_with_memories', 0)}")
-                lines.append(f"   Entity memories: {entity_mem.get('total', 0)}")
+                u_total = user_mem.get("total", 0)
+                e_total = entity_mem.get("total", 0)
+                if u_total or e_total:
+                    lines.append(f"\n💾 *Persistent Memory:* {u_total} user, {e_total} entity")
+            except Exception:
+                pass
 
-                # Type breakdown
-                by_type = user_mem.get('by_type', {})
-                if by_type:
-                    type_str = ", ".join([f"{t}:{c}" for t, c in by_type.items()])
-                    lines.append(f"   Types: {type_str}")
-                
-                # Memory Trigger stats
-                if MEMORY_TRIGGER_AVAILABLE:
-                    trigger = get_memory_trigger()
-                    tracked_users = len(trigger._message_count)
-                    total_msgs = sum(trigger._message_count.values())
-                    lines.append(f"   ⚡ Trigger: {tracked_users} users, {total_msgs} msgs evaluated")
-            except Exception as e:
-                lines.append(f"\n🧠 Memory: Error ({e})")
-        
-        # Agent uptime
-        started_at = agent_state.get('started_at')
-        if started_at:
-            lines.append(f"\n🕐 Agent started: {started_at[:19]}")
-        
-        return GatewayResponse(text="\n".join(lines))
+        # --- 9. Last activity ---
+        state_file = AGENT_DIR / "workspace" / "state.json"
+        agent_state = load_json_file(state_file) or {}
+        last_q = agent_state.get("brain_last_query")
+        if last_q:
+            lines.append(f"\n🕐 Last query: {last_q[:19]}")
+
+        return GatewayResponse(text="\n".join(lines), parse_mode="Markdown")
     
     def handle_diag(self) -> GatewayResponse:
         """Show retrieval diagnostics including IRA_MODE."""
@@ -5901,30 +5987,310 @@ Total: {len(draft_ids)}""",
                 success=False
             )
     
+    def _route_slash_command(self, text: str, message: TelegramMessage) -> Optional[GatewayResponse]:
+        """Fast-path router for slash commands. Returns None if not a known command."""
+        text_lower = text.lower()
+        text_upper = text.upper()
+
+        # --- Simple exact-match commands (instant, no heavy imports) ---
+        if text_lower == "/start":
+            return self.handle_start()
+        if text_lower == "/menu":
+            return self.handle_menu()
+        if text_lower == "/help":
+            return self.handle_help()
+        if text_lower == "/status":
+            return self.handle_status()
+        if text_lower == "/diag":
+            return self.handle_diag()
+        if text_lower == "/memories":
+            return self.handle_memories_command(message.chat_id)
+        if text_lower == "/conflicts":
+            return self.handle_conflicts_command()
+        if text_lower in ["/memory_stats", "/mem_stats", "/brain_stats"]:
+            return self.handle_memory_stats()
+        if text_lower == "/export_memory":
+            return self.handle_export_memory()
+        if text_lower == "/decay_memory":
+            return self.handle_decay_memory()
+        if text_lower in ["/health", "/diagnostic", "/status_full"]:
+            return self._handle_health_command()
+        if text_lower in ["/price_conflicts", "/priceconflicts", "/prices"]:
+            return self.handle_price_conflicts_command()
+        if text_lower == "/dashboard":
+            return self.handle_dashboard_command()
+        if text_lower == "/priorities":
+            return self.handle_priorities_command()
+        if text_lower in ["/at_risk", "/atrisk"]:
+            return self.handle_at_risk_command()
+        if text_lower == "/good":
+            return self.handle_good_command(message.chat_id)
+        if text_lower == "/feedback":
+            return self.handle_feedback_command(message.chat_id)
+        if text_lower in ["/knowledge_quality", "/kq"]:
+            return self.handle_knowledge_quality_command()
+        if text_lower == "/outreach":
+            return self.handle_outreach_command()
+        if text_lower in ["/outreach_stats", "/outreach stats"]:
+            return self.handle_outreach_stats_command()
+        if text_lower == "/personality":
+            return self.handle_personality_command()
+        if text_lower == "/apply":
+            return self.handle_apply()
+        if text_lower == "/email summary":
+            return self.handle_email_summary()
+        if text_lower in ["/leads", "/plastindia"]:
+            return self.handle_leads_list()
+        if text_lower == "/cancel_thinking":
+            return self.handle_cancel_thinking(message.chat_id)
+        if text_upper in ("/DOCS", "/DOCUMENTS", "/UPLOADS"):
+            return self.handle_docs_command()
+        if text_lower in ["/index", "/index status", "/index_status"]:
+            return self._handle_index_status()
+        if text_lower in ["/index build", "/index_build", "/reindex"]:
+            return self._handle_index_build()
+
+        # --- Bare commands that need usage help (no arguments given) ---
+        if text_lower == "/ingest":
+            return GatewayResponse(
+                text="📥 *Ingest Commands*\n\n"
+                     "`/ingest <path>` — Ingest a local document\n"
+                     "`/url <url>` — Ingest a web page\n"
+                     "`/deep_ingest <file>` — Re-process uploaded doc\n\n"
+                     "Or just send a PDF/document file directly!",
+                parse_mode="Markdown",
+            )
+        if text_lower == "/learn":
+            return GatewayResponse(
+                text="📝 *Learn & Teach Commands*\n\n"
+                     "`/learn <fact>` — Teach me a specific fact\n"
+                     "`/teach <facts>` — Teach multiple facts (natural language)\n\n"
+                     "Example: `/learn Dezet ordered PF1-X-1310 in 2025`\n"
+                     "Example: `/teach FRIMO is no longer our active agent`",
+                parse_mode="Markdown",
+            )
+        if text_lower == "/email":
+            return GatewayResponse(
+                text="✉️ *Email Commands*\n\n"
+                     "`/email <recipient> [company] [name] [purpose]`\n\n"
+                     "Examples:\n"
+                     "`/email john@bmw.de BMW John follow_up`\n"
+                     "`/email sales@toyota.com Toyota \"\" cold_outreach`\n\n"
+                     "Purposes: follow\\_up, cold\\_outreach, quote\\_response, "
+                     "meeting\\_request, thank\\_you, introduction",
+                parse_mode="Markdown",
+            )
+        if text_lower == "/quote":
+            return GatewayResponse(
+                text="💰 *Quote Generation*\n\n"
+                     "`/quote <size> [variant]`\n\n"
+                     "Examples:\n"
+                     "`/quote 2000x1500` — PF1-C for 2000×1500mm\n"
+                     "`/quote 2000x1500 servo` — PF1-X servo variant\n"
+                     "`/quote 3x2 m` — 3000×2000mm (auto-converts)",
+                parse_mode="Markdown",
+            )
+        if text_lower in ["/thinking", "/think", "/research"]:
+            return GatewayResponse(
+                text="🔍 *Research Commands*\n\n"
+                     "`/research <query>` — Deep research on a topic\n"
+                     "`/think <query>` — Force deep thinking\n"
+                     "`/deepdive <topic>` — Conversational multi-topic research\n\n"
+                     "Example: `/research PlastIndia 2025 leads`\n"
+                     "Example: `/deepdive European market strategy 2026`",
+                parse_mode="Markdown",
+            )
+        if text_lower == "/deepdive":
+            return GatewayResponse(
+                text="🔬 *Deep Dive*\n\n"
+                     "`/deepdive <topic>` — Start a multi-topic research session\n\n"
+                     "Example: `/deepdive European market strategy 2026`",
+                parse_mode="Markdown",
+            )
+        if text_lower == "/teach":
+            return GatewayResponse(
+                text="🎓 *Teach Ira*\n\n"
+                     "`/teach <facts>` — Teach facts in plain English\n\n"
+                     "Example: `/teach FRIMO is no longer our active agent in Europe`\n"
+                     "Example: `/teach Dezet ordered PF1-X-1310 in 2025, Netherlands`\n\n"
+                     "You can teach multiple facts separated by newlines.",
+                parse_mode="Markdown",
+            )
+
+        # --- Commands with arguments (regex matching) ---
+
+        # CRM
+        if text_lower.startswith("/crm"):
+            try:
+                sys.path.insert(0, str(PROJECT_ROOT / "openclaw/agents/ira/src/crm"))
+                from crm_telegram_commands import handle_crm_command
+                result = handle_crm_command(text, str(message.chat_id))
+                if result:
+                    return GatewayResponse(text=result, log_entry={"type": "crm_command"})
+            except ImportError as e:
+                logger.warning(f"CRM commands not available: {e}")
+                return GatewayResponse(text="CRM module not available.")
+            except Exception as e:
+                logger.error(f"CRM command error: {e}")
+                return GatewayResponse(text=f"CRM error: {e}")
+
+        # /search_memory <query>
+        search_match = re.match(r'^/search_memory\s+(.+)$', text, re.IGNORECASE)
+        if search_match:
+            return self.handle_search_memory(search_match.group(1).strip())
+
+        # /resolve <id>
+        resolve_match = re.match(r'^/resolve\s+(.+)$', text, re.IGNORECASE)
+        if resolve_match:
+            return self.handle_resolve_command(resolve_match.group(1).strip())
+
+        # /ingest <path>
+        ingest_match = re.match(r'^/ingest\s+(.+)$', text, re.IGNORECASE)
+        if ingest_match:
+            return self.handle_ingest_command(ingest_match.group(1).strip())
+
+        # /deep_ingest [filename]
+        deep_ingest_match = re.match(r'^/deep_ingest\s*(.*)', text, re.IGNORECASE)
+        if deep_ingest_match:
+            return self.handle_deep_ingest(deep_ingest_match.group(1))
+
+        # /url or /ingest_url
+        url_cmd_match = re.match(r'^/(?:url|ingest_url)\s+(https?://\S+|\S+)', text, re.IGNORECASE)
+        if url_cmd_match:
+            url = url_cmd_match.group(1).strip()
+            caption = text[url_cmd_match.end():].strip() or None
+            return self.handle_url_ingest(url, caption)
+
+        # /confirm / /reject (NN research feedback)
+        confirm_match = re.match(r'^/confirm\s+(\S+)', text, re.IGNORECASE)
+        if confirm_match:
+            return self._handle_research_feedback(confirm_match.group(1), True)
+        reject_match = re.match(r'^/reject\s+(\S+)', text, re.IGNORECASE)
+        if reject_match:
+            return self._handle_research_feedback(reject_match.group(1), False)
+
+        # /quote <size>
+        quote_match = re.match(r'^/quote\s+(.+)$', text, re.IGNORECASE)
+        if quote_match:
+            return self.handle_quote_command(quote_match.group(1).strip())
+
+        # /resolve_price <model> <price>
+        resolve_price_match = re.match(r'^/resolve_price\s+(\S+)\s+(\d[\d,]*)', text, re.IGNORECASE)
+        if resolve_price_match:
+            model = resolve_price_match.group(1)
+            price_str = resolve_price_match.group(2).replace(",", "")
+            return self.handle_resolve_price_command(model, price_str)
+
+        # /contact <name>
+        contact_match = re.match(r'^/contact\s+(.+)$', text, re.IGNORECASE)
+        if contact_match:
+            return self.handle_contact_detail_command(contact_match.group(1).strip())
+
+        # /bad [reason]
+        bad_match = re.match(r'^/bad(?:\s+(.*))?$', text, re.IGNORECASE)
+        if bad_match:
+            reason = bad_match.group(1) or ""
+            return self.handle_bad_command(message.chat_id, reason.strip())
+
+        # /approve <id>
+        approve_match = re.match(r'^/approve\s+(.+)$', text, re.IGNORECASE)
+        if approve_match:
+            return self.handle_approve_outreach_command(approve_match.group(1), message.chat_id)
+
+        # /dismiss <id>
+        dismiss_match = re.match(r'^/dismiss\s+(.+)$', text, re.IGNORECASE)
+        if dismiss_match:
+            return self.handle_dismiss_outreach_command(dismiss_match.group(1))
+
+        # /boost <trait>
+        boost_match = re.match(r'^/boost\s+(.+)$', text, re.IGNORECASE)
+        if boost_match:
+            return self.handle_boost_trait_command(boost_match.group(1))
+
+        # /learn <fact>
+        learn_match = re.match(r'^/learn\s+(.+)$', text, re.IGNORECASE)
+        if learn_match:
+            return self.handle_learn_command(learn_match.group(1).strip(), message.chat_id)
+
+        # /fail, /fixplan
+        fail_match = re.match(r'^/(fail|fixplan)(?:\s+(.*))?$', text, re.IGNORECASE)
+        if fail_match:
+            return self.handle_fail_command(text)
+
+        # /takeout
+        takeout_match = re.match(r'^/takeout(?:\s+(.*))?$', text, re.IGNORECASE)
+        if takeout_match:
+            return self.handle_takeout_command(text)
+
+        # /next [N]
+        next_match = re.match(r'^/next(?:\s+(\d+))?$', text, re.IGNORECASE)
+        if next_match:
+            n = int(next_match.group(1)) if next_match.group(1) else 1
+            return self.handle_next(min(n, 10))
+
+        # /brief <topic>
+        brief_match = re.match(r'^/brief\s+(.+)$', text, re.IGNORECASE)
+        if brief_match:
+            return self.handle_brief(brief_match.group(1).strip())
+
+        # /teach <facts>
+        teach_match = re.match(r'^/teach\s+(.+)$', text, re.IGNORECASE | re.DOTALL)
+        if teach_match:
+            return self._handle_teach(teach_match.group(1).strip(), message.chat_id)
+
+        # /train [subcommand]
+        train_match = re.match(r'^/train(?:\s+(.*))?$', text, re.IGNORECASE)
+        if train_match:
+            return self.handle_train(text)
+
+        # /deepdive <topic>
+        deepdive_match = re.match(r'^/deepdive\s+(.+)$', text, re.IGNORECASE)
+        if deepdive_match:
+            return self._handle_deepdive_start(deepdive_match.group(1).strip(), message.chat_id)
+
+        if text_lower in ['/deepdive_cancel', '/cancel_deepdive']:
+            return self._handle_deepdive_cancel(message.chat_id)
+
+        # /research <query> or /deep <query>
+        research_match = re.match(r'^/(?:research|deep)\s+(.+)$', text, re.IGNORECASE)
+        if research_match:
+            return self.handle_research_command(research_match.group(1).strip(), message.chat_id)
+
+        # /think <query>
+        think_match = re.match(r'^/think\s+(.+)$', text, re.IGNORECASE)
+        if think_match:
+            return self.handle_think_command(think_match.group(1).strip(), message.chat_id)
+
+        # /email <recipient>
+        email_match = re.match(r'^/email\s+(.+)$', text, re.IGNORECASE)
+        if email_match:
+            return self.handle_email_command(email_match.group(1).strip(), message.chat_id)
+
+        # /leads <category>
+        leads_cat_match = re.match(r'^(?:/leads|list\s+leads?|show\s+leads?)\s+([A-F])$', text, re.IGNORECASE)
+        if leads_cat_match:
+            return self.handle_leads_list(leads_cat_match.group(1).upper())
+
+        # /draft <company>
+        draft_lead_match = re.match(r'^/draft\s+(.+)$', text, re.IGNORECASE)
+        if draft_lead_match:
+            return self.handle_lead_draft(draft_lead_match.group(1).strip())
+
+        return None
+
     def route_message(self, message: TelegramMessage) -> GatewayResponse:
         """Route message to appropriate handler."""
         text = message.text.strip()
         text_upper = text.upper()
         
         # =====================================================================
-        # CONVERSATIONAL HANDLER - Check for context-aware processing first
+        # FAST-PATH: Route slash commands before any heavy processing
         # =====================================================================
-        try:
-            from conversational_handler import process_message_with_context, format_error_with_context
-            
-            conv_result = process_message_with_context(message.chat_id, text)
-            if conv_result is not None:
-                # Conversational handler handled the message
-                return GatewayResponse(
-                    text=conv_result.text,
-                    success=conv_result.success,
-                    log_entry=conv_result.log_entry
-                )
-        except ImportError as e:
-            logger.warning(f"Conversational handler not available: {e}")
-        except Exception as e:
-            logger.error(f"Conversational handler error: {e}")
-        
+        if text.startswith("/"):
+            cmd_result = self._route_slash_command(text, message)
+            if cmd_result is not None:
+                return cmd_result
+
         # =====================================================================
         # CORRECTION LEARNING - Detect and learn from user corrections
         # =====================================================================
@@ -5965,98 +6331,44 @@ Total: {len(draft_ids)}""",
             logger.error(f"Correction learning error: {e}")
         
         # =====================================================================
-        # COMMAND ALIASES - Natural language to command mapping
+        # NON-COMMAND ROUTING (slash commands already handled by fast-path)
         # =====================================================================
-        try:
-            from stable_config import resolve_alias
-            alias_command = resolve_alias(text)
-            if alias_command:
-                # Handle approval aliases specially
-                if alias_command == "SEND_LAST_DRAFT":
-                    return self.handle_send_draft()
-                elif alias_command == "APPROVE_LAST":
-                    # Check for pending items
-                    pending = load_json_file(PENDING_DECISIONS_FILE) or []
-                    if pending:
-                        return GatewayResponse(
-                            text="✓ Understood. Which item would you like to approve?",
-                            log_entry={"type": "approval_clarification"}
-                        )
-                    return self.handle_send_draft()
-                elif alias_command.startswith("/"):
-                    # Route to command handler
-                    text = alias_command
-                    # Continue to standard routing with new text
-        except ImportError:
-            pass
-        except Exception as e:
-            logger.error(f"Alias resolution error: {e}")
-        
-        # =====================================================================
-        # STANDARD ROUTING
-        # =====================================================================
-        
+
         # Multi-decision reply (e.g., "PF1-C B\nATF A\nPF1-X B")
         if self.is_multi_decision_reply(text):
             return self.handle_multi_decision_reply(text)
-        
+
         # Single decision reply (A, B, or C alone)
         if text_upper in VALID_DECISION_ANSWERS:
             return self.handle_decision_reply(text_upper)
-        
+
         preview_match = re.match(r'^PREVIEW\s+(\S+)$', text, re.IGNORECASE)
         if preview_match:
             return self.handle_preview_draft(preview_match.group(1))
-        
+
         approve_match = re.match(r'^APPROVE\s+(\S+)$', text, re.IGNORECASE)
         if approve_match:
             return self.handle_approve_draft(approve_match.group(1))
-        
+
         if text_upper == "SEND":
             return self.handle_send_draft()
-        
+
         if text_upper == "CANCEL":
             return self.handle_cancel()
-        
-        if text.lower() == "/start":
-            return self.handle_start()
-        
-        if text.lower() == "/menu":
-            return self.handle_menu()
-        
-        if text.lower() == "/help":
-            return self.handle_help()
-        
-        if text.lower() == "/status":
-            return self.handle_status()
-        
-        if text.lower() == "/diag":
-            return self.handle_diag()
-        
-        # =====================================================================
-        # MNEMOSYNE CRM COMMANDS
-        # =====================================================================
-        if text.lower().startswith("/crm"):
-            try:
-                sys.path.insert(0, str(PROJECT_ROOT / "openclaw/agents/ira/src/crm"))
-                from crm_telegram_commands import handle_crm_command
-                result = handle_crm_command(text, str(message.chat_id))
-                if result:
-                    return GatewayResponse(text=result, log_entry={"type": "crm_command"})
-            except ImportError as e:
-                logger.warning(f"CRM commands not available: {e}")
-                return GatewayResponse(text="CRM module not available.")
-            except Exception as e:
-                logger.error(f"CRM command error: {e}")
-                return GatewayResponse(text=f"CRM error: {e}")
 
-        # =====================================================================
-        # PERSISTENT MEMORY COMMANDS
-        # =====================================================================
-        
-        if text.lower() == "/memories":
-            return self.handle_memories_command(message.chat_id)
-        
+        # Batch campaign commands (non-slash)
+        preview_batch_match = re.match(r'^PREVIEW\s+BATCH\s+(\d+)$', text, re.IGNORECASE)
+        if preview_batch_match:
+            return self.handle_preview_batch(int(preview_batch_match.group(1)))
+
+        approve_batch_match = re.match(r'^APPROVE\s+BATCH\s+(\d+)$', text, re.IGNORECASE)
+        if approve_batch_match:
+            return self.handle_approve_batch(int(approve_batch_match.group(1)))
+
+        send_batch_match = re.match(r'^SEND\s+BATCH\s+(\d+)$', text, re.IGNORECASE)
+        if send_batch_match:
+            return self.handle_send_batch(int(send_batch_match.group(1)))
+
         # Natural language memory queries
         memory_query_patterns = [
             "what do you know about me",
@@ -6067,71 +6379,43 @@ Total: {len(draft_ids)}""",
         ]
         if any(p in text.lower() for p in memory_query_patterns):
             return self.handle_memories_command(message.chat_id)
-        
-        # Handle "remember that..." explicit commands
+
+        # Handle "remember that..." / "forget #N" explicit commands
         if PERSISTENT_MEMORY_AVAILABLE:
             remember_result = self._handle_remember_command(text, message.chat_id)
             if remember_result:
                 return remember_result
-            
+
             forget_result = self._handle_forget_command(text, message.chat_id)
             if forget_result:
                 return forget_result
-        
-        # =====================================================================
-        # MEMORY ANALYTICS COMMANDS
-        # =====================================================================
-        
-        # /search_memory <query> - Search what IRA knows
-        search_match = re.match(r'^/search_memory\s+(.+)$', text, re.IGNORECASE)
-        if search_match:
-            return self.handle_search_memory(search_match.group(1).strip())
-        
-        # /memory_stats - Show memory analytics
-        if text.lower() in ["/memory_stats", "/mem_stats", "/brain_stats"]:
-            return self.handle_memory_stats()
-        
-        # /export_memory - Export all knowledge to file
-        if text.lower() == "/export_memory":
-            return self.handle_export_memory()
-        
-        # /decay_memory - Apply memory decay (admin only)
-        if text.lower() == "/decay_memory":
-            return self.handle_decay_memory()
-        
-        # =====================================================================
-        # CONFLICT RESOLUTION COMMANDS
-        # =====================================================================
-        
-        # /conflicts - Show pending memory conflicts
-        if text.lower() == "/conflicts":
-            return self.handle_conflicts_command()
-        
-        # /resolve <id> <1|2|merge:text> - Resolve a specific conflict
-        resolve_match = re.match(r'^/resolve\s+(.+)$', text, re.IGNORECASE)
-        if resolve_match:
-            return self.handle_resolve_command(resolve_match.group(1).strip())
-        
-        # /ingest <path> - Ingest a document into memory
-        ingest_match = re.match(r'^/ingest\s+(.+)$', text, re.IGNORECASE)
-        if ingest_match:
-            return self.handle_ingest_command(ingest_match.group(1).strip())
 
-        # /docs - List documents uploaded via Telegram
-        if text_upper in ("/DOCS", "/DOCUMENTS", "/UPLOADS"):
-            return self.handle_docs_command()
+        # Quick conflict responses: "1", "2", "merge: text"
+        conflict_response = self._check_conflict_response(text)
+        if conflict_response:
+            return conflict_response
 
-        # /deep_ingest [filename] - Deep re-process an uploaded document
-        deep_ingest_match = re.match(r'^/deep_ingest\s*(.*)', text, re.IGNORECASE)
-        if deep_ingest_match:
-            return self.handle_deep_ingest(deep_ingest_match.group(1))
+        # Natural language: "PF1-C-3020: 85 lakh" or "PF1-C-3020 price is 8500000"
+        price_resolve_match = re.match(r'^(PF1-[A-Z]-\d{4})[\s:]+(\d+)\s*(?:lakh|lac)?', text, re.IGNORECASE)
+        if price_resolve_match:
+            model = price_resolve_match.group(1).upper()
+            price_str = price_resolve_match.group(2)
+            price = int(price_str)
+            if price < 1000:
+                price = price * 100000
+            return self.handle_resolve_price_command(model, str(price))
 
-        # /url <url> or /ingest_url <url> - Ingest web page content (MOUTH)
-        url_cmd_match = re.match(r'^/(?:url|ingest_url)\s+(https?://\S+|\S+)', text, re.IGNORECASE)
-        if url_cmd_match:
-            url = url_cmd_match.group(1).strip()
-            caption = text[url_cmd_match.end():].strip() or None
-            return self.handle_url_ingest(url, caption)
+        # Natural language lead listing
+        if text.lower() in ['list leads', 'show leads']:
+            return self.handle_leads_list()
+
+        # "Draft email for [company]"
+        draft_lead_match = re.match(
+            r'^draft\s+(?:email\s+)?(?:for\s+)?(.+)$',
+            text, re.IGNORECASE
+        )
+        if draft_lead_match:
+            return self.handle_lead_draft(draft_lead_match.group(1).strip())
 
         # Bare URL (no command) - Ingest when user sends just a URL + optional caption
         try:
@@ -6144,197 +6428,6 @@ Total: {len(draft_ids)}""",
         except ImportError:
             pass
 
-        # =====================================================================
-        # METADATA INDEX COMMANDS
-        # =====================================================================
-        
-        if text.lower() in ["/index", "/index status", "/index_status"]:
-            return self._handle_index_status()
-        
-        if text.lower() in ["/index build", "/index_build", "/reindex"]:
-            return self._handle_index_build()
-        
-        # =====================================================================
-        # NN RESEARCH FEEDBACK COMMANDS
-        # =====================================================================
-        
-        confirm_match = re.match(r'^/confirm\s+(\S+)', text, re.IGNORECASE)
-        if confirm_match:
-            return self._handle_research_feedback(confirm_match.group(1), True)
-        
-        reject_match = re.match(r'^/reject\s+(\S+)', text, re.IGNORECASE)
-        if reject_match:
-            return self._handle_research_feedback(reject_match.group(1), False)
-        
-        # =====================================================================
-        # QUOTE GENERATION COMMANDS
-        # =====================================================================
-        
-        # /quote <size> [variant] - Generate a quick quote
-        quote_match = re.match(r'^/quote\s+(.+)$', text, re.IGNORECASE)
-        if quote_match:
-            return self.handle_quote_command(quote_match.group(1).strip())
-        
-        # Quick conflict responses: "1", "2", "merge: text"
-        conflict_response = self._check_conflict_response(text)
-        if conflict_response:
-            return conflict_response
-        
-        # =====================================================================
-        # HEALTH DIAGNOSTIC COMMAND
-        # =====================================================================
-        
-        if text.lower() in ['/health', '/diagnostic', '/status_full']:
-            return self._handle_health_command()
-        
-        # =====================================================================
-        # PRICE CONFLICT COMMANDS
-        # =====================================================================
-        
-        # /price_conflicts - Show pending price conflicts
-        if text.lower() in ["/price_conflicts", "/priceconflicts", "/prices"]:
-            return self.handle_price_conflicts_command()
-        
-        # /resolve_price <model> <price> - Resolve a price conflict
-        resolve_price_match = re.match(r'^/resolve_price\s+(\S+)\s+(\d[\d,]*)', text, re.IGNORECASE)
-        if resolve_price_match:
-            model = resolve_price_match.group(1)
-            price_str = resolve_price_match.group(2).replace(",", "")
-            return self.handle_resolve_price_command(model, price_str)
-        
-        # Natural language: "PF1-C-3020: 85 lakh" or "PF1-C-3020 price is 8500000"
-        price_resolve_match = re.match(r'^(PF1-[A-Z]-\d{4})[\s:]+(\d+)\s*(?:lakh|lac)?', text, re.IGNORECASE)
-        if price_resolve_match:
-            model = price_resolve_match.group(1).upper()
-            price_str = price_resolve_match.group(2)
-            # Convert lakh to actual number if needed
-            price = int(price_str)
-            if price < 1000:  # Likely in lakhs
-                price = price * 100000
-            return self.handle_resolve_price_command(model, str(price))
-        
-        # =====================================================================
-        # RELATIONSHIP DASHBOARD COMMANDS
-        # =====================================================================
-        
-        # /dashboard - Show relationship health overview
-        if text.lower() == "/dashboard":
-            return self.handle_dashboard_command()
-        
-        # /priorities - Show top contacts needing attention
-        if text.lower() == "/priorities":
-            return self.handle_priorities_command()
-        
-        # /at_risk - Show at-risk relationships
-        if text.lower() in ["/at_risk", "/atrisk"]:
-            return self.handle_at_risk_command()
-        
-        # /contact <name> - Show detail about a contact
-        contact_match = re.match(r'^/contact\s+(.+)$', text, re.IGNORECASE)
-        if contact_match:
-            return self.handle_contact_detail_command(contact_match.group(1).strip())
-        
-        # Response feedback commands
-        if text.lower() == "/good":
-            return self.handle_good_command(message.chat_id)
-        
-        bad_match = re.match(r'^/bad(?:\s+(.*))?$', text, re.IGNORECASE)
-        if bad_match:
-            reason = bad_match.group(1) or ""
-            return self.handle_bad_command(message.chat_id, reason.strip())
-        
-        if text.lower() == "/feedback":
-            return self.handle_feedback_command(message.chat_id)
-        
-        if text.lower() in ["/knowledge_quality", "/kq"]:
-            return self.handle_knowledge_quality_command()
-        
-        # Proactive outreach commands
-        if text.lower() == "/outreach":
-            return self.handle_outreach_command()
-        
-        approve_match = re.match(r'^/approve\s+(.+)$', text, re.IGNORECASE)
-        if approve_match:
-            return self.handle_approve_outreach_command(approve_match.group(1), message.chat_id)
-        
-        dismiss_match = re.match(r'^/dismiss\s+(.+)$', text, re.IGNORECASE)
-        if dismiss_match:
-            return self.handle_dismiss_outreach_command(dismiss_match.group(1))
-        
-        if text.lower() in ["/outreach_stats", "/outreach stats"]:
-            return self.handle_outreach_stats_command()
-        
-        if text.lower() == "/personality":
-            return self.handle_personality_command()
-        
-        boost_match = re.match(r'^/boost\s+(.+)$', text, re.IGNORECASE)
-        if boost_match:
-            return self.handle_boost_trait_command(boost_match.group(1))
-        
-        # /learn <fact> - Explicitly teach IRA something
-        learn_match = re.match(r'^/learn\s+(.+)$', text, re.IGNORECASE)
-        if learn_match:
-            return self.handle_learn_command(learn_match.group(1).strip(), message.chat_id)
-        
-        # Failure logger commands: /fail, /fail last, /fail stats, /fixplan
-        fail_match = re.match(r'^/(fail|fixplan)(?:\s+(.*))?$', text, re.IGNORECASE)
-        if fail_match:
-            return self.handle_fail_command(text)
-        
-        # Takeout email stats: /takeout status, /takeout stats, /takeout domains, etc.
-        takeout_match = re.match(r'^/takeout(?:\s+(.*))?$', text, re.IGNORECASE)
-        if takeout_match:
-            return self.handle_takeout_command(text)
-        
-        next_match = re.match(r'^/next(?:\s+(\d+))?$', text, re.IGNORECASE)
-        if next_match:
-            n = int(next_match.group(1)) if next_match.group(1) else 1
-            return self.handle_next(min(n, 10))
-        
-        if text.lower() == "/apply":
-            return self.handle_apply()
-        
-        brief_match = re.match(r'^/brief\s+(.+)$', text, re.IGNORECASE)
-        if brief_match:
-            return self.handle_brief(brief_match.group(1).strip())
-        
-        if text.lower() == "/email summary":
-            return self.handle_email_summary()
-        
-        # Batch campaign commands
-        preview_batch_match = re.match(r'^PREVIEW\s+BATCH\s+(\d+)$', text, re.IGNORECASE)
-        if preview_batch_match:
-            return self.handle_preview_batch(int(preview_batch_match.group(1)))
-        
-        approve_batch_match = re.match(r'^APPROVE\s+BATCH\s+(\d+)$', text, re.IGNORECASE)
-        if approve_batch_match:
-            return self.handle_approve_batch(int(approve_batch_match.group(1)))
-        
-        send_batch_match = re.match(r'^SEND\s+BATCH\s+(\d+)$', text, re.IGNORECASE)
-        if send_batch_match:
-            return self.handle_send_batch(int(send_batch_match.group(1)))
-        
-        # Natural language teaching: /teach <facts>
-        teach_match = re.match(r'^/teach\s+(.+)$', text, re.IGNORECASE | re.DOTALL)
-        if teach_match:
-            return self._handle_teach(teach_match.group(1).strip(), message.chat_id)
-        
-        # Brain Training Mode commands
-        train_match = re.match(r'^/train(?:\s+(.*))?$', text, re.IGNORECASE)
-        if train_match:
-            return self.handle_train(text)
-        
-        # =====================================================================
-        # DEEP DIVE - Conversational multi-topic research
-        # =====================================================================
-        
-        deepdive_match = re.match(r'^/deepdive\s+(.+)$', text, re.IGNORECASE)
-        if deepdive_match:
-            return self._handle_deepdive_start(deepdive_match.group(1).strip(), message.chat_id)
-        
-        if text.lower() in ['/deepdive', '/deepdive_cancel', '/cancel_deepdive']:
-            return self._handle_deepdive_cancel(message.chat_id)
-        
         # Check if there's an active deep dive conversation
         try:
             from openclaw.agents.ira.src.brain.deep_dive import get_session
@@ -6343,79 +6436,17 @@ Total: {len(draft_ids)}""",
                 return self._handle_deepdive_reply(text, message.chat_id)
         except ImportError:
             pass
-        
-        # =====================================================================
-        # DEEP THINKING COMMANDS
-        # =====================================================================
-        
-        # /research or /deep <query> - Manus-style deep research mode
-        research_match = re.match(r'^/(?:research|deep)\s+(.+)$', text, re.IGNORECASE)
-        if research_match:
-            return self.handle_research_command(research_match.group(1).strip(), message.chat_id)
-        
-        # /think <query> - Force deep thinking
-        think_match = re.match(r'^/think\s+(.+)$', text, re.IGNORECASE)
-        if think_match:
-            return self.handle_think_command(think_match.group(1).strip(), message.chat_id)
-        
-        # /thinking or /research status - Show usage help
-        if text.lower() in ['/thinking', '/think', '/research']:
-            return GatewayResponse(
-                text="🔍 *Research Commands*\n\n"
-                     "`/research <query>` — Deep research on a topic\n"
-                     "`/deepdive <topic>` — Conversational multi-topic research\n\n"
-                     "Example: `/research PlastIndia 2025 leads`\n"
-                     "Example: `/deepdive European market strategy 2026`",
-                parse_mode="Markdown",
-            )
-        
-        # /cancel_thinking - Cancel active thinking jobs
-        if text.lower() == '/cancel_thinking':
-            return self.handle_cancel_thinking(message.chat_id)
-        
-        # =====================================================================
-        # EMAIL GENERATION COMMAND
-        # =====================================================================
-        
-        # /email <recipient> [company] [name] [purpose]
-        email_match = re.match(r'^/email\s+(.+)$', text, re.IGNORECASE)
-        if email_match:
-            return self.handle_email_command(email_match.group(1).strip(), message.chat_id)
-        
-        # =====================================================================
-        # PLASTINDIA LEAD EMAIL DRAFTING
-        # =====================================================================
-        
-        # /leads or "list leads" - Show Plastindia leads
-        if text.lower() in ['/leads', '/plastindia', 'list leads', 'show leads']:
-            return self.handle_leads_list()
-        
-        # /leads A or "list category A leads" - Show specific category
-        leads_cat_match = re.match(r'^(?:/leads|list\s+leads?|show\s+leads?)\s+([A-F])$', text, re.IGNORECASE)
-        if leads_cat_match:
-            return self.handle_leads_list(leads_cat_match.group(1).upper())
-        
-        # "Draft email for [company]" or "/draft [company]"
-        draft_lead_match = re.match(
-            r'^(?:draft\s+(?:email\s+)?(?:for\s+)?|/draft\s+)(.+)$', 
-            text, re.IGNORECASE
-        )
-        if draft_lead_match:
-            return self.handle_lead_draft(draft_lead_match.group(1).strip())
-        
-        # =====================================================================
-        # DEEP THINKING AUTO-DETECTION
-        # Check if this query should use deep thinking (complex questions)
-        # =====================================================================
+
+        # Deep thinking auto-detection for complex questions
         deep_result = self._try_deep_thinking(text, message.chat_id)
         if deep_result is not None:
             return deep_result
-        
+
         # Natural language training detection
         nl_result = self.check_natural_language_training(text)
         if nl_result:
             return nl_result
-        
+
         return self.handle_free_text(text, chat_id=message.chat_id)
     
     def check_natural_language_training(self, text: str) -> Optional[GatewayResponse]:

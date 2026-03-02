@@ -2409,7 +2409,10 @@ The response should be professional and comprehensive like a formal quotation em
     intent_lower = intent.lower()
     if any(kw in intent_lower for kw in ["price", "quote", "cost", "machine", "pf1", "specification", "spec"]):
         mode = ResponseMode.SALES
-    elif any(kw in intent_lower for kw in ["who are you", "what are you", "introduce"]):
+    elif any(kw in intent_lower for kw in ["who are you", "what are you", "introduce",
+             "what can you do", "what can we do", "your capabilities", "your purpose",
+             "what do you do", "tell me about yourself", "do together", "help with",
+             "use cases", "usecases"]):
         mode = ResponseMode.INTRO
     
     # =========================================================================

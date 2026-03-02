@@ -1,6 +1,6 @@
 {
   "corrections_learned": [],
-  "last_full_check": "2026-03-02T08:17:51.128011",
+  "last_full_check": "2026-03-02T23:07:02.051155",
   "validation_issues": [
     {
       "timestamp": "2026-02-28T00:18:22.519382",
@@ -349,6 +349,365 @@
       "response_preview": "Hi! Happy to help.\n\nHere\u2019s a list of potential new clients across various sectors that align with our strengths in heavy-gauge thermoforming. These companies are not from the previously mentioned list",
       "warnings": [
         "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T15:37:44.938259",
+      "query": "Hi Ira,\n>\n> I just got off a call with a new lead \u2014 Hans M\u00fcller from PackRight GmbH in Stuttgart. They're a mid-size packaging company doing sustainable food trays. He wants to switch from a competito",
+      "response_preview": "Here's the information you requested:\n\n### PackRight GmbH\nPackRight GmbH is a mid-size packaging company in Stuttgart, specializing in sustainable food trays made from renewable materials. They emphas",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:03:32.402546",
+      "query": "Our current AM machine handles 2.5mm HIPS just fine. Can your AM-5060 do the same?",
+      "response_preview": "The AM-5060 is not suitable for handling 2.5mm HIPS. The AM-5060 is designed for thin-gauge applications with a maximum sheet thickness capability of 1.5mm. For processing thicker materials like 2.5mm",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:04:23.710525",
+      "query": "Our current AM machine handles 2.5mm HIPS just fine. Can your AM-5060 do the same?",
+      "response_preview": "The AM-5060 machine is not suitable for handling 2.5mm HIPS. According to the specifications, the AM-5060 is designed for sheet thicknesses ranging from 0.5mm to 2.0mm. This means it cannot accommodat",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:04:49.250533",
+      "query": "I need a machine for both 0.5mm PET trays AND 4mm ABS housings. Can the AM-7080 do both?",
+      "response_preview": "The AM-7080 is not suitable for both 0.5mm PET trays and 4mm ABS housings. Here's why:\n\n1. **AM Series Limitations**: The AM series, including the AM-7080, is designed for thin-gauge materials only, w",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:05:07.185346",
+      "query": "What's the thickest material the AM-5060 can process? We need 1.8mm PP.",
+      "response_preview": "The AM-5060 is designed for thin gauge applications and can handle sheet thicknesses up to 1.5mm. For processing materials like 1.8mm PP, the AM-5060 would not be suitable. You would need a machine fr",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:05:31.550399",
+      "query": "Price for AM-5060 for 1.2mm PET blister packs?",
+      "response_preview": "The AM-V-5060 is priced at approximately INR 750,000 for the base machine configuration. This machine is suitable for forming thin-gauge materials like 1.2mm PET blister packs. Please note that the pr",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:05:55.957130",
+      "query": "We run 5mm thick HDPE sheets for truck bedliners. Someone told us your AM series is cheaper than PF1. Can we use AM-7080-CM?",
+      "response_preview": "The AM series, including the AM-7080-CM, is designed for thin-gauge materials with a maximum thickness of 1.5mm. Therefore, it is not suitable for forming 5mm thick HDPE sheets, which are considered h",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:06:12.557615",
+      "query": "Can AM-5060 do 0.8mm rPET food trays? Volume is about 50,000/month.",
+      "response_preview": "Hi there!\n\nThe AM-5060 is well-suited for producing 0.8mm rPET food trays. It is a vacuum-only machine designed for thin gauge applications, with a sheet thickness range of 0.3 to 1.5mm. The machine c",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)",
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:07:56.022273",
+      "query": "We need two PF1 machines \u2014 one for 3mm PP EV battery enclosures (2000x1500mm) and one for 4mm ABS interior panels (1500x1000mm). Total budget INR 1 crore.",
+      "response_preview": "Hi! Here's what I found regarding the PF1 machines for your needs:\n\n1. **PF1 Machine Specifications**:\n   - The PF1 series is suitable for heavy-gauge materials, ranging from 1mm to 10mm thickness, ma",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:08:33.505714",
+      "query": "We currently use an old Ridat machine for 3mm HIPS sanitary ware components. Looking to upgrade. Sheet size 1800x1200mm.",
+      "response_preview": "Hi there!\n\nFor upgrading from your old Ridat machine for 3mm HIPS sanitary ware components, the Machinecraft PF1 Series is a strong candidate. Here's what I found:\n\n1. **PF1 Series Overview**: The PF1",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:10:02.078809",
+      "query": "We're a sanitaryware company in India making acrylic shower trays and bathtub shells. Budget is INR 40 lakhs.",
+      "response_preview": "Hi! Based on your budget of INR 40 lakhs for manufacturing acrylic shower trays and bathtub shells, here are some insights:\n\n1. **Suitable Equipment**: Thermoforming is an excellent process for manufa",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:11:08.530838",
+      "query": "We make automotive interior panels \u2014 the OEM requires grain retention on TPO. Sheet size 1500x1000mm, 3mm thick. Budget USD 100,000.",
+      "response_preview": "For producing automotive interior panels with grain retention on TPO at 3mm thickness, the IMG (In-Mold Graining) series is the recommended solution. This series is specifically designed for applicati",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: PF1 for Heavy Gauge - should mention pf[-\\s]?1"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:12:34.103768",
+      "query": "We need textured TPO door panels AND plain ABS structural parts. Can one machine do both?",
+      "response_preview": "Hi! Based on the research, the requirements for textured TPO door panels and plain ABS structural parts are quite different, and typically, one machine cannot handle both effectively.\n\n1. **Textured T",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:13:25.199244",
+      "query": "Do you have an IMG machine in 2000x1500mm size? What's the price?",
+      "response_preview": "Hi! Currently, I don't have information about an IMG machine with a 2000x1500mm size in our internal records or on the web. The closest available size in our records is the IMG-1350, which has a maxim",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:14:38.388149",
+      "query": "Can you give me a full quotation for PF1-C-2015 with all specs? We need it for internal approval.",
+      "response_preview": "Hi! Happy to help.\n\nThe PF1-C-2015 is a pneumatic thermoforming machine from the PF1 series, designed for heavy-gauge applications such as automotive interiors. It features a forming area of 2000 x 15",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:18:33.778008",
+      "query": "New inquiry from Sakura Industries in Osaka, Japan. They're an automotive Tier-1 making:\n1. TPO door panels with grain retention (Class-A required)\n2. 4mm ABS center console housings\n3. 0.8mm PET inte",
+      "response_preview": "Hi Rushabh!\n\nHere's what I found about Sakura Industries and the machine recommendations:\n\n### Sakura Industries Overview\n- **Location**: Osaka, Japan\n- **Industry**: Automotive Tier-1 supplier, prima",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:21:43.627156",
+      "query": "Thanks for the detailed response, Ira.\n\nIt's good to hear that the PF1 series can handle our sheet thickness requirements and offers a forming area large enough for our needs. Could you provide more i",
+      "response_preview": "Hi Klaus!\n\nHere's the information you requested:\n\n1. **Energy Efficiency**: The PF1 Series is designed with energy efficiency in mind, offering advanced technology that can lead to reduced operational",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:22:44.641137",
+      "query": "Thank you for the information, Ira.\n\nThe heater load of 20 KW seems reasonable, but could you provide specific data on how this translates to energy consumption per cycle or per square meter formed? T",
+      "response_preview": "Hi Klaus!\n\nHere's the detailed information you requested:\n\n1. **Energy Consumption**: The PF1 series has a heater load of 316.8 kW, and the cycle time is approximately 152 seconds for 2.5mm ABS, enabl",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:24:04.098335",
+      "query": "Thank you for providing these details, Ira.\n\nThe energy consumption data is helpful, but I would need a more precise breakdown to justify the switch from our ILLIG UA 100g internally. As for the servo",
+      "response_preview": "Hi Klaus!\n\nHere's the information you requested:\n\n1. **European Service Support in Germany**: Machinecraft has a strong presence in the German market, with plans to establish a local technical support",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:26:27.112429",
+      "query": "Hi, I'm Rajesh Sharma from AutoPlast Components in Pune. We're a Tier-1 supplier to Tata Motors. We need a thermoforming machine for ABS+PMMA laminated dashboard covers. Sheet size 1500x1200mm, thickn",
+      "response_preview": "Hi Rajesh!\n\nFor your requirement of a thermoforming machine capable of handling ABS+PMMA laminated dashboard covers with a sheet size of 1500x1200mm and thickness up to 5mm, the PF1-C series would be ",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:26:59.538137",
+      "query": "Thanks for the prompt response, Ira.\n\nThe PF1-C series sounds promising, especially since it can handle thickness up to 8mm and supports the deep draw capabilities we require. However, could you provi",
+      "response_preview": "Hi Rajesh!\n\nThe PF1-C series is designed for high performance and versatility, particularly in heavy-gauge applications. It features a robust closed-chamber design that ensures superior forming qualit",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:27:48.346996",
+      "query": "Hi Ira,\n\nThanks for the details on the PF1-C series. The robust design and control system sound impressive. However, the specifics on OEM certifications are crucial for us. Could you provide detailed ",
+      "response_preview": "Hi Rajesh,\n\nHere's the detailed information you requested about the PF1-C series:\n\n1. **OEM Certifications**: Unfortunately, I couldn't find specific details about OEM certifications for Tata Motors a",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: contact.*for.*(?:price|quote|detail)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:28:35.308125",
+      "query": "Hi Ira,\n\nThanks for the information. I appreciate your honesty regarding the OEM certifications. Connecting with your technical team would be beneficial, so please facilitate that. For the cycle times",
+      "response_preview": "Hi Rajesh!\n\nHere's the detailed information you requested:\n\n1. **Cycle Times & Production Efficiency**: The PF1-C series is designed for high efficiency and reliability in thermoforming applications. ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:29:25.878775",
+      "query": "Hi Ira,\n\nThank you for the initial pricing details. As I've mentioned, our budget is INR 1 Crore. Could you please provide a more competitive offer, as we've received quotations from local manufacture",
+      "response_preview": "Hi!\n\nHere's how we can assist you:\n\n1. **Pricing and Competitive Offer**: The PF1-C series pricing ranges from INR 33 Lakhs to INR 80 Lakhs depending on the model and configuration. Given your budget ",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:32:22.474712",
+      "query": "Hi Ira,\n\nThanks for the details on the PF1-R-0913 model. The forming area sounds perfect for our needs. I'm curious about the cycle time for this machine, as we aim to maintain a decent production rat",
+      "response_preview": "Hi Mike!\n\nThe PF1-R-0913 model is designed with efficiency in mind. The cycle time for this machine can vary based on specific configurations and material requirements, but it generally supports a rap",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:33:04.879925",
+      "query": "Hi Ira,\n\nThanks for the update. The rapid production rate and efficient heater system sound promising. Could you please send over the spec sheet for the PF1-R-0913? I'd like to review all technical de",
+      "response_preview": "Hi Mike!\n\nI couldn't access the spec sheet for the PF1-R-0913 directly from Google Drive due to authorization issues. However, I found some general pricing information for similar PF1 models. The PF1 ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:33:44.692784",
+      "query": "Hi Ira,\n\nThanks for getting back to me. We're working with a tight budget, maxing out at USD 60,000, which is roughly EUR 57,000 at current exchange rates. The EUR 70,000 price point is outside our ra",
+      "response_preview": "Hi Mike!\n\nHere's what I found regarding your inquiries:\n\n1. **Pricing and Negotiation**: Machinecraft is open to negotiating pricing based on feature adjustments. This might help in aligning the PF1-R",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:34:23.348589",
+      "query": "Hi Ira,\n\nThanks for exploring the options for us. Given our budget limit of USD 60,000, I'm interested in seeing if we can adjust the features of the PF1-R-0913 to better fit within our financial cons",
+      "response_preview": "Hi Mike!\n\nHere's what I found regarding the PF1-R-0913 model and potential adjustments to fit your budget:\n\n1. **Feature Adjustments**: The PF1-R-0913 comes with several features that can be adjusted ",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:37:04.117612",
+      "query": "Hello Ira,\n\nThank you for the information on cycle times and power requirements for the IMG Series. I understand that specific metrics for gloss levels and surface defect rates aren't available at thi",
+      "response_preview": "Hi Yuki!\n\nThe IMG-1350 model is a heavy-duty thermoforming machine designed for automotive interior components. It features full servo-electric drives, integrated automatic sheet loading, and quick to",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:37:46.550316",
+      "query": "Hello Ira,\n\nThank you for the preliminary pricing information. However, the price you mentioned for similar models like the IMG 1205 seems significantly higher than our budget of JPY 25,000,000. We ne",
+      "response_preview": "Hi Yuki!\n\nHere's what I found regarding your queries:\n\n1. **Pricing and Discounts**: The IMG 1205 model's pricing is typically higher than JPY 25,000,000, but there might be room for negotiation on di",
+      "warnings": [
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:38:06.455858",
+      "query": "Hello Ira,\n\nThank you for the information regarding potential negotiations on pricing and payment terms. It's crucial for us to stay within our budget constraints, so I look forward to discussing thes",
+      "response_preview": "Hi Yuki!\n\nThank you for reaching out. I'll arrange for someone from our sales team to contact you directly to discuss the installation, training, and warranty details. Unfortunately, I couldn't find s",
+      "warnings": [
+        "Possible hallucination detected: contact.*for.*(?:price|quote|detail)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:38:33.877293",
+      "query": "Hi, Marco Rossi here from BagnoItalia in Italy. We make acrylic bathtubs and shower trays. Looking for a thermoforming machine \u2014 nothing fancy, just reliable. Sheet size about 2000x1200mm, 5mm acrylic",
+      "response_preview": "Hi Marco!\n\nFor thermoforming 5mm acrylic sheets with a size of 2000x1200mm, our PF1-C series would be suitable. This series is designed for heavy-gauge sheet-fed materials, which include acrylic sheet",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:39:27.949319",
+      "query": "Hi Ira,\n\nThanks for the info on the PF1-C series. Can you tell me more about the forming cycle time and energy consumption? Also, how easy is it to operate for someone without much technical expertise",
+      "response_preview": "Hi Marco!\n\nThe PF1-C series thermoforming machine is designed for heavy-gauge applications, suitable for forming 5mm acrylic sheets. The forming cycle time is approximately 152 seconds for 2.5mm ABS, ",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:40:11.717530",
+      "query": "Hi Ira,\n\n152 seconds seems a bit long for our needs. Is the cycle time similar for 5mm acrylic, or does it differ significantly? Also, the energy consumption at 134.9 kW seems quite high. Considering ",
+      "response_preview": "Hi Marco!\n\nHere's what I found about the PF1-C series:\n\n1. **Cycle Time for 5mm Acrylic**: The cycle time for 5mm acrylic is likely longer than the 152 seconds for 2.5mm ABS, as thicker materials gene",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally",
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:40:40.339206",
+      "query": "Hi Ira,\n\nThanks for the update. The cycle time for 5mm acrylic being potentially up to 240 seconds is a concern for our production efficiency. As for the energy consumption, it's quite high, which imp",
+      "response_preview": "Hi Marco!\n\nBased on the information I found, the PF1-C series machines are generally priced above your budget of EUR 60,000-80,000. For example, the PF1-C-2020 model is priced at approximately 65 Lakh",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:41:22.745762",
+      "query": "Hi Ira,\n\nGiven that the PF1-C-2020 model is priced at around \u20ac78,000, it fits within the upper end of my budget. However, the high energy consumption and longer cycle time for 5mm acrylic are concerns",
+      "response_preview": "Hi Marco!\n\nThe PF1-C-2020 model is priced at approximately \u20ac78,000. However, this price typically does not include additional costs such as packing, freight, insurance, and on-site installation. These",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:41:51.889647",
+      "query": "Hello, Hans Mueller from PackRight GmbH, Stuttgart. We have two production lines:\n1. Sustainable food trays \u2014 0.8mm rPET, high volume\n2. Equipment housings \u2014 3mm HDPE, medium volume\n\nWe'd like one mac",
+      "response_preview": "Hi Hans!\n\nThe AM-5060 cannot handle both your materials due to its limitations. It is designed for thin-gauge materials with a maximum thickness of 1.5mm, which is suitable for your 0.8mm rPET trays b",
+      "warnings": [
+        "Business rule violation: AM Series Thickness Limit - AM Series can ONLY handle material thickness \u22641.5mm (NOT 2mm)"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:42:24.308096",
+      "query": "Thank you for the information, Ira. It seems like a challenge to find a single solution for both lines. Could you provide more details on the PF1-C's capabilities and whether it meets our forming area",
+      "response_preview": "Hi Hans!\n\nThe PF1-C series offers a range of forming areas, but none match your exact requirement of 1200x800mm. The closest options are larger, such as the PF1-C-2015 with a forming area of 2000x1500",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:43:34.166815",
+      "query": "Thank you for the clarification, Ira. The PF1-C-2015 seems to exceed our forming area needs, which might not be efficient for us. As for the costs, could you provide a more precise estimate for the PF",
+      "response_preview": "Hi Hans!\n\nHere's a detailed breakdown of the information you requested:\n\n1. **Pricing:**\n   - **PF1-C Series:** The PF1-C-2015 model is priced around \u20ac70,000. Depending on the configuration and option",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:47:49.957598",
+      "query": "Hi Ira,\n\nThanks for the detailed info on the heating system. A 30% energy saving is impressive, but I'd like to see how this translates into actual cycle times for 3mm ABS. Can you provide more specif",
+      "response_preview": "Hi Anna!\n\nHere's the information you requested:\n\n1. **Cycle Time for 3mm ABS**: The PF1-A-1510 machine typically has a cycle time of approximately 152 seconds for 2.5mm ABS sheets, which includes heat",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:48:50.459480",
+      "query": "Hi Ira,\n\nThank you for providing the cycle time range for the PF1-A-1510. A cycle time of 150-240 seconds for 3mm ABS is reasonable, but I need assurances that we will not face the same delays in spar",
+      "response_preview": "Hi!\n\nHere's the information you requested:\n\n1. **Spare Parts Delivery in Poland**: We are committed to improving our aftermarket service and have been responsive in shipping spare parts promptly. Howe",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about",
+        "Possible hallucination detected: typically|usually|generally"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T17:50:02.392793",
+      "query": "Hi Ira,\n\nThank you for considering the price negotiation. I appreciate your flexibility on this matter and would like to see what specific adjustments we can make to bring the price closer to the lowe",
+      "response_preview": "Hi!\n\nI can help arrange a visit to our UK facility. We have supplied around 50 machines to the UK since 2008, and visits can be a great opportunity to see our machines in action. I'll need to coordina",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
+      ]
+    },
+    {
+      "timestamp": "2026-03-02T21:00:38.106644",
+      "query": "We have a customer in Germany who's currently running Kiefel machines for automotive door panels. They're expanding to a new plant and have budget approved for Q3. They need 3mm ABS forming with at le",
+      "response_preview": "Based on the information gathered, here's how we can approach the customer's requirements and the competitive positioning against Kiefel and Illig:\n\n### Machine Recommendation\nFor forming 3mm ABS with",
+      "warnings": [
+        "Possible hallucination detected: approximately|around|roughly|about"
       ]
     }
   ]
