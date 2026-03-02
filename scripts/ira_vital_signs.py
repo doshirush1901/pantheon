@@ -216,7 +216,7 @@ def format_report(report: dict) -> str:
 
 
 def send_to_telegram(text: str) -> bool:
-    """Send report to Telegram."""
+    """Send report to Telegram. Tries Markdown first, falls back to plain text."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID") or os.environ.get("TELEGRAM_ADMIN_CHAT_ID") or os.environ.get("EXPECTED_CHAT_ID")
     if not token or not chat_id:
@@ -224,12 +224,13 @@ def send_to_telegram(text: str) -> bool:
         return False
     try:
         import requests
-        r = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
-            timeout=10,
-        )
-        return r.status_code == 200
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        r = requests.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}, timeout=10)
+        if r.status_code == 200 and r.json().get("ok"):
+            return True
+        plain = text.replace("*", "").replace("_", "")
+        r2 = requests.post(url, json={"chat_id": chat_id, "text": plain}, timeout=10)
+        return r2.status_code == 200 and r2.json().get("ok", False)
     except Exception as e:
         print(f"Telegram send error: {e}")
         return False
