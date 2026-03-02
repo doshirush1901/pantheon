@@ -157,14 +157,16 @@ class IngestionResult:
     
     items_skipped: int = 0
     items_chunked: int = 0
+    items_filtered: int = 0  # EXCRETION: low-quality chunks discarded
     validation_errors: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
     
     def __str__(self):
         status = "✓" if self.success else "✗"
         skip_info = f" (skipped {self.items_skipped} duplicates)" if self.items_skipped else ""
+        filter_info = f" (filtered {self.items_filtered} low-quality)" if self.items_filtered else ""
         return (
-            f"{status} Ingested {self.items_ingested} items{skip_info} | "
+            f"{status} Ingested {self.items_ingested} items{skip_info}{filter_info} | "
             f"Qdrant-main: {self.qdrant_main} | "
             f"Qdrant-discovered: {self.qdrant_discovered} | "
             f"Mem0: {self.mem0} | "
@@ -435,6 +437,15 @@ class KnowledgeIngestor:
             validated_items = unique_items
             if result.items_skipped:
                 self._log(f"  ⚠ Skipped {result.items_skipped} duplicates")
+
+        # STOMACH: NER + keyword enrichment before chunking
+        try:
+            from .stomach_enrichment import enrich_items
+            enrich_items(validated_items)
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.debug(f"Stomach enrichment not available: {e}")
         
         final_items = []
         for item in validated_items:
@@ -457,7 +468,32 @@ class KnowledgeIngestor:
         
         if result.items_chunked:
             self._log(f"  ✓ Chunked {result.items_chunked} large items into {len(final_items)} pieces")
-        
+
+        # EXCRETION: Filter low-quality chunks before embedding
+        try:
+            from .quality_filter import filter_by_quality, QualityFilterConfig
+            qf_config = QualityFilterConfig()
+            passed, _ = filter_by_quality(final_items, config=qf_config)
+            result.items_filtered = len(final_items) - len(passed)
+            final_items = passed
+            if result.items_filtered:
+                self._log(f"  ✓ Excretion: filtered {result.items_filtered} low-quality chunks")
+        except ImportError as e:
+            logger.debug(f"Quality filter not available: {e}")
+
+        # SEMANTIC DEDUP: Reject near-duplicates of existing Qdrant content
+        try:
+            from .quality_filter import filter_semantic_duplicates
+            unique, sem_dups = filter_semantic_duplicates(final_items)
+            if sem_dups:
+                result.items_skipped += len(sem_dups)
+                final_items = unique
+                self._log(f"  ✓ Semantic dedup: rejected {len(sem_dups)} near-duplicates")
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.debug(f"Semantic dedup not available: {e}")
+
         if not final_items:
             result.errors.append("No valid items after validation/deduplication")
             return result
@@ -523,6 +559,7 @@ class KnowledgeIngestor:
             "items_ingested": result.items_ingested,
             "items_skipped": result.items_skipped,
             "items_chunked": result.items_chunked,
+            "items_filtered": result.items_filtered,
             "source_files": list(set(item.source_file for item in final_items)),
             "knowledge_types": list(set(item.knowledge_type for item in final_items)),
             "success": result.success,

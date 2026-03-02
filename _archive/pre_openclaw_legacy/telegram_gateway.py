@@ -1351,6 +1351,91 @@ class TelegramGateway:
             logger.error(f"[DEEP_INGEST] Error: {e}")
             return GatewayResponse(text=f"❌ Deep ingest failed: {str(e)[:200]}", success=False)
 
+    def handle_url_ingest(self, url: str, caption: Optional[str] = None) -> GatewayResponse:
+        """Handle URL ingestion — fetch web page content and ingest into knowledge base.
+
+        MOUTH (URL): Ingests web pages shared via Telegram.
+        Supports /url <url> or a bare URL message (with optional caption).
+        """
+        self.send_typing_action()
+
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from url_fetcher import fetch_url_content, extract_first_url
+            from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
+        except ImportError as e:
+            logger.warning(f"[URL_INGEST] Import error: {e}")
+            return GatewayResponse(
+                text="❌ URL ingestion modules not available.",
+                success=False,
+            )
+
+        # Normalize URL
+        url = url.strip()
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+
+        text, meta = fetch_url_content(url)
+        if not text or len(text) < 50:
+            err = meta.get("error") or "Could not extract content"
+            return GatewayResponse(
+                text=f"❌ **URL fetch failed**\n\n{url}\n\n{err}",
+                success=False,
+            )
+
+        # Infer knowledge type from URL + caption
+        knowledge_type = self._detect_knowledge_type(url, caption)
+        entities = self._extract_entities_from_caption(caption, url)
+        primary_entity = entities[0] if entities else ""
+
+        if caption:
+            text = f"[Context: {caption}]\n\n{text}"
+
+        ingestor = KnowledgeIngestor()
+        item = KnowledgeItem(
+            text=text,
+            knowledge_type=knowledge_type,
+            source_file=url,
+            summary=caption or meta.get("title") or f"Web page: {url[:80]}",
+            entity=primary_entity,
+            metadata={
+                "source": "telegram_url",
+                "url": url,
+                "fetcher": meta.get("source", "unknown"),
+                "caption": caption,
+                "entities": entities,
+            },
+        )
+
+        result = ingestor.ingest_batch([item])
+
+        store_str = "Qdrant"
+        if result.mem0:
+            store_str += ", Mem0"
+        if result.json_backup:
+            store_str += ", JSON"
+
+        response_parts = [
+            f"🌐 **URL ingested**\n\n{url}",
+            f"\n📏 {len(text):,} chars extracted ({meta.get('source', '?')})",
+            f"\n✅ {result.items_ingested} items → {store_str}",
+        ]
+        if result.items_filtered:
+            response_parts.append(f" (excretion: {result.items_filtered} filtered)")
+        if caption:
+            response_parts.append(f"\n📝 Caption: _{caption}_")
+
+        return GatewayResponse(
+            text="\n".join(response_parts),
+            log_entry={
+                "type": "url_ingested",
+                "url": url,
+                "chars": len(text),
+                "source": meta.get("source"),
+                "items_ingested": result.items_ingested,
+            },
+        )
+
     def set_my_commands(self) -> bool:
         """Configure bot menu commands."""
         url = f"{TELEGRAM_API_BASE.format(token=self.bot_token)}/setMyCommands"
@@ -2247,6 +2332,7 @@ DOCUMENT INGESTION:
   /ingest <path> → Scan local document and store in memory
   /docs → List all uploaded documents
   Supports: PDF, XLSX, XLS, DOCX, DOC, PPTX, CSV, TXT, MD, JSON
+  /url <link> or send a URL → Ingest web page content
   Images: PNG, JPG, GIF, WEBP (OCR via GPT-4o Vision)
 
 CONFLICT RESOLUTION:
@@ -5882,6 +5968,24 @@ Total: {len(draft_ids)}""",
         deep_ingest_match = re.match(r'^/deep_ingest\s*(.*)', text, re.IGNORECASE)
         if deep_ingest_match:
             return self.handle_deep_ingest(deep_ingest_match.group(1))
+
+        # /url <url> or /ingest_url <url> - Ingest web page content (MOUTH)
+        url_cmd_match = re.match(r'^/(?:url|ingest_url)\s+(https?://\S+|\S+)', text, re.IGNORECASE)
+        if url_cmd_match:
+            url = url_cmd_match.group(1).strip()
+            caption = text[url_cmd_match.end():].strip() or None
+            return self.handle_url_ingest(url, caption)
+
+        # Bare URL (no command) - Ingest when user sends just a URL + optional caption
+        try:
+            from url_fetcher import is_bare_url_message, extract_first_url
+            if is_bare_url_message(text):
+                url = extract_first_url(text)
+                lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
+                caption = " ".join(lines[1:]).strip() or None
+                return self.handle_url_ingest(url, caption)
+        except ImportError:
+            pass
 
         # =====================================================================
         # METADATA INDEX COMMANDS

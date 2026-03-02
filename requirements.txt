@@ -100,6 +100,12 @@ pyrate-limiter>=3.0.0
 # python-docx for DOCX file extraction in knowledge engine
 python-docx>=1.1.0
 
+# trafilatura for URL/article extraction (optional; Jina reader used as primary)
+trafilatura>=1.6.0
+
+# yake for keyword extraction in stomach enrichment (optional; simple fallback if missing)
+yake>=0.4.8
+
 # Langfuse for LLM observability dashboard
 # Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to enable
 langfuse>=2.0.0
