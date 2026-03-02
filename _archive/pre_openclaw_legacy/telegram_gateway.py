@@ -1351,6 +1351,140 @@ class TelegramGateway:
             logger.error(f"[DEEP_INGEST] Error: {e}")
             return GatewayResponse(text=f"❌ Deep ingest failed: {str(e)[:200]}", success=False)
 
+    def handle_learn_url(self, url_str: str, context: str = "") -> GatewayResponse:
+        """Handle /learn <url> [context] — Scrape a URL and ingest into knowledge base."""
+        import re as _re
+        url_match = _re.match(r'(https?://\S+)', url_str.strip())
+        if not url_match:
+            return GatewayResponse(
+                text="❌ Please provide a valid URL.\n\n**Usage:** `/learn https://example.com [optional context]`",
+                success=False,
+            )
+
+        target_url = url_match.group(1)
+        context = url_str[len(target_url):].strip() or context
+
+        self.send_typing_action()
+
+        try:
+            resp = requests.get(target_url, timeout=30, headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) IraMC/1.0"
+            })
+            resp.raise_for_status()
+            raw_html = resp.text
+        except Exception as e:
+            return GatewayResponse(text=f"❌ Failed to fetch URL: {str(e)[:150]}", success=False)
+
+        # Extract main content — try trafilatura, fall back to basic HTML stripping
+        clean_text = None
+        try:
+            import trafilatura
+            clean_text = trafilatura.extract(raw_html, include_comments=False, include_tables=True)
+        except ImportError:
+            pass
+
+        if not clean_text:
+            clean_text = re.sub(r'<script[^>]*>.*?</script>', '', raw_html, flags=re.DOTALL | re.IGNORECASE)
+            clean_text = re.sub(r'<style[^>]*>.*?</style>', '', clean_text, flags=re.DOTALL | re.IGNORECASE)
+            clean_text = re.sub(r'<[^>]+>', ' ', clean_text)
+            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+
+        if not clean_text or len(clean_text) < 50:
+            return GatewayResponse(text="❌ Could not extract meaningful content from that URL.", success=False)
+
+        # Extract page title
+        title_match = re.search(r'<title[^>]*>(.*?)</title>', raw_html, re.IGNORECASE | re.DOTALL)
+        page_title = title_match.group(1).strip() if title_match else target_url
+
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from knowledge_ingestor import KnowledgeIngestor, KnowledgeItem
+
+            knowledge_type = self._detect_knowledge_type(page_title, context)
+            entities = self._extract_entities_from_caption(context, page_title)
+            primary_entity = entities[0] if entities else ""
+
+            text_content = clean_text
+            if context:
+                text_content = f"[Context: {context}]\n[Source: {target_url}]\n\n{text_content}"
+            else:
+                text_content = f"[Source: {target_url}]\n\n{text_content}"
+
+            items = [KnowledgeItem(
+                text=text_content,
+                knowledge_type=knowledge_type,
+                source_file=target_url,
+                entity=primary_entity,
+                summary=context or f"Web page: {page_title}",
+                metadata={
+                    "source": "telegram_url_ingest",
+                    "url": target_url,
+                    "page_title": page_title,
+                    "context": context,
+                    "entities": entities,
+                },
+            )]
+
+            if context and len(context) > 10:
+                items.append(KnowledgeItem(
+                    text=f"URL ingest note for '{page_title}' ({target_url}):\n{context}",
+                    knowledge_type=knowledge_type,
+                    source_file=target_url,
+                    entity=primary_entity,
+                    summary=f"URL context: {context}",
+                    metadata={"source": "telegram_url_note", "url": target_url, "is_file_description": True},
+                ))
+
+            ingestor = KnowledgeIngestor()
+            ki_result = ingestor.ingest_batch(items)
+
+            # Store in file manifest for NN research
+            try:
+                from nn_research import get_file_manifest
+                manifest = get_file_manifest()
+                manifest.add_file(
+                    filename=target_url,
+                    description=context or page_title,
+                    original_name=page_title,
+                    file_path=target_url,
+                )
+            except Exception:
+                pass
+
+            stores = []
+            if ki_result.qdrant_main or ki_result.qdrant_discovered:
+                stores.append("Qdrant")
+            if ki_result.mem0:
+                stores.append("Mem0")
+            if ki_result.neo4j:
+                stores.append("Neo4j")
+            store_str = ", ".join(stores) if stores else "stored"
+            rejected = f"\n⚠️ {ki_result.items_rejected} items rejected (low quality)" if ki_result.items_rejected else ""
+
+            char_count = len(clean_text)
+            return GatewayResponse(
+                text=(
+                    f"🌐 **URL ingested: {page_title}**\n"
+                    f"🔗 `{target_url}`\n"
+                    f"📏 {char_count:,} chars extracted\n"
+                    f"✅ {ki_result.items_ingested} items → {store_str}"
+                    f"{rejected}"
+                    + (f"\n📝 Context: _{context}_" if context else "")
+                    + (f"\n📋 Type: {knowledge_type}" if knowledge_type != "general" else "")
+                ),
+                log_entry={
+                    "type": "url_ingested",
+                    "url": target_url,
+                    "title": page_title,
+                    "chars": char_count,
+                    "items": ki_result.items_ingested,
+                    "success": ki_result.success,
+                },
+            )
+        except Exception as e:
+            logger.error(f"[URL_INGEST] Error: {e}")
+            return GatewayResponse(text=f"❌ URL ingestion failed: {str(e)[:200]}", success=False)
+
     def set_my_commands(self) -> bool:
         """Configure bot menu commands."""
         url = f"{TELEGRAM_API_BASE.format(token=self.bot_token)}/setMyCommands"
@@ -1362,6 +1496,7 @@ class TelegramGateway:
             {"command": "dashboard", "description": "Relationship overview"},
             {"command": "research", "description": "Deep research on a topic"},
             {"command": "docs", "description": "List uploaded documents"},
+            {"command": "learn", "description": "Learn from a URL"},
             {"command": "help", "description": "Show all commands"},
         ]
         try:
@@ -2244,10 +2379,13 @@ MEMORY ANALYTICS:
 
 DOCUMENT INGESTION:
   📎 Upload any file → Auto-download, save & train Ira
+  /learn <url> [context] → Scrape a web page and ingest
   /ingest <path> → Scan local document and store in memory
+  /deep_ingest [file] → GPT-4o deep re-extraction of uploaded doc
   /docs → List all uploaded documents
   Supports: PDF, XLSX, XLS, DOCX, DOC, PPTX, CSV, TXT, MD, JSON
   Images: PNG, JPG, GIF, WEBP (OCR via GPT-4o Vision)
+  URLs: Any web page (auto-extracts main content)
 
 CONFLICT RESOLUTION:
   /conflicts → Show pending memory conflicts
@@ -5877,6 +6015,11 @@ Total: {len(draft_ids)}""",
         # /docs - List documents uploaded via Telegram
         if text_upper in ("/DOCS", "/DOCUMENTS", "/UPLOADS"):
             return self.handle_docs_command()
+
+        # /learn <url> [context] - Scrape and ingest a URL
+        learn_match = re.match(r'^/learn\s+(.+)', text, re.IGNORECASE)
+        if learn_match:
+            return self.handle_learn_url(learn_match.group(1).strip())
 
         # /deep_ingest [filename] - Deep re-process an uploaded document
         deep_ingest_match = re.match(r'^/deep_ingest\s*(.*)', text, re.IGNORECASE)

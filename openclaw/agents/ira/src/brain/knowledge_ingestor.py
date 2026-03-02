@@ -104,6 +104,102 @@ MAX_CHUNK_SIZE = 2000
 CHUNK_OVERLAP = 200
 
 
+# =============================================================================
+# STOMACH: Keyword & Entity Extraction (pre-embedding enrichment)
+# =============================================================================
+
+import re as _re
+
+_STOP_WORDS = frozenset({
+    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+    "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
+    "being", "have", "has", "had", "do", "does", "did", "will", "would",
+    "could", "should", "may", "might", "shall", "can", "this", "that",
+    "these", "those", "it", "its", "not", "no", "so", "if", "as", "we",
+    "our", "you", "your", "they", "their", "he", "she", "his", "her",
+    "which", "what", "who", "whom", "how", "when", "where", "why", "all",
+    "each", "every", "both", "few", "more", "most", "other", "some", "such",
+    "than", "too", "very", "just", "about", "above", "after", "before",
+    "between", "into", "through", "during", "also", "then", "there", "here",
+})
+
+
+def extract_keywords(text: str, top_n: int = 10) -> List[str]:
+    """Extract top keywords from text using TF-based scoring.
+
+    Lightweight, no external dependencies — good enough for metadata enrichment.
+    """
+    words = _re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+    filtered = [w for w in words if w not in _STOP_WORDS]
+    if not filtered:
+        return []
+
+    freq: Dict[str, int] = {}
+    for w in filtered:
+        freq[w] = freq.get(w, 0) + 1
+
+    sorted_words = sorted(freq.items(), key=lambda kv: -kv[1])
+    return [w for w, _ in sorted_words[:top_n]]
+
+
+def extract_entities(text: str) -> Dict[str, List[str]]:
+    """Extract structured entities from text using regex patterns.
+
+    Returns dict with keys: machines, companies, people, events, currencies.
+    No spaCy dependency — uses domain-specific patterns for Machinecraft.
+    """
+    entities: Dict[str, List[str]] = {
+        "machines": [],
+        "companies": [],
+        "events": [],
+        "currencies": [],
+    }
+
+    machines = _re.findall(
+        r'(PF[12][-\s]?[A-Z]?[-\s]?\d[\d\-]*|AM[-\s]?\d[\w\-]*|IMG[-\s]?\d[\w\-]*|'
+        r'FCS[-\s]?\w+|ATF[-\s]?\w+|UNO[-\s]?\w+|DUO[-\s]?\w+)',
+        text, _re.IGNORECASE,
+    )
+    entities["machines"] = list(dict.fromkeys(m.upper().replace(" ", "-") for m in machines))
+
+    events = _re.findall(
+        r'\b(K[-\s]?\d{4}|Plastindia\s*\d*|Chinaplas\s*\d*|NPE\s*\d*|Fakuma\s*\d*)\b',
+        text, _re.IGNORECASE,
+    )
+    entities["events"] = list(dict.fromkeys(e.strip() for e in events))
+
+    currencies = _re.findall(
+        r'(?:€|EUR|USD|\$|₹|INR|GBP|£)\s*[\d,]+(?:\.\d+)?(?:\s*(?:lakh|crore|million|k))?',
+        text, _re.IGNORECASE,
+    )
+    entities["currencies"] = list(dict.fromkeys(currencies[:10]))
+
+    skip = {"The", "This", "That", "For", "From", "With", "Please", "Dear", "Hello",
+            "Thank", "Thanks", "Best", "Kind", "Regards", "Subject", "Date"}
+    cap_phrases = _re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b', text)
+    entities["companies"] = list(dict.fromkeys(
+        p for p in cap_phrases if p.split()[0] not in skip
+    ))[:15]
+
+    return {k: v for k, v in entities.items() if v}
+
+
+def enrich_item_metadata(item) -> None:
+    """Enrich a KnowledgeItem's metadata with extracted keywords and entities."""
+    if "keywords" not in item.metadata:
+        item.metadata["keywords"] = extract_keywords(item.text)
+    if "extracted_entities" not in item.metadata:
+        item.metadata["extracted_entities"] = extract_entities(item.text)
+    if not item.entity:
+        ents = item.metadata.get("extracted_entities", {})
+        machines = ents.get("machines", [])
+        companies = ents.get("companies", [])
+        if machines:
+            item.entity = machines[0]
+        elif companies:
+            item.entity = companies[0]
+
+
 @dataclass
 class KnowledgeItem:
     """A single piece of knowledge to ingest."""
@@ -143,6 +239,74 @@ class KnowledgeItem:
         return errors
 
 
+@dataclass
+class QualityScore:
+    """Result of content quality assessment."""
+    score: float          # 0.0 – 1.0
+    passed: bool
+    reasons: List[str] = field(default_factory=list)
+
+
+def assess_quality(text: str, min_score: float = 0.3) -> QualityScore:
+    """Pre-ingestion quality gate — scores text and decides whether to ingest.
+
+    Checks:
+      - Length & density (not too short, not just whitespace/punctuation)
+      - Language signal (contains real words, not garbled OCR output)
+      - Information density (ratio of unique words to total)
+      - Repetition (reject walls of repeated text)
+    """
+    reasons = []
+    score = 1.0
+    stripped = text.strip()
+
+    if len(stripped) < 30:
+        reasons.append("too_short")
+        return QualityScore(score=0.0, passed=False, reasons=reasons)
+
+    words = stripped.split()
+    word_count = len(words)
+
+    if word_count < 5:
+        reasons.append("too_few_words")
+        return QualityScore(score=0.0, passed=False, reasons=reasons)
+
+    alpha_chars = sum(1 for c in stripped if c.isalpha())
+    alpha_ratio = alpha_chars / max(len(stripped), 1)
+    if alpha_ratio < 0.3:
+        score -= 0.4
+        reasons.append(f"low_alpha_ratio({alpha_ratio:.2f})")
+
+    unique_words = set(w.lower() for w in words)
+    diversity = len(unique_words) / max(word_count, 1)
+    if diversity < 0.15:
+        score -= 0.4
+        reasons.append(f"low_diversity({diversity:.2f})")
+    elif diversity < 0.3:
+        score -= 0.15
+        reasons.append(f"moderate_diversity({diversity:.2f})")
+
+    avg_word_len = sum(len(w) for w in words) / max(word_count, 1)
+    if avg_word_len < 2.0 or avg_word_len > 25:
+        score -= 0.2
+        reasons.append(f"unusual_word_length({avg_word_len:.1f})")
+
+    lines = stripped.splitlines()
+    if len(lines) > 3:
+        unique_lines = set(l.strip() for l in lines if l.strip())
+        line_diversity = len(unique_lines) / max(len(lines), 1)
+        if line_diversity < 0.3:
+            score -= 0.3
+            reasons.append(f"repetitive_lines({line_diversity:.2f})")
+
+    score = max(0.0, min(1.0, score))
+    passed = score >= min_score
+    if not passed:
+        reasons.append(f"below_threshold({score:.2f}<{min_score})")
+
+    return QualityScore(score=round(score, 3), passed=passed, reasons=reasons)
+
+
 @dataclass 
 class IngestionResult:
     """Result of knowledge ingestion."""
@@ -157,6 +321,7 @@ class IngestionResult:
     
     items_skipped: int = 0
     items_chunked: int = 0
+    items_rejected: int = 0
     validation_errors: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
     
@@ -292,6 +457,25 @@ class KnowledgeIngestor:
     def _is_duplicate(self, item: KnowledgeItem) -> bool:
         """Check if item has already been ingested."""
         return item.content_hash in self._ingested_hashes
+
+    @staticmethod
+    def _log_rejected(item: KnowledgeItem, quality: QualityScore):
+        """Append rejected item to waste log for review."""
+        waste_log = KNOWLEDGE_BACKUP_DIR / "rejected_waste.jsonl"
+        try:
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "source_file": item.source_file,
+                "entity": item.entity,
+                "knowledge_type": item.knowledge_type,
+                "text_preview": item.text[:300],
+                "quality_score": quality.score,
+                "rejection_reasons": quality.reasons,
+            }
+            with open(waste_log, "a") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+        except Exception:
+            pass
     
     def _mark_ingested(self, item: KnowledgeItem):
         """Mark item as ingested."""
@@ -435,7 +619,27 @@ class KnowledgeIngestor:
             validated_items = unique_items
             if result.items_skipped:
                 self._log(f"  ⚠ Skipped {result.items_skipped} duplicates")
-        
+
+        # Quality gate — reject low-quality content before embedding
+        quality_passed = []
+        for item in validated_items:
+            qscore = assess_quality(item.text)
+            if qscore.passed:
+                item.metadata["quality_score"] = qscore.score
+                quality_passed.append(item)
+            else:
+                result.items_rejected += 1
+                self._log_rejected(item, qscore)
+                self._log(f"  ✗ Rejected ({', '.join(qscore.reasons)}): {item.source_file}")
+        validated_items = quality_passed
+        if result.items_rejected:
+            self._log(f"  ⚠ Rejected {result.items_rejected} low-quality items")
+
+        # Stomach: enrich metadata with keywords and entities before chunking
+        for item in validated_items:
+            enrich_item_metadata(item)
+        self._log(f"  ✓ Enriched {len(validated_items)} items with keywords & entities")
+
         final_items = []
         for item in validated_items:
             if len(item.text) > MAX_CHUNK_SIZE:
