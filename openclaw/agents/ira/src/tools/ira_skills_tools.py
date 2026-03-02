@@ -7,6 +7,7 @@ Enables LLM-driven orchestration: Athena (LLM) chooses which skills to call and 
 
 import json
 import logging
+import os
 from typing import Any, Dict, List
 
 logger = logging.getLogger("ira.tools.skills")
@@ -169,22 +170,81 @@ async def execute_tool_call(
         query = arguments.get("query", "")
         company = arguments.get("company", "")
         results_parts = []
+        search_query = f"{company} {query}".strip() if company else query
         
-        # Jina web search (works for any query)
-        try:
-            import httpx
-            search_query = f"{company} {query}" if company else query
-            resp = httpx.get(
-                f"https://s.jina.ai/{search_query}",
-                timeout=20,
-                headers={"Accept": "application/json", "X-Return-Format": "text"},
-            )
-            if resp.status_code == 200 and len(resp.text.strip()) > 50:
-                results_parts.append(f"[web_search] {resp.text[:3000]}")
-        except Exception as e:
-            logger.debug(f"Jina search failed: {e}")
+        # 1. Tavily AI search (best for agent queries, returns clean content)
+        tavily_key = os.environ.get("TAVILY_API_KEY", "")
+        if tavily_key:
+            try:
+                import httpx
+                resp = httpx.post(
+                    "https://api.tavily.com/search",
+                    json={
+                        "api_key": tavily_key,
+                        "query": search_query,
+                        "search_depth": "advanced",
+                        "max_results": 5,
+                        "include_answer": True,
+                    },
+                    timeout=20,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("answer"):
+                        results_parts.append(f"[tavily_answer] {data['answer']}")
+                    for r in data.get("results", [])[:5]:
+                        title = r.get("title", "")
+                        content = r.get("content", "")[:400]
+                        url = r.get("url", "")
+                        if content:
+                            results_parts.append(f"[tavily] {title}: {content} ({url})")
+            except Exception as e:
+                logger.debug(f"Tavily search failed: {e}")
         
-        # Iris enrichment (when a specific company is mentioned)
+        # 2. Serper Google search (structured Google results)
+        serper_key = os.environ.get("SERPER_API_KEY", "")
+        if serper_key:
+            try:
+                import httpx
+                resp = httpx.post(
+                    "https://google.serper.dev/search",
+                    json={"q": search_query, "num": 5},
+                    headers={"X-API-KEY": serper_key},
+                    timeout=15,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    # Knowledge graph
+                    kg = data.get("knowledgeGraph", {})
+                    if kg.get("description"):
+                        results_parts.append(f"[google_kg] {kg.get('title', '')}: {kg['description']}")
+                    # Organic results
+                    for r in data.get("organic", [])[:5]:
+                        title = r.get("title", "")
+                        snippet = r.get("snippet", "")
+                        if snippet:
+                            results_parts.append(f"[google] {title}: {snippet}")
+                    # People Also Ask
+                    for paa in data.get("peopleAlsoAsk", [])[:2]:
+                        results_parts.append(f"[google_paa] Q: {paa.get('question', '')} A: {paa.get('snippet', '')}")
+            except Exception as e:
+                logger.debug(f"Serper search failed: {e}")
+        
+        # 3. Jina fallback (if Tavily and Serper both unavailable)
+        if not results_parts:
+            try:
+                import httpx
+                resp = httpx.get(
+                    f"https://s.jina.ai/{search_query}",
+                    timeout=20,
+                    headers={"Accept": "application/json"},
+                )
+                if resp.status_code == 200 and len(resp.text.strip()) > 50:
+                    results_parts.append(f"[jina] {resp.text[:3000]}")
+            except Exception:
+                pass
+        
+        # 4. Iris enrichment (company-specific intelligence)
         if company:
             try:
                 from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
@@ -194,20 +254,21 @@ async def execute_tool_call(
                     for k, v in iris_result.items():
                         if v and len(str(v)) > 10:
                             results_parts.append(f"[iris:{k}] {v}")
-            except Exception as e:
-                logger.debug(f"Iris enrich failed: {e}")
+            except Exception:
+                pass
         
-        # If company specified, also try scraping their website
-        if company and not results_parts:
+        # 5. Website scraping (when company specified)
+        if company and len(results_parts) < 3:
             try:
                 import httpx
+                domain = company.lower().replace(" ", "").replace(",", "")
                 resp = httpx.get(
-                    f"https://r.jina.ai/https://www.{company.lower().replace(' ', '')}.com",
+                    f"https://r.jina.ai/https://www.{domain}.com",
                     timeout=15,
                     headers={"Accept": "text/plain"},
                 )
                 if resp.status_code == 200 and len(resp.text) > 100:
-                    results_parts.append(f"[website] {resp.text[:2000]}")
+                    results_parts.append(f"[website:{domain}.com] {resp.text[:2000]}")
             except Exception:
                 pass
         
