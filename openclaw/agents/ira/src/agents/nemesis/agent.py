@@ -143,6 +143,14 @@ class Nemesis:
 
         mem0_stored = self._store_in_mem0(correct_info, entity, category, source)
 
+        try:
+            from openclaw.agents.ira.src.agents.researcher.agent import invalidate_cache
+            invalidate_cache(entity=entity or "")
+        except Exception:
+            pass
+
+        self._flag_qdrant_contradictions(entity or "", correct_info)
+
         logger.info(
             f"[NEMESIS] Ingested correction {cid}: "
             f"{entity or 'general'}/{category} ({severity}) — mem0={'yes' if mem0_stored else 'no'}"
@@ -381,6 +389,34 @@ class Nemesis:
                 )
                 count += 1
         return count
+
+    def _flag_qdrant_contradictions(self, entity: str, correct_info: str) -> None:
+        """Search Qdrant for chunks that contradict the correction and flag them."""
+        if not entity:
+            return
+        try:
+            from openclaw.agents.ira.src.brain.qdrant_retriever import retrieve as qdrant_retrieve
+            results = qdrant_retrieve(entity, top_k=5)
+            if not hasattr(results, 'citations') or not results.citations:
+                return
+            from qdrant_client import QdrantClient
+            client = QdrantClient(url=os.environ.get("QDRANT_URL", "http://localhost:6333"))
+            for citation in results.citations:
+                if entity.lower() in (citation.text or "").lower():
+                    try:
+                        client.set_payload(
+                            collection_name="ira_chunks_v4_voyage",
+                            payload={
+                                "_correction_flag": correct_info,
+                                "_flagged_at": datetime.now().isoformat(),
+                            },
+                            points=[citation.id] if hasattr(citation, 'id') and citation.id else [],
+                        )
+                        logger.info("[Nemesis] Flagged Qdrant chunk %s as potentially contradicted by correction", citation.id)
+                    except Exception as e:
+                        logger.debug("[Nemesis] Could not flag Qdrant chunk: %s", e)
+        except Exception as e:
+            logger.debug("[Nemesis] Qdrant contradiction flagging failed: %s", e)
 
     def _classify_category(
         self, wrong_info: str, correct_info: str, entity: Optional[str]

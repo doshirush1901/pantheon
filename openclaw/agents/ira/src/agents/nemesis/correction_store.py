@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS corrections (
     applied     INTEGER DEFAULT 0,       -- 1 = applied during sleep training
     applied_to  TEXT,                     -- comma-separated: mem0,truth_hints,qdrant,system_prompt
     applied_at  TEXT,
-    occurrences INTEGER DEFAULT 1        -- how many times this same mistake was seen
+    occurrences INTEGER DEFAULT 1,       -- how many times this same mistake was seen
+    superseded  INTEGER DEFAULT 0        -- 1 = replaced by a newer correction for same entity+category
 );
 
 CREATE TABLE IF NOT EXISTS failures (
@@ -92,7 +93,20 @@ def _get_conn() -> sqlite3.Connection:
         _local.conn.row_factory = sqlite3.Row
         _local.conn.execute("PRAGMA journal_mode=WAL")
         _local.conn.executescript(_SCHEMA)
+        _migrate_superseded(_local.conn)
     return _local.conn
+
+
+def _migrate_superseded(conn: sqlite3.Connection) -> None:
+    """Add superseded column to existing databases that lack it."""
+    try:
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(corrections)").fetchall()}
+        if "superseded" not in cols:
+            conn.execute("ALTER TABLE corrections ADD COLUMN superseded INTEGER DEFAULT 0")
+            conn.commit()
+            logger.info("[NEMESIS] Migrated corrections table: added superseded column")
+    except Exception as e:
+        logger.debug("[NEMESIS] superseded migration skipped: %s", e)
 
 
 @contextmanager
@@ -130,19 +144,32 @@ def record_correction(
     with _tx() as conn:
         if entity and category:
             existing = conn.execute(
-                "SELECT id, occurrences FROM corrections "
-                "WHERE entity = ? AND category = ? AND applied = 0 "
+                "SELECT id, occurrences, correct_info FROM corrections "
+                "WHERE entity = ? AND category = ? AND applied = 0 AND superseded = 0 "
                 "ORDER BY timestamp DESC LIMIT 1",
                 (entity, category),
             ).fetchone()
             if existing:
-                conn.execute(
-                    "UPDATE corrections SET occurrences = occurrences + 1, "
-                    "correct_info = ?, coach_note = ?, timestamp = ? WHERE id = ?",
-                    (correct_info, coach_note, ts, existing["id"]),
-                )
-                logger.info(f"[NEMESIS] Correction updated (x{existing['occurrences'] + 1}): {existing['id']}")
-                return existing["id"]
+                if existing["correct_info"].strip() == correct_info.strip():
+                    conn.execute(
+                        "UPDATE corrections SET occurrences = occurrences + 1, "
+                        "coach_note = ?, timestamp = ? WHERE id = ?",
+                        (coach_note, ts, existing["id"]),
+                    )
+                    logger.info(f"[NEMESIS] Correction updated (x{existing['occurrences'] + 1}): {existing['id']}")
+                    return existing["id"]
+                else:
+                    logger.warning(
+                        "[NEMESIS] Conflicting corrections for %s/%s — "
+                        "old: %s | new: %s — superseding old %s",
+                        entity, category,
+                        existing["correct_info"][:80], correct_info[:80],
+                        existing["id"],
+                    )
+                    conn.execute(
+                        "UPDATE corrections SET superseded = 1 WHERE id = ?",
+                        (existing["id"],),
+                    )
 
         conn.execute(
             "INSERT INTO corrections "
@@ -186,7 +213,7 @@ def get_unapplied_corrections(limit: int = 100) -> List[Dict[str, Any]]:
     """Get corrections that haven't been applied during sleep training yet."""
     conn = _get_conn()
     rows = conn.execute(
-        "SELECT * FROM corrections WHERE applied = 0 ORDER BY "
+        "SELECT * FROM corrections WHERE applied = 0 AND superseded = 0 ORDER BY "
         "CASE severity WHEN 'critical' THEN 0 WHEN 'important' THEN 1 "
         "WHEN 'minor' THEN 2 ELSE 3 END, occurrences DESC, timestamp DESC "
         "LIMIT ?",

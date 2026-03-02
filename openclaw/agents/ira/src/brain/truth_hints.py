@@ -36,7 +36,7 @@ class TruthHint:
         
         # Check keyword match first (quick filter)
         if self.keywords:
-            if not any(kw in query_lower for kw in self.keywords):
+            if not any(re.search(r'\b' + re.escape(kw) + r'\b', query_lower) for kw in self.keywords):
                 return False, 0.0
         
         # Check pattern match

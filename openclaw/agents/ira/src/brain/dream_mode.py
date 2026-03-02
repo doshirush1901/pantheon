@@ -189,6 +189,47 @@ DREAM_JOURNAL_FILE = WORKSPACE_DIR / "dream_journal.json"
 # Collection for dream knowledge
 DREAM_COLLECTION = COLLECTIONS.get("dream_knowledge", "ira_dream_knowledge_v1")
 
+DREAM_AUDIT_LOG = PROJECT_ROOT / "data" / "holistic" / "dream_audit.jsonl"
+
+
+def _log_dream_audit(action: str, source: str, destination: str, content_preview: str, metadata: dict = None):
+    """Log every fact stored during dream mode for rollback capability."""
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "action": action,
+        "source": source,
+        "destination": destination,
+        "content_preview": content_preview[:300],
+        "metadata": metadata or {},
+    }
+    try:
+        DREAM_AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with open(DREAM_AUDIT_LOG, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception as e:
+        logger.warning("[Dream] Audit log write failed: %s", e)
+
+
+def _validate_dream_extraction(text: str) -> tuple:
+    """Run basic validation on dream-extracted facts before storage."""
+    import re
+    warnings = []
+    model_pattern = re.compile(r'PF\d-[A-Z]*-?\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4}', re.IGNORECASE)
+    models_mentioned = model_pattern.findall(text)
+    if models_mentioned:
+        try:
+            from openclaw.agents.ira.src.brain.knowledge_health import KnowledgeHealthMonitor
+            monitor = KnowledgeHealthMonitor()
+            valid_models = monitor._get_valid_models()
+            for m in models_mentioned:
+                if m.upper() not in {v.upper() for v in valid_models}:
+                    warnings.append(f"Unknown model {m} in extraction")
+        except Exception:
+            pass
+    if re.search(r'AM.*(?:[2-9]|1[0-9]|[2-9]\d)\s*mm', text, re.IGNORECASE):
+        warnings.append("AM series thickness violation in extraction")
+    return len(warnings) == 0, warnings
+
 
 class DocumentPriority(Enum):
     """Document priority for learning."""
@@ -874,6 +915,8 @@ Extract any:
                 ))
 
             qdrant.upsert(collection_name=DREAM_COLLECTION, points=points)
+            for text, metadata in batch:
+                _log_dream_audit("store", metadata.get("document", "unknown"), "qdrant", text, metadata)
             return True
         except Exception as e:
             logger.error(f"Qdrant batch store error: {e}")
@@ -905,12 +948,13 @@ Extract any:
                 )
                 
                 if result.get("action") in ["create", "reinforce"]:
+                    _log_dream_audit("store", metadata.get("document", "unknown"), "mem0_controller", text, metadata)
                     return True
                 elif result.get("action") == "ignore":
-                    # Already known, but that's okay
                     return True
                 elif result.get("action") == "conflict":
                     self.state.conflicts_detected += 1
+                    _log_dream_audit("conflict", metadata.get("document", "unknown"), "mem0_controller", text, metadata)
                     return True
                 return False
                 
@@ -931,6 +975,7 @@ Extract any:
                     **metadata
                 }
             )
+            _log_dream_audit("store", metadata.get("document", "unknown"), "mem0_direct", text, metadata)
             return True
         except Exception as e:
             logger.error(f"Mem0 store error: {e}")
@@ -953,6 +998,11 @@ Extract any:
         
         # Store facts (most important)
         for fact in knowledge.facts[:25]:
+            valid, warnings = _validate_dream_extraction(fact)
+            if not valid:
+                logger.warning("[Dream] Skipping fact with validation warnings: %s — %s", fact[:80], warnings)
+                _log_dream_audit("skipped_validation", knowledge.filename, "n/a", fact, {"warnings": warnings})
+                continue
             metadata = {**metadata_base, "type": "fact"}
             
             if self._store_in_qdrant(fact, metadata):
@@ -992,6 +1042,11 @@ Extract any:
         # Store insights
         for insight in knowledge.insights[:5]:
             text = f"INSIGHT: {insight}"
+            valid, warnings = _validate_dream_extraction(text)
+            if not valid:
+                logger.warning("[Dream] Skipping insight with validation warnings: %s — %s", text[:80], warnings)
+                _log_dream_audit("skipped_validation", knowledge.filename, "n/a", text, {"warnings": warnings})
+                continue
             metadata = {**metadata_base, "type": "insight"}
             
             if self._store_in_qdrant(text, metadata):
@@ -1595,6 +1650,7 @@ _Dream duration: {duration:.0f}s_"""
                 logger.debug(f"Stored: Mem0={mem0_stored}, Qdrant={qdrant_stored}")
             
             self.state.documents_processed[str(path)] = self._get_file_hash(path)
+            self._save_state()  # checkpoint after each document to prevent data loss on crash
 
             # Periodic GC every 10 documents
             if i % 10 == 0:

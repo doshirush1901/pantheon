@@ -55,6 +55,23 @@ def _get_client():
         return None
 
 
+def _atomic_json_write(path: Path, data: Any):
+    """Atomically write JSON to avoid partial reads during concurrent access."""
+    import tempfile
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(tmp_fd, "w") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, str(path))
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
 def run_sleep_training(dry_run: bool = False) -> Dict[str, Any]:
     """Main entry point — called from nap.py.
     
@@ -257,8 +274,7 @@ def _save_learned_hints(new_hints: List[Dict]) -> None:
             hint["source"] = "nemesis_sleep_train"
             existing.append(hint)
 
-    LEARNED_TRUTH_HINTS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    LEARNED_TRUTH_HINTS_FILE.write_text(json.dumps(existing, indent=2))
+    _atomic_json_write(LEARNED_TRUTH_HINTS_FILE, existing)
     logger.info(f"[NEMESIS TRAINER] Saved {len(existing)} total learned truth hints")
 
 
@@ -416,7 +432,7 @@ def _generate_training_guidance(corrections: List[Dict], dry_run: bool) -> int:
             ),
         )[:50]
 
-        TRAINING_GUIDANCE_FILE.write_text(json.dumps(existing, indent=2))
+        _atomic_json_write(TRAINING_GUIDANCE_FILE, existing)
         logger.info(f"[NEMESIS TRAINER] Saved {len(existing)} training guidance rules")
 
     return len(rules)
@@ -481,7 +497,7 @@ def _update_learned_corrections(corrections: List[Dict], dry_run: bool) -> int:
 
     if added:
         existing["last_updated"] = datetime.now().isoformat()
-        LEARNED_CORRECTIONS_FILE.write_text(json.dumps(existing, indent=2))
+        _atomic_json_write(LEARNED_CORRECTIONS_FILE, existing)
         logger.info(f"[NEMESIS TRAINER] Added {added} to learned_corrections.json")
 
     return added

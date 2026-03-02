@@ -355,6 +355,17 @@ def _cache_evict():
         del _cache[key]
 
 
+def invalidate_cache(entity: str = "") -> None:
+    """Clear research cache, optionally only for queries mentioning an entity."""
+    global _cache
+    if not entity:
+        _cache.clear()
+        return
+    keys_to_remove = [k for k in _cache if entity.lower() in k.lower()]
+    for k in keys_to_remove:
+        del _cache[k]
+
+
 async def _search_knowledge_base(query: str) -> List[Dict]:
     """Search the Qdrant vector knowledge base for ingested documents."""
     cache_key = f"kb:{hashlib.md5(query.encode()).hexdigest()}"

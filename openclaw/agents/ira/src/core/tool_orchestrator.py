@@ -16,9 +16,15 @@ at round 12 nudges (not forces) Athena to propose when ready.
 import asyncio
 import logging
 import re
+import time
 from typing import Any, Dict, List
 
 logger = logging.getLogger("ira.tool_orchestrator")
+
+_request_cost_log: List[Dict[str, Any]] = []
+_MAX_REQUEST_BUDGET_USD = 5.0
+_GPT4O_INPUT_COST_PER_1K = 0.0025
+_GPT4O_OUTPUT_COST_PER_1K = 0.01
 
 MAX_TOOL_ROUNDS = 25
 PROPOSAL_NUDGE_ROUND = 12
@@ -39,12 +45,15 @@ def _estimate_tokens(text: str) -> int:
     return int(len(text) / _CHARS_PER_TOKEN_ESTIMATE) + 1
 
 
+_TOOL_SCHEMA_TOKEN_OVERHEAD = 5000
+_SYSTEM_PROMPT_OVERHEAD = 4000
+
 def _estimate_messages_tokens(messages: List[Any]) -> int:
     """Estimate total tokens across all messages in the conversation."""
-    total = 0
+    total = _TOOL_SCHEMA_TOKEN_OVERHEAD
     for msg in messages:
         content = (msg.get("content", "") if isinstance(msg, dict) else getattr(msg, "content", "")) or ""
-        total += _estimate_tokens(content) + 4  # per-message overhead
+        total += _estimate_tokens(content) + 4
         if hasattr(msg, "tool_calls") and msg.tool_calls:
             for tc in msg.tool_calls:
                 total += _estimate_tokens(getattr(tc.function, "name", "") or "")
@@ -62,6 +71,8 @@ def _compact_tool_results(messages: List[Dict[str, Any]], budget: int) -> List[D
     current_tokens = _estimate_messages_tokens(messages)
     if current_tokens <= budget:
         return messages
+
+    messages = list(messages)  # work on a copy
 
     overshoot = current_tokens - budget
     logger.warning("[Athena] Context approaching limit (%d est. tokens, budget %d). "
@@ -89,6 +100,18 @@ def _compact_tool_results(messages: List[Dict[str, Any]], budget: int) -> List[D
     logger.info("[Athena] Compacted context, freed ~%d estimated tokens", freed)
     return messages
 
+
+def _truncate_tool_result(result: str, max_chars: int = 16000) -> str:
+    """Truncate tool result with marker, preserving both head and tail."""
+    if len(result) <= max_chars:
+        return result
+    half = max_chars // 2 - 50
+    return (
+        result[:half]
+        + f"\n\n[...TRUNCATED — full result was {len(result):,} chars. Showing first and last {half} chars...]\n\n"
+        + result[-half:]
+    )
+
 _TOOL_AGENT_MAP = {
     "research_skill": "clio", "writing_skill": "calliope",
     "fact_checking_skill": "vera", "web_search": "iris",
@@ -98,6 +121,10 @@ _TOOL_AGENT_MAP = {
     "finance_overview": "plutus", "order_book_status": "plutus",
     "cashflow_forecast": "plutus", "revenue_history": "plutus",
     "draft_email": "hermes", "run_analysis": "hephaestus",
+    "read_inbox": "hermes", "search_email": "hermes",
+    "read_email_message": "hermes", "read_email_thread": "hermes",
+    "send_email": "hermes", "correction_report": "nemesis",
+    "build_quote_pdf": "quotebuilder", "memory_search": "mnemosyne",
 }
 
 
@@ -116,8 +143,23 @@ def _signal_tool_outcome(tool_name: str, result: str):
             endo.signal_failure(agent, context={"tool": tool_name})
         elif len(result) > 50:
             endo.signal_success(agent, context={"tool": tool_name})
+    except Exception as e:
+        logger.debug("[Endocrine] Signal failed for %s: %s", tool_name, e)
+
+
+def _get_endocrine_status() -> str:
+    """Get agent confidence summary for system prompt context."""
+    try:
+        from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
+        endo = get_endocrine_system()
+        report = endo.get_endocrine_report()
+        stressed = [name for name, profile in report.get("agents", {}).items()
+                    if profile.get("stress_level", 0) > 0.5]
+        if stressed:
+            return f"\nAGENT HEALTH: These agents are under stress (recent failures): {', '.join(stressed)}. Consider alternative approaches for tasks they handle."
+        return ""
     except Exception:
-        pass
+        return ""
 
 
 _INJECTION_PATTERNS = re.compile(
@@ -328,6 +370,7 @@ async def process_with_tools(
     """
     import openai
     import os
+    import uuid
 
     from openclaw.agents.ira.src.tools.ira_skills_tools import (
         execute_tool_call,
@@ -346,6 +389,11 @@ async def process_with_tools(
     context = context or {}
     context.setdefault("channel", channel)
     context.setdefault("user_id", user_id)
+
+    request_id = str(uuid.uuid4())[:8]
+    context["_request_id"] = request_id
+    logger.info("[Athena:%s] Processing message (%d chars, channel=%s, user=%s)",
+                request_id, len(message), channel, user_id)
 
     # --- Sphinx: if user is replying to our clarification questions, merge into enriched brief ---
     try:
@@ -375,6 +423,17 @@ async def process_with_tools(
                 logger.info("[Sphinx] Merged user answers into enriched brief (%d chars)", len(enriched))
     except Exception as e:
         logger.warning("[Sphinx] Pending-state check failed: %s", e)
+
+    # Sensory: integrate cross-channel context
+    try:
+        from openclaw.agents.ira.src.holistic.sensory_system import get_sensory_integrator
+        sensory = get_sensory_integrator()
+        sensory.record_perception(channel=channel, contact_id=user_id, content_summary=message[:500])
+        cross_channel = sensory.get_integrated_context(user_id)
+        if cross_channel and cross_channel.get("cross_channel_notes"):
+            context["_sensory_context"] = cross_channel["cross_channel_notes"]
+    except Exception as e:
+        logger.debug("[Sensory] Integration failed: %s", e)
 
     conversation_history = context.get("conversation_history", "")
     is_internal = context.get("is_internal", False)
@@ -852,18 +911,20 @@ or option from your previous response. Resolve the reference and act on it.
 {f"WHAT I REMEMBER ABOUT THIS USER:{chr(10)}{mem0_context}" if mem0_context else ""}
 {_get_training_guidance()}
 {_get_nemesis_guidance()}
+{_get_endocrine_status()}
 {_get_user_memories(context)}
 {f"EMOTIONAL & RELATIONSHIP CONTEXT:{chr(10)}{personality_context}" if personality_context else ""}"""
 
     # Check truth hints for simple, short questions only.
     # Complex multi-part requests must go through the full agentic pipeline.
+    _has_model_ref = bool(re.search(r"PF\d-[CXR]-\d{4}|AM[P]?-\d{4}|IMG-\d{4}", message, re.IGNORECASE))
     _is_complex = (
         len(message) > 300
         or message.count("\n") > 3
         or sum(1 for c in message if c in "0123456789") > 5
         or any(w in message.lower() for w in ["draft", "email", "research", "remind me", "who else", "also,"])
-        or bool(re.search(r"PF\d-[CXR]-\d{4}|AM[P]?-\d{4}|IMG-\d{4}", message, re.IGNORECASE))
         or any(w in message.lower() for w in ["specifications", "full specs", "spec sheet"])
+        or (_has_model_ref and any(w in message.lower() for w in ["compare", "vs", "versus", "difference", "between"]))
     )
 
     if not _is_complex:
@@ -926,6 +987,9 @@ or option from your previous response. Resolve the reference and act on it.
     client = openai.AsyncOpenAI(api_key=api_key)
     tool_call_log = []
 
+    _nudge_count = 0
+    _MAX_NUDGES = 2
+
     for round_num in range(MAX_TOOL_ROUNDS):
         if is_sales and round_num == PROPOSAL_NUDGE_ROUND and not proposal_nudged:
             messages.append({
@@ -975,6 +1039,17 @@ or option from your previous response. Resolve the reference and act on it.
         if response is None:
             return "I couldn't reach the AI service after multiple attempts. Please try again."
 
+        if response and response.usage:
+            _request_cost = (
+                (response.usage.prompt_tokens / 1000) * _GPT4O_INPUT_COST_PER_1K
+                + (response.usage.completion_tokens / 1000) * _GPT4O_OUTPUT_COST_PER_1K
+            )
+            context.setdefault("_total_cost_usd", 0.0)
+            context["_total_cost_usd"] += _request_cost
+            if context["_total_cost_usd"] > _MAX_REQUEST_BUDGET_USD:
+                logger.warning("[Athena] Request cost budget exceeded: $%.2f > $%.2f",
+                               context["_total_cost_usd"], _MAX_REQUEST_BUDGET_USD)
+
         if not response.choices:
             logger.error("[Athena] Empty response from OpenAI")
             return "I received an empty response from the AI service. Please try again."
@@ -991,7 +1066,8 @@ or option from your previous response. Resolve the reference and act on it.
             # better signal than raw round count — 3 rounds of the same tool
             # isn't depth.
             unique_tools = len(set(tool_call_log))
-            if _is_complex and round_num + 1 < MIN_RESEARCH_ROUNDS and unique_tools < 3:
+            if _is_complex and round_num + 1 < MIN_RESEARCH_ROUNDS and unique_tools < 3 and _nudge_count < _MAX_NUDGES:
+                _nudge_count += 1
                 logger.info("[Athena] Early stop at round %d with %d unique tools — nudging deeper research",
                             round_num + 1, unique_tools)
                 messages.append(msg)
@@ -1073,7 +1149,7 @@ or option from your previous response. Resolve the reference and act on it.
             messages.append({
                 "role": "tool",
                 "tool_call_id": tc.id,
-                "content": (result or "")[:16000],
+                "content": _truncate_tool_result(result or "", 16000),
             })
 
     # Max rounds reached — ask the LLM to summarize what it found so far

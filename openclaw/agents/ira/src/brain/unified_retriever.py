@@ -781,6 +781,8 @@ class UnifiedRetriever:
             except Exception as e:
                 import logging; logging.getLogger("ira.retriever").debug("Retrieval log write failed: %s", e, exc_info=True)
                 pass  # Market research collection may not exist
+        elif include_documents and provider != "voyage":
+            _logger.warning("[Retriever] Voyage AI unavailable — market research collection is not searchable with OpenAI embeddings. Some knowledge may be missing.")
         
         # Search dream-learned knowledge (nightly learning) - only with Voyage embeddings (1024d)
         if include_documents and provider == "voyage" and len(embedding) == 1024:
@@ -805,6 +807,8 @@ class UnifiedRetriever:
             except Exception as e:
                 import logging; logging.getLogger("ira.retriever").debug("Retrieval log write failed: %s", e, exc_info=True)
                 pass  # Dream knowledge collection may not exist yet
+        elif include_documents and provider != "voyage":
+            _logger.warning("[Retriever] Voyage AI unavailable — dream knowledge collection is not searchable with OpenAI embeddings. Some knowledge may be missing.")
         
         # Search discovered knowledge (from document ingestion) - only with Voyage embeddings (1024d)
         if include_documents and provider == "voyage" and len(embedding) == 1024:
@@ -830,6 +834,8 @@ class UnifiedRetriever:
             except Exception as e:
                 import logging; logging.getLogger("ira.retriever").debug("Retrieval log write failed: %s", e, exc_info=True)
                 pass  # Discovered knowledge collection may not exist yet
+        elif include_documents and provider != "voyage":
+            _logger.warning("[Retriever] Voyage AI unavailable — discovered knowledge collection is not searchable with OpenAI embeddings. Some knowledge may be missing.")
         
         # Sort by score
         all_results.sort(key=lambda x: x.score, reverse=True)

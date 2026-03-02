@@ -86,6 +86,10 @@ async def verify(
     spec_issues = _validate_specifications(verified_draft)
     issues.extend(spec_issues)
     
+    price_warnings = _verify_prices(verified_draft)
+    if price_warnings:
+        issues.extend(price_warnings)
+    
     # ── PASS 2: Retrieval-augmented claim verification (LLM) ─────────
     # Skip only trivial acks/greetings (< 30 chars)
     if len(verified_draft) > 30:
@@ -217,6 +221,55 @@ At the end, add a line: [Vera: X claims verified, Y corrected, Z flagged as unve
         logger.warning(f"Vera: Retrieval-augmented verification failed: {e}")
     
     return None
+
+
+def _verify_prices(draft: str) -> List[str]:
+    """Check prices mentioned in draft against machine_specs.json canonical prices."""
+    import json
+    from pathlib import Path
+    warnings: List[str] = []
+    specs_file = Path(__file__).parent.parent.parent.parent.parent / "data" / "brain" / "machine_specs.json"
+    if not specs_file.exists():
+        return warnings
+    try:
+        specs = json.loads(specs_file.read_text())
+    except Exception:
+        return warnings
+
+    price_pattern = re.compile(r'(?:INR|₹|Rs\.?)\s*([\d,]+(?:\.\d+)?)', re.IGNORECASE)
+    model_pattern = re.compile(
+        r'(PF\d-[CXR]-\d{4}|AM[P]?-\d{4}|IMG-\d{4}|FCS-\d{4}|PF2-P\d{4}|UNO-\d{4}|DUO-\d{4})',
+        re.IGNORECASE,
+    )
+
+    models_in_draft = model_pattern.findall(draft)
+    prices_in_draft = price_pattern.findall(draft)
+
+    if not models_in_draft or not prices_in_draft:
+        return warnings
+
+    for model in models_in_draft:
+        model_upper = model.upper()
+        spec = specs.get(model_upper) or specs.get(model)
+        if not spec:
+            continue
+        canonical_price = spec.get("price_inr") or spec.get("base_price_inr")
+        if not canonical_price:
+            continue
+        canonical_num = int(str(canonical_price).replace(",", "").replace(".", ""))
+        for price_str in prices_in_draft:
+            try:
+                mentioned_num = int(price_str.replace(",", "").split(".")[0])
+                if mentioned_num > 0 and canonical_num > 0:
+                    ratio = mentioned_num / canonical_num
+                    if ratio < 0.7 or ratio > 1.3:
+                        warnings.append(
+                            f"Price mismatch: {model} mentioned at INR {price_str} "
+                            f"but canonical price is INR {canonical_price:,} (>{30}% deviation)"
+                        )
+            except (ValueError, ZeroDivisionError):
+                continue
+    return warnings
 
 
 def _check_am_series_rule(draft: str, query: str) -> Dict[str, Any]:
@@ -537,6 +590,10 @@ def generate_verification_report(
     
     spec_issues = _validate_specifications(verified_draft)
     issues.extend(spec_issues)
+    
+    price_warnings = _verify_prices(verified_draft)
+    if price_warnings:
+        issues.extend(price_warnings)
     
     # Calculate confidence
     confidence = 1.0

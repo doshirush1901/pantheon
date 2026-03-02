@@ -312,11 +312,15 @@ def _synthesize_report(query: str, all_findings: List[ResearchFinding], steps: L
     """Synthesize all findings into a comprehensive research report."""
     context_parts = []
     seen_texts = set()
+    unique_findings = []
     for f in all_findings:
         text_key = f.text[:100]
         if text_key not in seen_texts:
             seen_texts.add(text_key)
-            context_parts.append(f"[{f.source}] {f.text}")
+            unique_findings.append(f)
+    for i, f in enumerate(unique_findings, 1):
+        source_tag = f.source if hasattr(f, 'source') else 'unknown'
+        context_parts.append(f"[{i}:{source_tag}] {f.text}")
 
     context = "\n\n".join(context_parts[:30])
     steps_summary = "\n".join([
@@ -337,6 +341,9 @@ def _synthesize_report(query: str, all_findings: List[ResearchFinding], steps: L
                     "comprehensive, well-structured report. Use specific numbers, names, and facts "
                     "from the findings. Do NOT say 'I don't have' if the data is in the findings. "
                     "Format for Telegram (use **bold**, bullet points). "
+                    "IMPORTANT: Include inline source citations in your report. For each claim, "
+                    "add a bracketed source tag like [Qdrant], [Mem0], [machine_db], [web], [Neo4j] "
+                    "after the relevant sentence. This helps the reader verify claims. "
                     "End with 2-3 follow-up questions. "
                     "Also assess confidence: high/medium/low."
                 ),
@@ -498,6 +505,7 @@ def deep_research(
     """
     start_time = time.time()
     all_findings: List[ResearchFinding] = []
+    _seen_finding_keys: set = set()
     steps: List[ResearchStep] = []
     sources_searched_total: set = set()
 
@@ -601,7 +609,11 @@ def deep_research(
             duration_ms=step_duration,
         )
         steps.append(step)
-        all_findings.extend(step_findings)
+        for finding in step_findings:
+            finding_key = finding.text[:100] if hasattr(finding, 'text') else str(finding)[:100]
+            if finding_key not in _seen_finding_keys:
+                _seen_finding_keys.add(finding_key)
+                all_findings.append(finding)
 
         progress(f"   → {len(step_findings)} findings from {', '.join(step_sources)}")
         if gaps:
@@ -615,7 +627,11 @@ def deep_research(
         progress("🌐 *Iris* gathering external intelligence...")
         iris_findings = _run_iris_intelligence(query)
         if iris_findings:
-            all_findings.extend(iris_findings)
+            for finding in iris_findings:
+                finding_key = finding.text[:100] if hasattr(finding, 'text') else str(finding)[:100]
+                if finding_key not in _seen_finding_keys:
+                    _seen_finding_keys.add(finding_key)
+                    all_findings.append(finding)
             sources_searched_total.add(f"iris({len(iris_findings)})")
             progress(f"   → {len(iris_findings)} intelligence items")
 

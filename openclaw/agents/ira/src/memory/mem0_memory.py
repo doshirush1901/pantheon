@@ -53,6 +53,20 @@ if env_file.exists():
                 os.environ[key] = value
 
 
+def _resolve_identity(user_id: str) -> str:
+    """Resolve user_id through identity system if available."""
+    try:
+        from openclaw.agents.ira.src.identity.resolver import IdentityResolver
+        resolver = IdentityResolver()
+        canonical = resolver.resolve(user_id)
+        if canonical and canonical != user_id:
+            logger.debug("[Mem0] Resolved identity %s -> %s", user_id, canonical)
+            return canonical
+    except (ImportError, Exception):
+        pass
+    return user_id
+
+
 # =============================================================================
 # DATA CLASSES
 # =============================================================================
@@ -198,6 +212,7 @@ class Mem0MemoryService:
             Memory ID or event_id if queued (Mem0 processes async)
         """
         try:
+            user_id = _resolve_identity(user_id)
             result = self.client.add(
                 messages=[{"role": "user", "content": text}],
                 user_id=user_id,
@@ -233,7 +248,7 @@ class Mem0MemoryService:
             List of relevant memories with scores
         """
         try:
-            # Use v2 API with proper filters
+            user_id = _resolve_identity(user_id)
             results = self.client.search(
                 query=query,
                 version="v2",

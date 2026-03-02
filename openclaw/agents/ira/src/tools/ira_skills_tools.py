@@ -5,6 +5,7 @@ Exposes research_skill, writing_skill, fact_checking_skill as function-calling t
 Enables LLM-driven orchestration: Athena (LLM) chooses which skills to call and in what order.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -462,8 +463,8 @@ async def execute_tool_call(
     if progress_fn:
         try:
             progress_fn(tool_name)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Progress callback failed: %s", e)
 
     # Holistic: track agent invocation in endocrine system
     _tool_agent_map = {
@@ -496,8 +497,8 @@ async def execute_tool_call(
         try:
             from openclaw.agents.ira.src.holistic.endocrine_system import get_endocrine_system
             get_endocrine_system().signal_invocation(_agent_name)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Endocrine signal_invocation failed for %s: %s", _agent_name, e)
 
     if tool_name == "research_skill":
         query = arguments.get("query", "")
@@ -516,90 +517,108 @@ async def execute_tool_call(
                 if hasattr(rag, 'citations') and rag.citations:
                     for c in rag.citations[:5]:
                         results_parts.append(f"[qdrant:{c.filename}] {c.text[:400]}")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Qdrant fallback retrieval failed: %s", e)
         
         return "\n\n".join(results_parts) if results_parts else "(No results found in knowledge base)"
 
     elif tool_name == "web_search":
+        import httpx
+
         query = arguments.get("query", "")
         company = arguments.get("company", "")
         results_parts = []
         search_query = f"{company} {query}".strip() if company else query
-        
-        # 1. Tavily AI search (best for agent queries, returns clean content)
+
         tavily_key = os.environ.get("TAVILY_API_KEY", "")
-        if tavily_key:
+        serper_key = os.environ.get("SERPER_API_KEY", "")
+
+        async def _tavily_search(q: str) -> List[str]:
+            if not tavily_key:
+                return []
+            parts = []
             try:
-                import httpx
-                resp = httpx.post(
-                    "https://api.tavily.com/search",
-                    json={
-                        "api_key": tavily_key,
-                        "query": search_query,
-                        "search_depth": "advanced",
-                        "max_results": 5,
-                        "include_answer": True,
-                    },
-                    timeout=20,
-                )
+                async with httpx.AsyncClient(timeout=20) as client:
+                    resp = await client.post(
+                        "https://api.tavily.com/search",
+                        json={
+                            "api_key": tavily_key,
+                            "query": q,
+                            "search_depth": "advanced",
+                            "max_results": 5,
+                            "include_answer": True,
+                        },
+                    )
                 if resp.status_code == 200:
                     data = resp.json()
                     if data.get("answer"):
-                        results_parts.append(f"[tavily_answer] {data['answer']}")
+                        parts.append(f"[tavily_answer] {data['answer']}")
                     for r in data.get("results", [])[:5]:
                         title = r.get("title", "")
                         content = r.get("content", "")[:400]
                         url = r.get("url", "")
                         if content:
-                            results_parts.append(f"[tavily] {title}: {content} ({url})")
+                            parts.append(f"[tavily] {title}: {content} ({url})")
             except Exception as e:
-                logger.debug(f"Tavily search failed: {e}")
-        
-        # 2. Serper Google search (structured Google results)
-        serper_key = os.environ.get("SERPER_API_KEY", "")
-        if serper_key:
+                logger.debug("Tavily search failed: %s", e)
+            return parts
+
+        async def _serper_search(q: str) -> List[str]:
+            if not serper_key:
+                return []
+            parts = []
             try:
-                import httpx
-                resp = httpx.post(
-                    "https://google.serper.dev/search",
-                    json={"q": search_query, "num": 5},
-                    headers={"X-API-KEY": serper_key},
-                    timeout=15,
-                )
+                async with httpx.AsyncClient(timeout=15) as client:
+                    resp = await client.post(
+                        "https://google.serper.dev/search",
+                        json={"q": q, "num": 5},
+                        headers={"X-API-KEY": serper_key},
+                    )
                 if resp.status_code == 200:
                     data = resp.json()
-                    # Knowledge graph
                     kg = data.get("knowledgeGraph", {})
                     if kg.get("description"):
-                        results_parts.append(f"[google_kg] {kg.get('title', '')}: {kg['description']}")
-                    # Organic results
+                        parts.append(f"[google_kg] {kg.get('title', '')}: {kg['description']}")
                     for r in data.get("organic", [])[:5]:
                         title = r.get("title", "")
                         snippet = r.get("snippet", "")
                         if snippet:
-                            results_parts.append(f"[google] {title}: {snippet}")
-                    # People Also Ask
+                            parts.append(f"[google] {title}: {snippet}")
                     for paa in data.get("peopleAlsoAsk", [])[:2]:
-                        results_parts.append(f"[google_paa] Q: {paa.get('question', '')} A: {paa.get('snippet', '')}")
+                        parts.append(f"[google_paa] Q: {paa.get('question', '')} A: {paa.get('snippet', '')}")
             except Exception as e:
-                logger.debug(f"Serper search failed: {e}")
-        
-        # 3. Jina fallback (if Tavily and Serper both unavailable)
-        if not results_parts:
+                logger.debug("Serper search failed: %s", e)
+            return parts
+
+        async def _jina_search(q: str) -> List[str]:
+            parts = []
             try:
-                import httpx
-                resp = httpx.get(
-                    f"https://s.jina.ai/{search_query}",
-                    timeout=20,
-                    headers={"Accept": "application/json"},
-                )
+                async with httpx.AsyncClient(timeout=20) as client:
+                    resp = await client.get(
+                        f"https://s.jina.ai/{q}",
+                        headers={"Accept": "application/json"},
+                    )
                 if resp.status_code == 200 and len(resp.text.strip()) > 50:
-                    results_parts.append(f"[jina] {resp.text[:3000]}")
-            except Exception:
-                pass
-        
-        # 4. Iris enrichment (company-specific intelligence)
+                    parts.append(f"[jina] {resp.text[:3000]}")
+            except Exception as e:
+                logger.debug("Jina search failed: %s", e)
+            return parts
+
+        # Run Tavily + Serper + Jina concurrently
+        tavily_res, serper_res, jina_res = await asyncio.gather(
+            _tavily_search(search_query),
+            _serper_search(search_query),
+            _jina_search(search_query),
+            return_exceptions=True,
+        )
+        for batch in (tavily_res, serper_res):
+            if isinstance(batch, list):
+                results_parts.extend(batch)
+        # Jina is a fallback — only use if primary sources returned nothing
+        if not results_parts and isinstance(jina_res, list):
+            results_parts.extend(jina_res)
+
+        # Iris enrichment (company-specific intelligence)
         if company:
             try:
                 from openclaw.agents.ira.src.agents.iris_skill import iris_enrich
@@ -609,24 +628,23 @@ async def execute_tool_call(
                     for k, v in iris_result.items():
                         if v and len(str(v)) > 10:
                             results_parts.append(f"[iris:{k}] {v}")
-            except Exception:
-                pass
-        
-        # 5. Website scraping (when company specified)
+            except Exception as e:
+                logger.debug("Iris enrichment failed: %s", e)
+
+        # Website scraping (when company specified and results still thin)
         if company and len(results_parts) < 3:
             try:
-                import httpx
                 domain = company.lower().replace(" ", "").replace(",", "")
-                resp = httpx.get(
-                    f"https://r.jina.ai/https://www.{domain}.com",
-                    timeout=15,
-                    headers={"Accept": "text/plain"},
-                )
+                async with httpx.AsyncClient(timeout=15) as client:
+                    resp = await client.get(
+                        f"https://r.jina.ai/https://www.{domain}.com",
+                        headers={"Accept": "text/plain"},
+                    )
                 if resp.status_code == 200 and len(resp.text) > 100:
                     results_parts.append(f"[website:{domain}.com] {resp.text[:2000]}")
-            except Exception:
-                pass
-        
+            except Exception as e:
+                logger.debug("Website scrape failed for %s: %s", company, e)
+
         return "\n\n".join(results_parts) if results_parts else "(No web results found)"
 
     elif tool_name == "lead_intelligence":
@@ -652,17 +670,17 @@ async def execute_tool_call(
             if tavily_key:
                 try:
                     import httpx
-                    resp = httpx.post(
-                        "https://api.tavily.com/search",
-                        json={
-                            "api_key": tavily_key,
-                            "query": f"{company} latest news expansion manufacturing",
-                            "search_depth": "advanced",
-                            "max_results": 5,
-                            "include_answer": True,
-                        },
-                        timeout=20,
-                    )
+                    async with httpx.AsyncClient(timeout=20) as client:
+                        resp = await client.post(
+                            "https://api.tavily.com/search",
+                            json={
+                                "api_key": tavily_key,
+                                "query": f"{company} latest news expansion manufacturing",
+                                "search_depth": "advanced",
+                                "max_results": 5,
+                                "include_answer": True,
+                            },
+                        )
                     if resp.status_code == 200:
                         data = resp.json()
                         if data.get("answer"):
@@ -671,8 +689,8 @@ async def execute_tool_call(
                             content = r.get("content", "")[:300]
                             if content:
                                 results_parts.append(f"[news] {r.get('title', '')}: {content}")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Lead intelligence Tavily search failed: %s", e)
 
         # CRM history for this company
         try:
@@ -680,8 +698,8 @@ async def execute_tool_call(
             crm_result = await invoke_crm_lookup(company, context)
             if crm_result and "don't have anyone" not in crm_result:
                 results_parts.append(f"[crm_history] {crm_result}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("CRM lookup failed for %s: %s", company, e)
 
         return "\n\n".join(results_parts) if results_parts else f"(No intelligence found for '{company}')"
 
@@ -1084,5 +1102,5 @@ def parse_tool_arguments(arguments: str) -> Dict[str, Any]:
     try:
         return json.loads(arguments)
     except json.JSONDecodeError as e:
-        logger.warning("Failed to parse tool arguments: %s", e)
-        return {}
+        logger.warning("Failed to parse tool arguments (len=%d): %s — raw: %.200s", len(arguments), e, arguments)
+        return {"_parse_error": str(e)}

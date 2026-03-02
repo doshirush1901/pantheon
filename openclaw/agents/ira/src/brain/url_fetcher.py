@@ -61,6 +61,29 @@ URL_RE = re.compile(
 )
 
 
+def _safe_fetch(url: str, max_redirects: int = 5, **kwargs) -> Optional["requests.Response"]:
+    """Fetch URL with SSRF check on every redirect hop."""
+    import requests as _requests
+    for _ in range(max_redirects):
+        if not _is_safe_url(url):
+            logger.warning("[SSRF] Blocked URL after redirect: %s", url)
+            return None
+        resp = _requests.get(
+            url,
+            allow_redirects=False,
+            timeout=kwargs.get("timeout", 15),
+            headers=kwargs.get("headers"),
+        )
+        if resp.status_code in (301, 302, 303, 307, 308):
+            url = resp.headers.get("Location", "")
+            if not url:
+                return None
+            continue
+        return resp
+    logger.warning("[SSRF] Too many redirects for URL")
+    return None
+
+
 def extract_first_url(text: str) -> Optional[str]:
     """Extract the first URL from text. Returns None if no URL found."""
     if not text or not text.strip():
@@ -107,20 +130,17 @@ def fetch_url_content(url: str, timeout: int = 25) -> Tuple[Optional[str], dict]
 
     # 1. Try Jina Reader (handles JS, returns markdown)
     try:
-        import requests
         jina_url = f"https://r.jina.ai/{url}"
-        resp = requests.get(
+        resp = _safe_fetch(
             jina_url,
             timeout=timeout,
             headers={
                 "Accept": "text/markdown",
                 "User-Agent": "Ira/1.0 (Knowledge Ingestion)",
             },
-            allow_redirects=True,
         )
-        if resp.status_code == 200 and len(resp.text.strip()) > 100:
+        if resp and resp.status_code == 200 and len(resp.text.strip()) > 100:
             metadata["source"] = "jina"
-            # Jina sometimes returns title in first line or meta
             lines = resp.text.strip().splitlines()
             if lines and not lines[0].startswith("#"):
                 metadata["title"] = lines[0][:200]
@@ -131,9 +151,8 @@ def fetch_url_content(url: str, timeout: int = 25) -> Tuple[Optional[str], dict]
 
     # 2. Fallback: fetch raw HTML and clean with centralized text_cleaner
     try:
-        import requests
-        resp = requests.get(url, timeout=timeout, headers={"User-Agent": "Ira/1.0"}, allow_redirects=True)
-        if resp.status_code == 200:
+        resp = _safe_fetch(url, timeout=timeout, headers={"User-Agent": "Ira/1.0"})
+        if resp and resp.status_code == 200:
             raw_html = resp.text
             try:
                 from .text_cleaner import clean_html_to_text, extract_title
