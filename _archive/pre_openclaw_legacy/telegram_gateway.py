@@ -533,6 +533,9 @@ class TelegramMessage:
     timestamp: datetime
     from_user: str
     from_id: int
+    document: Optional[Dict] = None
+    photo: Optional[List[Dict]] = None
+    caption: Optional[str] = None
 
 
 @dataclass  
@@ -748,6 +751,332 @@ class TelegramGateway:
         data = self._api_request("POST", "answerCallbackQuery", max_retries=2, timeout=10, json=payload)
         return data is not None
     
+    # =========================================================================
+    # FILE DOWNLOAD & DOCUMENT INGEST
+    # =========================================================================
+
+    TELEGRAM_DOCS_DIR = PROJECT_ROOT / "data" / "imports" / "docs_from_telegram"
+    SUPPORTED_DOC_EXTENSIONS = {
+        ".pdf", ".xlsx", ".xls", ".docx", ".doc", ".csv", ".txt",
+        ".json", ".md", ".pptx", ".ppt", ".png", ".jpg", ".jpeg",
+        ".gif", ".webp", ".bmp", ".tiff",
+    }
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"}
+
+    def _download_telegram_file(self, file_id: str, dest_path: Path) -> bool:
+        """Download a file from Telegram servers using getFile API."""
+        file_info = self._api_request("GET", "getFile", params={"file_id": file_id})
+        if not file_info:
+            return False
+
+        file_path = file_info.get("result", {}).get("file_path")
+        if not file_path:
+            return False
+
+        download_url = f"https://api.telegram.org/file/bot{self.bot_token}/{file_path}"
+        try:
+            resp = requests.get(download_url, timeout=120, stream=True)
+            resp.raise_for_status()
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(dest_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            logger.info(f"[DOWNLOAD] Saved {dest_path.name} ({dest_path.stat().st_size} bytes)")
+            return True
+        except Exception as e:
+            logger.error(f"[DOWNLOAD] Failed to download file: {e}")
+            return False
+
+    def _extract_text_from_image(self, image_path: Path) -> Optional[str]:
+        """Use GPT-4o vision to extract text/content from an image or screenshot."""
+        try:
+            import openai
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                try:
+                    from config import OPENAI_API_KEY
+                    api_key = OPENAI_API_KEY
+                except ImportError:
+                    pass
+            if not api_key:
+                logger.warning("[OCR] No OpenAI API key for image extraction")
+                return None
+
+            client = openai.OpenAI(api_key=api_key)
+            with open(image_path, "rb") as f:
+                image_data = base64.b64encode(f.read()).decode("utf-8")
+
+            ext = image_path.suffix.lower().lstrip(".")
+            mime_map = {"jpg": "jpeg", "tiff": "tiff", "bmp": "bmp"}
+            mime_type = f"image/{mime_map.get(ext, ext)}"
+
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Extract ALL text and information from this image. "
+                                "If it's a screenshot of a document, email, chat, spreadsheet, or note, "
+                                "transcribe the full content preserving structure. "
+                                "If it's a diagram or chart, describe it in detail with all labels and values. "
+                                "If it contains tables, format them clearly. "
+                                "Return the extracted content as plain text."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime_type};base64,{image_data}"},
+                        },
+                    ],
+                }],
+                max_tokens=4096,
+            )
+            extracted = response.choices[0].message.content
+            logger.info(f"[OCR] Extracted {len(extracted)} chars from {image_path.name}")
+            return extracted
+        except Exception as e:
+            logger.error(f"[OCR] Image extraction failed: {e}")
+            return None
+
+    def handle_document_upload(self, message: TelegramMessage) -> GatewayResponse:
+        """Handle a document or photo uploaded via Telegram — download, save, and ingest."""
+        self.TELEGRAM_DOCS_DIR.mkdir(parents=True, exist_ok=True)
+
+        file_id = None
+        original_name = None
+        is_photo = False
+
+        if message.document:
+            file_id = message.document.get("file_id")
+            original_name = message.document.get("file_name", "unnamed_document")
+            file_size = message.document.get("file_size", 0)
+            if file_size > 20 * 1024 * 1024:
+                return GatewayResponse(
+                    text="❌ File too large. Telegram bots can download files up to 20MB.",
+                    success=False,
+                )
+        elif message.photo:
+            best_photo = max(message.photo, key=lambda p: p.get("file_size", 0))
+            file_id = best_photo.get("file_id")
+            original_name = f"photo_{message.message_id}.jpg"
+            is_photo = True
+
+        if not file_id:
+            return GatewayResponse(text="❌ Could not identify the uploaded file.", success=False)
+
+        ext = Path(original_name).suffix.lower()
+        if not ext:
+            mime = (message.document or {}).get("mime_type", "")
+            ext_map = {
+                "application/pdf": ".pdf",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+                "application/vnd.ms-excel": ".xls",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+                "application/msword": ".doc",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+                "text/plain": ".txt",
+                "text/csv": ".csv",
+                "text/markdown": ".md",
+                "application/json": ".json",
+                "image/png": ".png",
+                "image/jpeg": ".jpg",
+            }
+            ext = ext_map.get(mime, ".bin")
+
+        if ext not in self.SUPPORTED_DOC_EXTENSIONS:
+            supported = ", ".join(sorted(self.SUPPORTED_DOC_EXTENSIONS))
+            return GatewayResponse(
+                text=f"❌ Unsupported file type: `{ext}`\n\nSupported: {supported}",
+                success=False,
+            )
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = re.sub(r'[^\w\-.]', '_', Path(original_name).stem)
+        dest_filename = f"{timestamp}_{safe_name}{ext}"
+        dest_path = self.TELEGRAM_DOCS_DIR / dest_filename
+
+        if not self._download_telegram_file(file_id, dest_path):
+            return GatewayResponse(text="❌ Failed to download file from Telegram.", success=False)
+
+        is_image = ext in self.IMAGE_EXTENSIONS or is_photo
+        extracted_text = None
+        text_file_path = None
+
+        if is_image:
+            extracted_text = self._extract_text_from_image(dest_path)
+            if extracted_text:
+                text_file_path = dest_path.with_suffix(".extracted.txt")
+                text_file_path.write_text(extracted_text, encoding="utf-8")
+
+        ingest_result = self._ingest_uploaded_document(
+            dest_path, original_name, message.caption, extracted_text, is_image
+        )
+
+        size_kb = dest_path.stat().st_size / 1024
+        response_parts = [
+            f"📄 **Document received: {original_name}**",
+            f"📁 Saved to: `docs_from_telegram/{dest_filename}`",
+            f"📏 Size: {size_kb:.1f} KB",
+        ]
+
+        if is_image and extracted_text:
+            preview = extracted_text[:200] + "..." if len(extracted_text) > 200 else extracted_text
+            response_parts.append(f"\n🔍 **Extracted text preview:**\n{preview}")
+
+        if ingest_result:
+            response_parts.append(f"\n{ingest_result}")
+
+        if message.caption:
+            response_parts.append(f"\n📝 Caption: _{message.caption}_")
+
+        return GatewayResponse(
+            text="\n".join(response_parts),
+            log_entry={
+                "type": "document_uploaded",
+                "file_name": original_name,
+                "saved_as": dest_filename,
+                "size_bytes": dest_path.stat().st_size,
+                "is_image": is_image,
+                "had_extracted_text": bool(extracted_text),
+                "ingested": bool(ingest_result),
+            },
+        )
+
+    def _ingest_uploaded_document(
+        self,
+        file_path: Path,
+        original_name: str,
+        caption: Optional[str],
+        extracted_text: Optional[str],
+        is_image: bool,
+    ) -> Optional[str]:
+        """Run the ingestion pipeline on an uploaded document. Returns status string."""
+        results = []
+
+        # --- Path 1: KnowledgeIngestor (Qdrant + Mem0 + JSON) for text documents ---
+        if not is_image or extracted_text:
+            try:
+                sys.path.insert(0, str(BRAIN_DIR))
+                from knowledge_ingestor import KnowledgeIngestor
+
+                ingestor = KnowledgeIngestor()
+
+                if is_image and extracted_text:
+                    from knowledge_ingestor import KnowledgeItem
+                    item = KnowledgeItem(
+                        text=extracted_text,
+                        knowledge_type="general",
+                        source_file=original_name,
+                        summary=caption or f"Extracted from image: {original_name}",
+                        metadata={
+                            "source": "telegram_upload",
+                            "original_name": original_name,
+                            "is_image": True,
+                            "caption": caption,
+                        },
+                    )
+                    result = ingestor.ingest_batch([item])
+                else:
+                    from document_extractor import DocumentExtractor
+                    extractor = DocumentExtractor()
+                    extraction = extractor.extract(str(file_path))
+
+                    if not extraction.success:
+                        results.append(f"⚠️ Text extraction failed: {extraction.error or 'unknown'}")
+                    else:
+                        from knowledge_ingestor import KnowledgeItem
+                        text_content = extraction.text
+                        if caption:
+                            text_content = f"[Context: {caption}]\n\n{text_content}"
+
+                        item = KnowledgeItem(
+                            text=text_content,
+                            knowledge_type="general",
+                            source_file=original_name,
+                            summary=caption or f"Uploaded via Telegram: {original_name}",
+                            metadata={
+                                "source": "telegram_upload",
+                                "original_name": original_name,
+                                "pages": extraction.page_count,
+                                "extractor": extraction.extractor_used,
+                                "caption": caption,
+                            },
+                        )
+                        result = ingestor.ingest_batch([item])
+
+                    if 'result' in dir() and result.success:
+                        results.append(
+                            f"✅ **Knowledge ingested:** {result.items_ingested} items → "
+                            f"Qdrant ({result.qdrant_stored}), Mem0 ({result.mem0_stored})"
+                        )
+                    elif 'result' in dir():
+                        errors = ", ".join(result.errors[:2]) if result.errors else "unknown"
+                        results.append(f"⚠️ Knowledge ingestion partial: {errors}")
+            except ImportError as e:
+                logger.warning(f"[INGEST] KnowledgeIngestor not available: {e}")
+            except Exception as e:
+                logger.error(f"[INGEST] Knowledge ingestion error: {e}")
+                results.append(f"⚠️ Knowledge ingestion error: {str(e)[:80]}")
+
+        # --- Path 2: DocumentIngestor (fact extraction → Mem0/PostgreSQL) ---
+        if not is_image:
+            try:
+                sys.path.insert(0, str(AGENT_DIR / "src" / "memory"))
+                from document_ingestor import DocumentIngestor
+
+                fact_ingestor = DocumentIngestor(check_conflicts=True)
+                fact_result = fact_ingestor.ingest(str(file_path))
+
+                if fact_result.facts_extracted > 0:
+                    results.append(
+                        f"🧠 **Facts extracted:** {fact_result.facts_extracted} facts, "
+                        f"{fact_result.memories_stored} stored"
+                    )
+                    if fact_result.conflicts_found > 0:
+                        results.append(
+                            f"⚠️ {fact_result.conflicts_found} conflicts detected — use `/conflicts` to review"
+                        )
+            except ImportError as e:
+                logger.warning(f"[INGEST] DocumentIngestor not available: {e}")
+            except Exception as e:
+                logger.error(f"[INGEST] Fact extraction error: {e}")
+
+        return "\n".join(results) if results else "📥 File saved (ingestion modules not available)"
+
+    def handle_docs_command(self) -> GatewayResponse:
+        """Handle /docs - List documents uploaded via Telegram."""
+        docs_dir = self.TELEGRAM_DOCS_DIR
+        if not docs_dir.exists():
+            return GatewayResponse(text="📂 No documents uploaded yet.\n\nSend me a file to get started!")
+
+        files = sorted(docs_dir.iterdir(), key=lambda f: f.stat().st_mtime, reverse=True)
+        files = [f for f in files if f.is_file() and not f.name.endswith(".extracted.txt")]
+
+        if not files:
+            return GatewayResponse(text="📂 No documents uploaded yet.\n\nSend me a file to get started!")
+
+        total_size = sum(f.stat().st_size for f in files)
+        total_mb = total_size / (1024 * 1024)
+
+        lines = [f"📂 **Uploaded Documents** ({len(files)} files, {total_mb:.1f} MB total)\n"]
+
+        for f in files[:20]:
+            size_kb = f.stat().st_size / 1024
+            mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime("%b %d %H:%M")
+            ext = f.suffix.lower()
+            icon = "🖼️" if ext in self.IMAGE_EXTENSIONS else "📄"
+            display_name = "_".join(f.stem.split("_")[2:]) + f.suffix if f.stem.count("_") >= 2 else f.name
+            lines.append(f"{icon} `{display_name}` — {size_kb:.0f}KB — {mtime}")
+
+        if len(files) > 20:
+            lines.append(f"\n... and {len(files) - 20} more")
+
+        lines.append(f"\n📁 Path: `data/imports/docs_from_telegram/`")
+        return GatewayResponse(text="\n".join(lines))
+
     def set_my_commands(self) -> bool:
         """Configure bot menu commands."""
         url = f"{TELEGRAM_API_BASE.format(token=self.bot_token)}/setMyCommands"
@@ -758,6 +1087,7 @@ class TelegramGateway:
             {"command": "brief", "description": "Generate topic briefing"},
             {"command": "dashboard", "description": "Relationship overview"},
             {"command": "research", "description": "Deep research on a topic"},
+            {"command": "docs", "description": "List uploaded documents"},
             {"command": "help", "description": "Show all commands"},
         ]
         try:
@@ -848,7 +1178,15 @@ class TelegramGateway:
                 continue
             
             msg = update.get("message", {})
-            if not msg or not msg.get("text"):
+            if not msg:
+                continue
+
+            has_text = bool(msg.get("text"))
+            has_document = bool(msg.get("document"))
+            has_photo = bool(msg.get("photo"))
+
+            if not has_text and not has_document and not has_photo:
+                save_last_update_id(update["update_id"])
                 continue
             
             chat_id = str(msg.get("chat", {}).get("id", ""))
@@ -865,14 +1203,26 @@ class TelegramGateway:
             
             from_user = msg.get("from", {})
             
+            text = msg.get("text", "").strip()
+            caption = msg.get("caption", "").strip() or None
+
+            if not text and caption:
+                text = caption
+
+            if not text:
+                text = ""
+
             messages.append(TelegramMessage(
                 update_id=update["update_id"],
                 message_id=msg["message_id"],
                 chat_id=chat_id,
-                text=msg["text"].strip(),
+                text=text,
                 timestamp=msg_timestamp,
                 from_user=from_user.get("username", from_user.get("first_name", "unknown")),
-                from_id=from_user.get("id", 0)
+                from_id=from_user.get("id", 0),
+                document=msg.get("document"),
+                photo=msg.get("photo"),
+                caption=caption,
             ))
         
         if messages:
@@ -1560,12 +1910,18 @@ TEACH IRA (Natural Language):
   Example: /teach FRIMO is no longer our active agent in Europe
   Example: /teach Dezet ordered PF1-X-1310 in 2025, Netherlands
 
-BRAIN TRAINING MODE:
-  /train start → Load training questions
-  /train next [N] → Show next N questions
-  /train answer <id> <A|B|C> → Record decision
-  /train apply → Apply decisions to truth files
-  /train status → Show training progress
+BRAIN TRAINING MODE (Duolingo-style):
+  /train start → Start continuous quiz (never-ending)
+  /train next → Skip to next question
+  /train answer A/B/C/D → Answer (or type naturally!)
+  /train answer none → Flag that Ira doesn't know this
+  /train score → Score breakdown by category
+  /train reset → Clear all training history
+  Wrong answers train Ira. "none" triggers NN research.
+
+NN RESEARCH FEEDBACK:
+  /confirm <id> → Confirm research result, learn it
+  /reject <id> → Reject research result, discard
 
 DEEP RESEARCH (Manus-Style):
   /research <query> → Full research mode (shows work)
@@ -1611,8 +1967,11 @@ MEMORY ANALYTICS:
   /decay_memory → Clean up old unused memories
 
 DOCUMENT INGESTION:
-  /ingest <path> → Scan document and store in memory
-  Supports: PDF, XLSX, DOCX, CSV, TXT
+  📎 Upload any file → Auto-download, save & train Ira
+  /ingest <path> → Scan local document and store in memory
+  /docs → List all uploaded documents
+  Supports: PDF, XLSX, XLS, DOCX, DOC, PPTX, CSV, TXT, MD, JSON
+  Images: PNG, JPG, GIF, WEBP (OCR via GPT-4o Vision)
 
 CONFLICT RESOLUTION:
   /conflicts → Show pending memory conflicts
@@ -2443,6 +2802,21 @@ Use `/conflicts` to review and resolve them."""
                 success=False
             )
     
+    def _handle_research_feedback(self, research_id: str, is_positive: bool) -> GatewayResponse:
+        """Handle /confirm or /reject for NN research results."""
+        try:
+            sys.path.insert(0, str(BRAIN_DIR))
+            from nn_research import handle_research_feedback
+            result = handle_research_feedback(research_id, is_positive)
+            return GatewayResponse(
+                text=result,
+                log_entry={"type": "research_feedback", "id": research_id, "positive": is_positive}
+            )
+        except ImportError as e:
+            return GatewayResponse(text=f"\u26a0\ufe0f NN Research module not available: {e}", success=False)
+        except Exception as e:
+            return GatewayResponse(text=f"\u274c Feedback error: {e}", success=False)
+
     def handle_quote_command(self, params: str) -> GatewayResponse:
         """
         Handle /quote command - Generate a quick quote.
@@ -2487,12 +2861,14 @@ Use `/conflicts` to review and resolve them."""
         else:
             w, h = int(w), int(h)
         
-        # Check for variant
+        # Check for variant - extract from remaining text after removing the size portion
         variant = "C"
         params_lower = params.lower()
-        if "servo" in params_lower or "x" in params_lower:
+        # Remove the size portion (e.g. "2000x1500") so "x" in dimensions doesn't trigger servo
+        params_without_size = re.sub(r'\d+\.?\d*\s*[xX×]\s*\d+\.?\d*', '', params_lower).strip()
+        if "servo" in params_without_size or "pf1-x" in params_without_size or "pf1x" in params_without_size:
             variant = "X"
-        elif "pneumatic" in params_lower or "c" in params_lower:
+        elif "pneumatic" in params_without_size or "pf1-c" in params_without_size or "pf1c" in params_without_size:
             variant = "C"
         
         # Check for materials
@@ -4359,6 +4735,19 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
                 except Exception as e:
                     logger.error(f"[ADAPTIVE] Error: {e}")
             
+            # =====================================================================
+            # NN RESEARCH FALLBACK - If still low confidence, trigger async research
+            # =====================================================================
+            if result.confidence.value == "LOW":
+                try:
+                    from nn_research import research_async
+                    research_async(actual_intent, chat_id or "")
+                    logger.info("[NN_RESEARCH] Triggered async research for low-confidence query")
+                except ImportError:
+                    pass
+                except Exception as e:
+                    logger.debug(f"[NN_RESEARCH] Could not trigger: {e}")
+            
             # Format response text
             response_text = result.text
             
@@ -4595,6 +4984,43 @@ Be conversational, helpful, and specific. Answer like a knowledgeable sales assi
             
             # Store consolidated knowledge IDs for quality tracking
             self._last_consolidated_ids = getattr(result, 'consolidated_knowledge_ids', []) or []
+            
+            # ===== SELF-HEALING: Record low-confidence gaps + auto-discover =====
+            _conf_value = getattr(result.confidence, 'value', str(result.confidence))
+            if _conf_value == "LOW":
+                try:
+                    from openclaw.agents.ira.src.memory.dream_neuroscience import KnowledgeGapDetector
+                    gap_detector = KnowledgeGapDetector()
+                    _topics = []
+                    if extracted_entities:
+                        _topics = (
+                            extracted_entities.get("companies", []) +
+                            extracted_entities.get("products", []) +
+                            extracted_entities.get("topics", [])
+                        )[:5]
+                    if not _topics:
+                        _topics = [actual_intent[:50]]
+                    gap_detector.record_low_confidence_response(
+                        query=actual_intent,
+                        response=response_text[:200],
+                        confidence=0.3,
+                        topics=_topics,
+                    )
+                    logger.info(f"[SELF-HEALING] Recorded knowledge gap for: {actual_intent[:50]}")
+                    
+                    # Try auto-discovery in background
+                    import threading
+                    def _auto_discover():
+                        try:
+                            from openclaw.agents.ira.src.brain.knowledge_discovery import discover_on_the_fly
+                            discovered = discover_on_the_fly(actual_intent, context={"search_results": rag_chunks})
+                            if discovered:
+                                logger.info(f"[SELF-HEALING] Auto-discovered knowledge: {discovered[:80]}")
+                        except Exception as _de:
+                            logger.debug(f"[SELF-HEALING] Auto-discovery failed: {_de}")
+                    threading.Thread(target=_auto_discover, daemon=True).start()
+                except Exception as _gap_err:
+                    logger.debug(f"[SELF-HEALING] Gap recording failed: {_gap_err}")
             
             # ===== APPLY LEARNED CORRECTIONS =====
             # Enhance response with previously learned knowledge
@@ -5068,6 +5494,22 @@ Total: {len(draft_ids)}""",
         ingest_match = re.match(r'^/ingest\s+(.+)$', text, re.IGNORECASE)
         if ingest_match:
             return self.handle_ingest_command(ingest_match.group(1).strip())
+
+        # /docs - List documents uploaded via Telegram
+        if text_upper in ("/DOCS", "/DOCUMENTS", "/UPLOADS"):
+            return self.handle_docs_command()
+
+        # =====================================================================
+        # NN RESEARCH FEEDBACK COMMANDS
+        # =====================================================================
+        
+        confirm_match = re.match(r'^/confirm\s+(\S+)', text, re.IGNORECASE)
+        if confirm_match:
+            return self._handle_research_feedback(confirm_match.group(1), True)
+        
+        reject_match = re.match(r'^/reject\s+(\S+)', text, re.IGNORECASE)
+        if reject_match:
+            return self._handle_research_feedback(reject_match.group(1), False)
         
         # =====================================================================
         # QUOTE GENERATION COMMANDS
@@ -5082,6 +5524,13 @@ Total: {len(draft_ids)}""",
         conflict_response = self._check_conflict_response(text)
         if conflict_response:
             return conflict_response
+        
+        # =====================================================================
+        # HEALTH DIAGNOSTIC COMMAND
+        # =====================================================================
+        
+        if text.lower() in ['/health', '/diagnostic', '/status_full']:
+            return self._handle_health_command()
         
         # =====================================================================
         # PRICE CONFLICT COMMANDS
@@ -5336,6 +5785,126 @@ Total: {len(draft_ids)}""",
             logger.error(f"NL training error: {e}")
         
         return None
+    
+    # =========================================================================
+    # HEALTH DIAGNOSTIC
+    # =========================================================================
+    
+    def _handle_health_command(self) -> GatewayResponse:
+        """Comprehensive self-diagnostic: services, memory, knowledge, agent scores, gaps."""
+        lines = ["🏥 *Ira Health Diagnostic*\n"]
+        
+        # 1. Service status
+        lines.append("*Services:*")
+        services = {
+            "Qdrant": lambda: __import__('requests').get(os.environ.get('QDRANT_URL', 'http://localhost:6333')).status_code == 200,
+            "Mem0": lambda: bool(__import__('openclaw.agents.ira.src.memory.mem0_memory', fromlist=['get_mem0_service']).get_mem0_service()),
+            "OpenAI": lambda: bool(os.environ.get('OPENAI_API_KEY')),
+            "Voyage": lambda: bool(os.environ.get('VOYAGE_API_KEY')),
+        }
+        for name, check_fn in services.items():
+            try:
+                ok = check_fn()
+                lines.append(f"  {'✅' if ok else '❌'} {name}")
+            except Exception:
+                lines.append(f"  ❌ {name}")
+        
+        # 2. Knowledge health
+        try:
+            from openclaw.agents.ira.src.brain.knowledge_health import run_health_check
+            report = run_health_check()
+            lines.append(f"\n*Knowledge Health:* {report.overall_score}/100")
+            lines.append(f"  Checks passed: {report.checks_passed}")
+            lines.append(f"  Checks failed: {report.checks_failed}")
+            if report.issues:
+                for issue in report.issues[:3]:
+                    icon = "🔴" if issue.severity == "critical" else "🟡"
+                    lines.append(f"  {icon} {issue.message[:60]}")
+        except Exception as e:
+            lines.append(f"\n*Knowledge Health:* unavailable ({e})")
+        
+        # 3. Knowledge gaps
+        try:
+            import json
+            gaps_file = PROJECT_ROOT / "data" / "knowledge_gaps.json"
+            if gaps_file.exists():
+                gaps = json.loads(gaps_file.read_text())
+                if isinstance(gaps, dict):
+                    gap_count = len(gaps)
+                elif isinstance(gaps, list):
+                    gap_count = len(gaps)
+                else:
+                    gap_count = 0
+                lines.append(f"\n*Knowledge Gaps:* {gap_count} detected")
+            else:
+                lines.append("\n*Knowledge Gaps:* none tracked yet")
+        except Exception:
+            lines.append("\n*Knowledge Gaps:* unavailable")
+        
+        # 4. Agent scores
+        try:
+            import json
+            scores_file = PROJECT_ROOT / "openclaw" / "data" / "learned_lessons" / "agent_scores.json"
+            if scores_file.exists():
+                scores = json.loads(scores_file.read_text())
+                lines.append("\n*Agent Scores:*")
+                for agent, data in sorted(scores.items()):
+                    score = data.get("score", 0)
+                    s = data.get("successes", 0)
+                    f = data.get("failures", 0)
+                    bar = "█" * int(score * 10) + "░" * (10 - int(score * 10))
+                    lines.append(f"  {agent}: {bar} {score:.2f} (+{s}/-{f})")
+        except Exception:
+            pass
+        
+        # 5. Recent errors
+        try:
+            import json
+            from pathlib import Path
+            errors_dir = PROJECT_ROOT / "data" / "logs"
+            recent_errors = 0
+            if errors_dir.exists():
+                for f in sorted(errors_dir.glob("errors_*.jsonl"))[-1:]:
+                    recent_errors = sum(1 for _ in f.read_text().splitlines() if _.strip())
+            lines.append(f"\n*Recent Errors:* {recent_errors} in last log")
+        except Exception:
+            pass
+        
+        # 6. Memory stats
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            mem0 = get_mem0_service()
+            total = 0
+            for uid in ["machinecraft_customers", "machinecraft_knowledge", "machinecraft_pricing", "machinecraft_general"]:
+                memories = mem0.get_all(user_id=uid, limit=1)
+                if hasattr(memories, '__len__'):
+                    pass  # Can't get count from search, just show categories
+            lines.append(f"\n*Memory Categories:* customers, knowledge, pricing, processes, general")
+        except Exception:
+            pass
+        
+        # 7. Dream status
+        try:
+            import json
+            dream_log = PROJECT_ROOT / "logs" / f"dream_{datetime.now().strftime('%Y-%m-%d')}.log"
+            if dream_log.exists():
+                lines.append(f"\n*Last Dream:* today")
+            else:
+                # Find most recent
+                dream_logs = sorted((PROJECT_ROOT / "logs").glob("dream_*.log"))
+                if dream_logs:
+                    last = dream_logs[-1].stem.replace("dream_", "")
+                    lines.append(f"\n*Last Dream:* {last}")
+                else:
+                    lines.append(f"\n*Last Dream:* never")
+        except Exception:
+            pass
+        
+        return GatewayResponse(
+            text="\n".join(lines),
+            parse_mode="Markdown",
+            log_entry={"type": "health_diagnostic"},
+        )
     
     # =========================================================================
     # TEACH MODE - Natural language fact ingestion
@@ -6047,6 +6616,38 @@ Total: {len(draft_ids)}""",
         """
         print(f"\n{'─'*40}")
         print(f"From: {message.from_user}")
+
+        if message.document or message.photo:
+            file_desc = (message.document or {}).get("file_name", "photo")
+            print(f"File: {file_desc}")
+            self.send_typing_action()
+            status_msg_id = self.send_message(
+                f"📥 Receiving `{file_desc}`...\n\n▸ Downloading from Telegram...",
+                parse_mode="Markdown",
+            )
+            start_time = time.time()
+            response = self.handle_document_upload(message)
+            elapsed = time.time() - start_time
+            if response.text:
+                if status_msg_id:
+                    success = self.edit_message(status_msg_id, response.text)
+                    if not success:
+                        self.send_message(response.text)
+                else:
+                    self.send_message(response.text)
+            print(f"Document processed ({elapsed:.1f}s)")
+            log_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "from_user": message.from_user,
+                "message": f"[file upload] {file_desc}",
+                "success": response.success,
+                "response_time_s": round(elapsed, 1),
+            }
+            if response.log_entry:
+                log_entry.update(response.log_entry)
+            append_to_log(TELEGRAM_ACTIVITY_LOG, log_entry)
+            return
+
         print(f"Text: {message.text[:80]}{'...' if len(message.text) > 80 else ''}")
         
         is_command = message.text.startswith("/")
@@ -6285,6 +6886,28 @@ def main():
             print("✅ Proactive outreach scheduler started")
         except Exception as e:
             print(f"⚠️ Outreach scheduler not started: {e}")
+        
+        # Start hourly self-health check
+        def _hourly_health_check():
+            while True:
+                try:
+                    time.sleep(3600)  # 1 hour
+                    from openclaw.agents.ira.src.brain.knowledge_health import run_health_check
+                    report = run_health_check()
+                    logger.info(f"[SELF-CHECK] Health: {report.overall_score}/100, "
+                                f"passed={report.checks_passed}, failed={report.checks_failed}")
+                    if report.checks_failed > 0:
+                        for issue in report.issues:
+                            if issue.auto_fixable and issue.fix_action:
+                                logger.info(f"[SELF-CHECK] Auto-fixing: {issue.message}")
+                            elif issue.severity == "critical":
+                                logger.warning(f"[SELF-CHECK] Critical: {issue.message}")
+                except Exception as _hc_err:
+                    logger.debug(f"[SELF-CHECK] Health check error: {_hc_err}")
+        
+        _health_thread = threading.Thread(target=_hourly_health_check, daemon=True)
+        _health_thread.start()
+        print("✅ Hourly self-health check started")
         
         gateway.poll_loop(args.interval)
     elif args.once:
