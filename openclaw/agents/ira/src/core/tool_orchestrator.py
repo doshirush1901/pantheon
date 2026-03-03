@@ -298,6 +298,61 @@ def _get_user_memories(context: Dict) -> str:
         return ""
 
 
+_TELEGRAM_SUMMARY_THRESHOLD = 2000
+
+
+async def _generate_telegram_summary(
+    full_response: str,
+    query: str,
+    context: Dict[str, Any],
+) -> str:
+    """For long Telegram responses, generate a concise executive summary.
+
+    Returns the summary text. The full response is stashed in
+    context["_full_report"] so the gateway can attach it as a document.
+    """
+    context["_full_report"] = full_response
+
+    try:
+        import openai as _oai
+        api_key = context.get("api_key") or __import__("os").environ.get("OPENAI_API_KEY", "")
+        client = _oai.AsyncOpenAI(api_key=api_key)
+        resp = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a concise summarizer. Given a detailed research report, "
+                        "produce a Telegram-friendly executive summary:\n"
+                        "- 3 to 5 bullet points (use • as bullet)\n"
+                        "- Each bullet is 1-2 sentences max\n"
+                        "- Capture the key findings, numbers, and recommendations\n"
+                        "- End with a one-line note: 'Full report attached below.'\n"
+                        "- Use Telegram Markdown (bold with *, italic with _)\n"
+                        "- Do NOT repeat the original question"
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Query: {query}\n\nFull report:\n{full_response[:12000]}",
+                },
+            ],
+            max_tokens=600,
+            temperature=0.2,
+        )
+        if resp.choices:
+            summary = (resp.choices[0].message.content or "").strip()
+            if summary:
+                return summary
+    except Exception as e:
+        logger.warning("[Athena] Telegram summary generation failed: %s", e)
+
+    # Fallback: first 1500 chars + ellipsis
+    truncated = full_response[:1500].rsplit("\n", 1)[0]
+    return truncated + "\n\n_Full report attached below._"
+
+
 async def _run_pantheon_post_pipeline(
     raw_response: str,
     message: str,
@@ -548,8 +603,8 @@ EMAIL (Gmail):
 - search_email: Search Gmail with full Gmail syntax (from:, subject:, after:, has:attachment, etc.).
 - read_email_message: Read the full body of a specific email by message ID.
 - read_email_thread: Read a full email conversation thread by thread ID.
-- send_email: ACTUALLY SEND an email from Rushabh's Gmail. Call this AFTER the user approves a draft. Supports body_html for rich formatting.
-- draft_email: Draft an email using Ira's voice. Returns draft for review, does NOT send.
+- send_email: ACTUALLY SEND an email from Rushabh's Gmail. Call this AFTER the user approves a draft. Professional HTML styling is applied automatically. Supports file attachments via attachment_path (e.g. quote PDFs).
+- draft_email: Draft an email using Ira's voice. Returns draft for review, does NOT send. Set long_format=true for detailed emails (quotes, proposals, technical overviews).
 
 COMPOSITION & VERIFICATION:
 - writing_skill (Calliope): Draft a polished response AFTER you have gathered data.
@@ -638,18 +693,29 @@ For drafting/sending emails ("send email to X", "draft email about Y", "write to
   3. ONLY THEN call draft_email with the REAL email address and pass ALL gathered data as 'context'
   4. Present the draft to the user for approval
   5. When the user says "send it", "yes send", "go ahead", "send this email", or otherwise approves:
-     → Call send_email(to=<recipient>, subject=<subject>, body=<the full email body>, body_html=<HTML version if you have one>)
+     → Call send_email(to=<recipient>, subject=<subject>, body=<the full plain-text email body>)
      → This ACTUALLY SENDS the email from Rushabh's Gmail. Do NOT just show the draft again.
+     → Professional HTML formatting is applied automatically at send time — just pass the plain text body.
   6. NEVER call draft_email without first resolving the recipient and gathering context
   7. NEVER guess or fabricate email addresses. If you cannot find the recipient's email from any tool, use ask_user to request it.
   8. When search_email returns results showing "To: Name <email@domain.com>", extract that EXACT email address.
-  9. For FORMAL emails: format the body_html with proper HTML — use <h2> for sections, <strong> for emphasis,
-     <ul>/<li> for specs, <table> for structured data. Make it look professional and polished.
-  Example workflow:
+  9. Write email bodies in clean plain text. Use **bold** for emphasis, bullet points (- item) for lists,
+     and "Key: Value" lines for specs. HTML styling is applied automatically when sent.
+  10. EMAIL LENGTH: Always use long_format=true for draft_email. Write detailed, thorough emails with
+      full context, specs, and explanations. Emails should be comprehensive and professional — not short notes.
+  11. ATTACHMENTS: When sending a quote email, ALWAYS build the PDF first with build_quote_pdf, then pass
+      the pdf_path as attachment_path to send_email. Quote PDFs from the same conversation are also
+      auto-attached from context, but explicitly passing attachment_path is preferred.
+  Example workflow (standard email):
     Round 1: search_contacts("Alok Doshi") + customer_lookup("Alok Doshi") + search_email("to:Alok Doshi OR from:Alok Doshi") + research_skill("Formpack sales strategy") — all in parallel
-    Round 2: draft_email(to="alok@induthermoformers.com", subject=..., intent=..., context=<all gathered data from round 1>)
+    Round 2: draft_email(to="alok@induthermoformers.com", subject=..., intent=..., context=<all gathered data>, long_format=true)
     Round 3: Present draft to user for approval
-    Round 4 (after user says "send it"): send_email(to="alok@induthermoformers.com", subject=..., body=<plain text>, body_html=<HTML version>)
+    Round 4 (after user says "send it"): send_email(to="alok@induthermoformers.com", subject=..., body=<plain text>)
+  Example workflow (email with quote attachment):
+    Round 1: search_contacts("Klaus") + customer_lookup("Klaus") + build_quote_pdf(width_mm=2000, height_mm=1500, variant="C", customer_name="Klaus", company_name="TSN", country="Germany") — in parallel
+    Round 2: draft_email(to="klaus@tsn.de", subject="PF1-C-2015 Quotation", intent="send formal quote with PDF attached", context=<gathered data>, long_format=true)
+    Round 3: Present draft to user for approval
+    Round 4: send_email(to="klaus@tsn.de", subject=..., body=<plain text>, attachment_path=<pdf_path from build_quote_pdf>)
 
 IMPORTANT: If the user asks for N items (e.g. "10 names") and you only found fewer, say how many you found and offer to search more. Do NOT pad with made-up names.
 
@@ -990,7 +1056,19 @@ or option from your previous response. Resolve the reference and act on it.
     _nudge_count = 0
     _MAX_NUDGES = 2
 
+    if progress_fn:
+        try:
+            progress_fn("phase:gathering")
+        except Exception:
+            pass
+
     for round_num in range(MAX_TOOL_ROUNDS):
+        if round_num == 1 and progress_fn:
+            try:
+                progress_fn("phase:analysis")
+            except Exception:
+                pass
+
         if is_sales and round_num == PROPOSAL_NUDGE_ROUND and not proposal_nudged:
             messages.append({
                 "role": "system",
@@ -1087,6 +1165,12 @@ or option from your previous response. Resolve the reference and act on it.
                         round_num + 1, tool_call_log)
 
             # --- Pantheon Post-Pipeline ---
+            if progress_fn:
+                try:
+                    progress_fn("phase:verification")
+                except Exception:
+                    pass
+
             # Vera: fact-check before validation
             final = await _run_pantheon_post_pipeline(
                 final, message, context, tool_call_log,
@@ -1110,6 +1194,11 @@ or option from your previous response. Resolve the reference and act on it.
                 logger.error("[Athena] knowledge_health validation FAILED — response sent UNVALIDATED: %s", e)
 
             # Voice: reshape for channel tone
+            if progress_fn:
+                try:
+                    progress_fn("phase:polish")
+                except Exception:
+                    pass
             try:
                 from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
                 final = get_voice_system().reshape(
@@ -1118,10 +1207,16 @@ or option from your previous response. Resolve the reference and act on it.
             except Exception as e:
                 logger.warning("[Athena] Voice system reshape failed: %s", e)
 
+            if channel == "telegram" and len(final) > _TELEGRAM_SUMMARY_THRESHOLD:
+                final = await _generate_telegram_summary(final, message, context)
+
             return final
 
         messages.append(msg)
-        for tc in msg.tool_calls or []:
+
+        tool_calls = msg.tool_calls or []
+        if len(tool_calls) == 1:
+            tc = tool_calls[0]
             fn = tc.function
             name = fn.name
             args = parse_tool_arguments(fn.arguments)
@@ -1151,6 +1246,58 @@ or option from your previous response. Resolve the reference and act on it.
                 "tool_call_id": tc.id,
                 "content": _truncate_tool_result(result or "", 16000),
             })
+        elif len(tool_calls) > 1:
+            # Parallel execution: run all tool calls concurrently
+            call_names = []
+            for tc in tool_calls:
+                name = tc.function.name
+                call_names.append(name)
+                tool_call_log.append(name)
+                if progress_fn:
+                    try:
+                        progress_fn(name)
+                    except Exception:
+                        pass
+            logger.info(
+                "[Athena] Round %d: parallel execution of %d tools: %s",
+                round_num + 1, len(tool_calls), call_names,
+            )
+
+            async def _run_one_tool(tc_item):
+                fn = tc_item.function
+                t_name = fn.name
+                t_args = parse_tool_arguments(fn.arguments)
+                try:
+                    res = await asyncio.wait_for(
+                        execute_tool_call(t_name, t_args, context),
+                        timeout=TOOL_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.error("[Athena] Tool %s timed out after %ds", t_name, TOOL_TIMEOUT_SECONDS)
+                    res = f"(Tool timed out after {TOOL_TIMEOUT_SECONDS}s — try a different approach or narrower query)"
+                except Exception as exc:
+                    logger.error("[Athena] Tool %s raised: %s", t_name, exc)
+                    res = f"(Tool error: {type(exc).__name__} — {exc})"
+                _signal_tool_outcome(t_name, res or "")
+                return tc_item.id, t_name, res
+
+            parallel_results = await asyncio.gather(
+                *[_run_one_tool(tc) for tc in tool_calls],
+                return_exceptions=True,
+            )
+
+            for pr in parallel_results:
+                if isinstance(pr, BaseException):
+                    logger.error("[Athena] Parallel tool raised unexpected: %s", pr)
+                    continue
+                tc_id, t_name, result = pr
+                if result and result.startswith("ASK_USER:"):
+                    return result[9:]
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc_id,
+                    "content": _truncate_tool_result(result or "", 16000),
+                })
 
     # Max rounds reached — ask the LLM to summarize what it found so far
     logger.warning(f"[Athena] Hit max rounds ({MAX_TOOL_ROUNDS}). Tools used: {tool_call_log}")
@@ -1181,12 +1328,25 @@ or option from your previous response. Resolve the reference and act on it.
         final = "I've done extensive research but couldn't fully answer your question. Let me know if you'd like me to try a different approach."
 
     # Run Pantheon post-pipeline on max-rounds response too
+    if progress_fn:
+        try:
+            progress_fn("phase:verification")
+        except Exception:
+            pass
     final = await _run_pantheon_post_pipeline(final, message, context, tool_call_log)
 
+    if progress_fn:
+        try:
+            progress_fn("phase:polish")
+        except Exception:
+            pass
     try:
         from openclaw.agents.ira.src.holistic.voice_system import get_voice_system
         final = get_voice_system().reshape(final, channel=channel, message=message)
     except Exception as e:
         logger.warning("[Athena] Voice system reshape failed (max-rounds path): %s", e)
+
+    if channel == "telegram" and len(final) > _TELEGRAM_SUMMARY_THRESHOLD:
+        final = await _generate_telegram_summary(final, message, context)
 
     return final

@@ -640,16 +640,24 @@ def _is_email_allowed(address: str) -> bool:
     return False
 
 
-def gmail_send(to: str, subject: str, body: str, body_html: str = "", thread_id: str = "") -> str:
-    """Send an email via Gmail API. Supports HTML for rich formatting.
+def gmail_send(
+    to: str,
+    subject: str,
+    body: str,
+    body_html: str = "",
+    thread_id: str = "",
+    attachment_paths: Optional[List[str]] = None,
+) -> str:
+    """Send an email via Gmail API with optional file attachments.
 
     Args:
         to: Recipient email address.
         subject: Email subject.
-        body: Email body (plain text fallback).
-        body_html: Optional HTML body for rich formatting. If provided,
-                   sends multipart (text/plain + text/html).
+        body: Email body (plain text). HTML version is auto-generated
+              from this via plain_to_html() unless body_html is provided.
+        body_html: Optional pre-built HTML body. If empty, auto-generated.
         thread_id: Optional thread ID to reply in.
+        attachment_paths: Optional list of file paths to attach (e.g. quote PDFs).
 
     Returns:
         Success/failure message.
@@ -668,10 +676,53 @@ def gmail_send(to: str, subject: str, body: str, body_html: str = "", thread_id:
 
     try:
         import base64
+        import mimetypes
+        import os
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
+        from email.mime.base import MIMEBase
+        from email import encoders
 
-        if body_html:
+        if not body_html:
+            try:
+                from openclaw.agents.ira.src.brain.email_styling import plain_to_html
+                body_html = plain_to_html(body)
+            except Exception:
+                pass
+
+        has_attachments = attachment_paths and any(
+            os.path.isfile(p) for p in attachment_paths
+        )
+
+        if has_attachments:
+            message = MIMEMultipart("mixed")
+            if body_html:
+                alt_part = MIMEMultipart("alternative")
+                alt_part.attach(MIMEText(body, "plain"))
+                alt_part.attach(MIMEText(body_html, "html"))
+                message.attach(alt_part)
+            else:
+                message.attach(MIMEText(body, "plain"))
+
+            for fpath in attachment_paths:
+                if not os.path.isfile(fpath):
+                    logger.warning(f"Attachment not found, skipping: {fpath}")
+                    continue
+                ctype, _ = mimetypes.guess_type(fpath)
+                if ctype is None:
+                    ctype = "application/octet-stream"
+                maintype, subtype = ctype.split("/", 1)
+                with open(fpath, "rb") as f:
+                    part = MIMEBase(maintype, subtype)
+                    part.set_payload(f.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    "Content-Disposition",
+                    "attachment",
+                    filename=os.path.basename(fpath),
+                )
+                message.attach(part)
+        elif body_html:
             message = MIMEMultipart("alternative")
             message.attach(MIMEText(body, "plain"))
             message.attach(MIMEText(body_html, "html"))
@@ -687,7 +738,13 @@ def gmail_send(to: str, subject: str, body: str, body_html: str = "", thread_id:
             send_body["threadId"] = thread_id
 
         result = service.users().messages().send(userId="me", body=send_body).execute()
-        fmt = "HTML" if body_html else "plain text"
+        parts = []
+        if body_html:
+            parts.append("HTML")
+        if has_attachments:
+            names = [os.path.basename(p) for p in attachment_paths if os.path.isfile(p)]
+            parts.append(f"{len(names)} attachment(s): {', '.join(names)}")
+        fmt = " + ".join(parts) if parts else "plain text"
         return f"Email sent to {to} ({fmt}, message id: {result.get('id', '?')})"
     except Exception as e:
         logger.error(f"Gmail send error: {e}")

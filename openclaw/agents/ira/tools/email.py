@@ -169,6 +169,7 @@ class IraEmailTool:
         intent: str,
         context: Optional[str] = None,
         tone: str = "professional",
+        long_format: bool = False,
     ) -> EmailDraft:
         """
         Draft an email using Ira's voice, auto-enriched with real data from
@@ -201,8 +202,18 @@ class IraEmailTool:
                 context_sections.append(f"MEMORY (past interactions):\n{enrichment['memory']}")
             
             enriched_context = "\n\n".join(context_sections) if context_sections else "(No additional context found)"
-            
-            system_prompt = """You are Ira, the AI assistant for Machinecraft Technologies.
+
+            length_guidance = (
+                "- Write a detailed, thorough email: 6-12 paragraphs, 300-600 words.\n"
+                "- Include full technical details, specs, pricing, and context where available.\n"
+                "- Use section headers (e.g. **Overview**, **Technical Specifications**) to organize.\n"
+                "- Use bullet points (- item) for feature lists and \"Key: Value\" lines for specs.\n"
+                "- Be comprehensive — this is a formal business communication, not a quick note."
+                if long_format else
+                "- Clear and concise — 3-5 short paragraphs max."
+            )
+
+            system_prompt = f"""You are Ira, the AI assistant for Machinecraft Technologies.
 Draft a professional email grounded in the REAL DATA provided below.
 
 RULES:
@@ -210,7 +221,7 @@ RULES:
 - If the context has specific numbers, specs, or details, use them verbatim.
 - If context is thin, keep the email short and factual rather than padding with made-up data.
 - Warm but professional tone (Machinecraft brand voice).
-- Clear and concise — 3-5 short paragraphs max.
+{length_guidance}
 - End with a clear call to action.
 - Do NOT include greeting line (that will be added separately)."""
             
@@ -319,10 +330,11 @@ def ira_email_draft(
     intent: str,
     context: Optional[str] = None,
     tone: str = "professional",
+    long_format: bool = False,
 ) -> EmailDraft:
     """Draft an email using Ira's voice."""
     tool = IraEmailTool()
-    return tool.draft(to, subject, intent, context, tone)
+    return tool.draft(to, subject, intent, context, tone, long_format=long_format)
 
 
 def ira_email_send(

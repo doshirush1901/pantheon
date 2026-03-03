@@ -308,15 +308,16 @@ IRA_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "send_email",
-            "description": "ACTUALLY SEND an email from Rushabh's Gmail. Call this after the user approves a draft. Supports HTML for rich formatting.",
+            "description": "ACTUALLY SEND an email from Rushabh's Gmail. Call this after the user approves a draft. Professional HTML styling is applied automatically. Supports file attachments (e.g. quote PDFs from build_quote_pdf).",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "to": {"type": "string", "description": "Recipient email address"},
                     "subject": {"type": "string", "description": "Email subject line"},
-                    "body": {"type": "string", "description": "Email body (plain text fallback)"},
-                    "body_html": {"type": "string", "description": "Optional: HTML-formatted email body. Use <h2>, <strong>, <ul>, <table> for professional formatting. If provided, recipient sees this; plain text body is the fallback."},
+                    "body": {"type": "string", "description": "Email body in plain text. Professional HTML formatting is applied automatically at send time."},
+                    "body_html": {"type": "string", "description": "Optional: override the auto-generated HTML with a custom HTML body."},
                     "thread_id": {"type": "string", "description": "Optional: thread ID to reply in an existing conversation"},
+                    "attachment_path": {"type": "string", "description": "Optional: file path to attach (e.g. PDF quote from build_quote_pdf). Use the pdf_path returned by build_quote_pdf."},
                 },
                 "required": ["to", "subject", "body"],
             },
@@ -334,6 +335,7 @@ IRA_TOOLS_SCHEMA = [
                     "subject": {"type": "string", "description": "Email subject"},
                     "intent": {"type": "string", "description": "What the email should convey (e.g. 'follow up on PF1 quote', 'introduce Machinecraft')"},
                     "context": {"type": "string", "description": "IMPORTANT: Pass results from prior tool calls here (customer_lookup, research_skill, search_contacts results). This grounds the email in real data instead of hallucinating."},
+                    "long_format": {"type": "boolean", "description": "Set true for detailed long-form emails (quotes, proposals, technical overviews). Default false for concise emails."},
                 },
                 "required": ["to", "subject", "intent"],
             },
@@ -942,11 +944,26 @@ async def execute_tool_call(
         body = arguments.get("body", "")
         body_html = arguments.get("body_html", "")
         thread_id = arguments.get("thread_id", "")
+        attachment_path = arguments.get("attachment_path", "")
         if not to or not subject or not body:
             return "(Error: to, subject, and body are all required)"
+
+        attachment_paths = []
+        if attachment_path and isinstance(attachment_path, str) and attachment_path.strip():
+            attachment_paths.append(attachment_path.strip())
+        if context and context.get("_quote_files"):
+            for qf in context["_quote_files"]:
+                p = qf.get("pdf_path", "")
+                if p and p not in attachment_paths:
+                    attachment_paths.append(p)
+
         try:
             from openclaw.agents.ira.src.tools.google_tools import gmail_send
-            return gmail_send(to=to, subject=subject, body=body, body_html=body_html, thread_id=thread_id)
+            return gmail_send(
+                to=to, subject=subject, body=body, body_html=body_html,
+                thread_id=thread_id,
+                attachment_paths=attachment_paths or None,
+            )
         except ImportError:
             return "(Gmail not available.)"
         except Exception as e:
@@ -957,11 +974,14 @@ async def execute_tool_call(
         subject = arguments.get("subject", "")
         intent = arguments.get("intent", "")
         email_context = arguments.get("context", "")
+        long_format = arguments.get("long_format", False)
+        if isinstance(long_format, str):
+            long_format = long_format.lower() in ("true", "1", "yes")
         if not to or not subject or not intent:
             return "(Error: to, subject, and intent are all required)"
         try:
             from openclaw.agents.ira.tools.email import ira_email_draft
-            draft = ira_email_draft(to=to, subject=subject, intent=intent, context=email_context)
+            draft = ira_email_draft(to=to, subject=subject, intent=intent, context=email_context, long_format=bool(long_format))
             sources_note = ""
             if draft.context_used:
                 sources_note = f"\n[Data sources used: {', '.join(draft.context_used)}]"
@@ -1062,8 +1082,8 @@ async def execute_tool_call(
 
 
 _TOOL_SCHEMAS: Dict[str, Dict[str, type]] = {
-    "send_email": {"to": str, "subject": str, "body": str, "thread_id": str},
-    "draft_email": {"to": str, "subject": str, "intent": str, "context": str},
+    "send_email": {"to": str, "subject": str, "body": str, "thread_id": str, "attachment_path": str},
+    "draft_email": {"to": str, "subject": str, "intent": str, "context": str, "long_format": bool},
     "run_analysis": {"task": str, "code": str, "data": str},
     "read_spreadsheet": {"spreadsheet_id": str, "range": str},
     "search_email": {"query": str, "max_results": int},

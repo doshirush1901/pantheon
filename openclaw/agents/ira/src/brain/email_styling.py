@@ -409,52 +409,8 @@ class EmailStyler:
         recipient_name: Optional[str] = None,
         relationship: RecipientRelationship = RecipientRelationship.ACQUAINTANCE,
     ) -> str:
-        """
-        Generate HTML version of email (for multipart MIME).
-        Uses minimal, email-safe HTML with Machinecraft brand styling.
-        
-        Note: Plain text is generally recommended for AI assistant emails,
-        but HTML version is useful for multipart MIME compliance.
-        """
-        formatted = self.format_email_response(
-            content=content,
-            recipient_name=recipient_name,
-            relationship=relationship,
-        )
-        
-        # Convert plain text to simple HTML
-        html_content = formatted.replace('\n\n', '</p><p>').replace('\n', '<br>')
-        
-        # Machinecraft brand styling
-        font_stack = self.config["fonts"]["fallback_stack"]
-        web_font_import = self.config["fonts"]["web_font_import"]
-        body_color = self.config["colors"]["body_text"]
-        accent_color = self.config["colors"]["accent"]
-        font_size = self.config["font_sizes"]["body"]
-        line_height = self.config["line_height"]
-        
-        # Simple, refined HTML - following Machinecraft's "avoid multiple elements" principle
-        html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style type="text/css">
-        {web_font_import}
-    </style>
-</head>
-<body style="margin: 0; padding: 20px; font-family: {font_stack}; font-size: {font_size}; line-height: {line_height}; color: {body_color}; background-color: #ffffff;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px;">
-        <tr>
-            <td style="padding: 0;">
-                <p style="margin: 0 0 16px 0;">{html_content}</p>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>"""
-        
-        return html
+        """Generate HTML version of email. Delegates to plain_to_html()."""
+        return plain_to_html(content)
 
 
 # =============================================================================
@@ -503,8 +459,8 @@ def check_email_quality(content: str) -> Dict:
     if spam_triggers:
         suggestions.append(f"Avoid spam triggers: {', '.join(spam_triggers)}")
     
-    if word_count > 500:
-        suggestions.append("Consider shortening - readers spend ~10-12 seconds on emails")
+    if word_count > 800:
+        suggestions.append("Consider shortening - very long emails may lose reader attention")
     
     if word_count < 20:
         suggestions.append("Email may be too brief - consider adding context")
@@ -518,10 +474,244 @@ def check_email_quality(content: str) -> Dict:
     return {
         "spam_triggers": spam_triggers,
         "word_count": word_count,
-        "length_ok": 20 <= word_count <= 500,
+        "length_ok": 20 <= word_count <= 800,
         "suggestions": suggestions,
         "quality_score": max(0, 100 - len(suggestions) * 15 - len(spam_triggers) * 20)
     }
+
+
+# =============================================================================
+# PLAIN TEXT -> HTML CONVERSION
+# =============================================================================
+
+_FONT_STACK = EMAIL_CONFIG["fonts"]["fallback_stack"]
+_FONT_IMPORT = EMAIL_CONFIG["fonts"]["web_font_import"]
+_COLOR_BODY = EMAIL_CONFIG["colors"]["body_text"]
+_COLOR_ACCENT = EMAIL_CONFIG["colors"]["accent"]
+_COLOR_SECONDARY = EMAIL_CONFIG["colors"]["secondary_text"]
+
+_SIGNATURE_HTML = (
+    '<table role="presentation" cellpadding="0" cellspacing="0" '
+    f'style="border-top:1px solid #ddd; margin-top:24px; padding-top:16px; font-family:{_FONT_STACK};">'
+    "<tr><td>"
+    f'<span style="font-size:14px; font-weight:600; color:{_COLOR_BODY};">Ira</span><br>'
+    f'<span style="font-size:12px; color:{_COLOR_SECONDARY};">Your Machinecraft Assistant</span><br>'
+    f'<span style="font-size:12px; color:{_COLOR_SECONDARY};">Machinecraft Technologies</span><br>'
+    f'<span style="font-size:12px; color:{_COLOR_SECONDARY};">'
+    f'<a href="mailto:ira@machinecraft.org" style="color:{_COLOR_ACCENT}; text-decoration:none;">ira@machinecraft.org</a>'
+    f' &middot; <a href="https://www.machinecraft.org" style="color:{_COLOR_ACCENT}; text-decoration:none;">machinecraft.org</a>'
+    "</span>"
+    "</td></tr></table>"
+)
+
+_P_STYLE = f"margin:0 0 16px 0; font-size:16px; line-height:1.5; color:{_COLOR_BODY};"
+_H3_STYLE = f"margin:24px 0 8px 0; font-size:18px; font-weight:600; color:{_COLOR_ACCENT};"
+_LI_STYLE = f"margin:0 0 6px 0; font-size:16px; line-height:1.5; color:{_COLOR_BODY};"
+_TABLE_STYLE = "width:100%; border-collapse:collapse; margin:12px 0 16px 0;"
+_TD_KEY_STYLE = (
+    f"padding:6px 12px 6px 0; font-size:14px; color:{_COLOR_SECONDARY}; "
+    "border-bottom:1px solid #eee; white-space:nowrap; vertical-align:top;"
+)
+_TD_VAL_STYLE = (
+    f"padding:6px 0; font-size:14px; color:{_COLOR_BODY}; "
+    "border-bottom:1px solid #eee; vertical-align:top;"
+)
+
+
+def _escape_html(text: str) -> str:
+    """Escape HTML special characters while preserving already-converted tags."""
+    text = text.replace("&", "&amp;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
+    return text
+
+
+def _convert_inline(text: str) -> str:
+    """Convert inline markdown: **bold** and *italic*."""
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'(?<!\*)\*([^*]+?)\*(?!\*)', r'<em>\1</em>', text)
+    return text
+
+
+def _is_section_header(line: str) -> bool:
+    """Detect section headers: all-caps lines, lines with ━━━ dividers, or **Header** alone."""
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if "━" in stripped:
+        return True
+    clean = re.sub(r'[^A-Za-z\s]', '', stripped)
+    if clean.strip() and clean.strip().isupper() and len(clean.strip()) > 3:
+        return True
+    if re.match(r'^\*\*[^*]+\*\*$', stripped):
+        return True
+    return False
+
+
+def _extract_header_text(line: str) -> str:
+    """Pull the display text from a header line."""
+    stripped = line.strip()
+    stripped = re.sub(r'━+\s*', '', stripped).strip()
+    stripped = re.sub(r'^\*\*(.+)\*\*$', r'\1', stripped)
+    return stripped
+
+
+def _is_kv_line(line: str) -> bool:
+    """Detect key-value spec lines like 'Forming Area: 2000x1500mm' or 'Key  |  Value'."""
+    stripped = line.strip()
+    if not stripped or len(stripped) < 5:
+        return False
+    if re.match(r'^[\s•\-\*\d]', stripped):
+        return False
+    if '│' in stripped or '|' in stripped:
+        parts = re.split(r'\s*[│|]\s*', stripped, maxsplit=1)
+        return len(parts) == 2 and len(parts[0].strip()) > 1 and len(parts[1].strip()) > 1
+    if ':' in stripped:
+        parts = stripped.split(':', 1)
+        key = parts[0].strip()
+        val = parts[1].strip()
+        if 2 < len(key) < 40 and len(val) > 1 and not key[0].islower():
+            return True
+    return False
+
+
+def _parse_kv(line: str) -> tuple:
+    """Split a key-value line into (key, value)."""
+    stripped = line.strip()
+    if '│' in stripped or '|' in stripped:
+        parts = re.split(r'\s*[│|]\s*', stripped, maxsplit=1)
+        return (parts[0].strip(), parts[1].strip())
+    parts = stripped.split(':', 1)
+    return (parts[0].strip(), parts[1].strip())
+
+
+def _is_bullet(line: str) -> bool:
+    return bool(re.match(r'^\s*[•\-\*✓→]\s+', line))
+
+
+def _is_numbered(line: str) -> bool:
+    return bool(re.match(r'^\s*\d+[.)]\s+', line))
+
+
+def _bullet_text(line: str) -> str:
+    return re.sub(r'^\s*[•\-\*✓→]\s+', '', line).strip()
+
+
+def _numbered_text(line: str) -> str:
+    return re.sub(r'^\s*\d+[.)]\s+', '', line).strip()
+
+
+def _convert_body_blocks(plain_body: str) -> str:
+    """Convert the plain-text body into HTML blocks (paragraphs, lists, tables, headers)."""
+    lines = plain_body.split('\n')
+    html_parts: List[str] = []
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+
+        if not line.strip():
+            i += 1
+            continue
+
+        if _is_section_header(line):
+            header_text = _escape_html(_extract_header_text(line))
+            if header_text:
+                html_parts.append(f'<h3 style="{_H3_STYLE}">{header_text}</h3>')
+            i += 1
+            continue
+
+        if _is_kv_line(line):
+            rows: List[tuple] = []
+            while i < len(lines) and _is_kv_line(lines[i]):
+                k, v = _parse_kv(lines[i])
+                rows.append((_escape_html(k), _convert_inline(_escape_html(v))))
+                i += 1
+            table_html = f'<table role="presentation" style="{_TABLE_STYLE}">'
+            for k, v in rows:
+                table_html += (
+                    f'<tr><td style="{_TD_KEY_STYLE}">{k}</td>'
+                    f'<td style="{_TD_VAL_STYLE}">{v}</td></tr>'
+                )
+            table_html += '</table>'
+            html_parts.append(table_html)
+            continue
+
+        if _is_bullet(line):
+            items: List[str] = []
+            while i < len(lines) and _is_bullet(lines[i]):
+                items.append(_convert_inline(_escape_html(_bullet_text(lines[i]))))
+                i += 1
+            list_html = '<ul style="margin:8px 0 16px 0; padding-left:24px;">'
+            for item in items:
+                list_html += f'<li style="{_LI_STYLE}">{item}</li>'
+            list_html += '</ul>'
+            html_parts.append(list_html)
+            continue
+
+        if _is_numbered(line):
+            items = []
+            while i < len(lines) and _is_numbered(lines[i]):
+                items.append(_convert_inline(_escape_html(_numbered_text(lines[i]))))
+                i += 1
+            list_html = '<ol style="margin:8px 0 16px 0; padding-left:24px;">'
+            for item in items:
+                list_html += f'<li style="{_LI_STYLE}">{item}</li>'
+            list_html += '</ol>'
+            html_parts.append(list_html)
+            continue
+
+        para_lines: List[str] = []
+        while i < len(lines) and lines[i].strip() and not _is_section_header(lines[i]) and not _is_kv_line(lines[i]) and not _is_bullet(lines[i]) and not _is_numbered(lines[i]):
+            para_lines.append(lines[i])
+            i += 1
+        all_short = all(len(l.strip()) < 40 for l in para_lines)
+        if all_short and len(para_lines) > 1:
+            joined = '<br>'.join(_convert_inline(_escape_html(l.strip())) for l in para_lines)
+        else:
+            joined = _convert_inline(_escape_html(' '.join(l.strip() for l in para_lines)))
+        html_parts.append(f'<p style="{_P_STYLE}">{joined}</p>')
+
+    return '\n'.join(html_parts)
+
+
+def plain_to_html(body: str) -> str:
+    """Convert a plain-text email body into a branded Machinecraft HTML email.
+
+    Handles markdown-style formatting (**bold**, bullets, numbered lists,
+    key-value spec lines, section headers) and wraps everything in a clean,
+    email-safe HTML shell with Montserrat typography and brand colors.
+
+    This is the single entry-point used by gmail_send() to auto-generate
+    the text/html MIME part from the plain-text draft.
+    """
+    inner_html = _convert_body_blocks(body)
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Machinecraft</title>
+<!--[if mso]><style>body,table,td{{font-family:Helvetica,Arial,sans-serif !important;}}</style><![endif]-->
+<style type="text/css">
+{_FONT_IMPORT}
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#f7f7f7; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f7;">
+<tr><td align="center" style="padding:24px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:4px;">
+<tr><td style="padding:32px 32px 24px 32px; font-family:{_FONT_STACK}; font-size:16px; line-height:1.5; color:{_COLOR_BODY};">
+{inner_html}
+{_SIGNATURE_HTML}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
 
 
 # =============================================================================
@@ -567,9 +757,11 @@ GOOD CLOSINGS:
 - "Talk soon"
 
 LENGTH:
-- Aim for 50-200 words for most responses
-- Be thorough but scannable
-- Sophisticated brevity over verbose explanations
+- Default: detailed and thorough — 200-500 words, 6-10 paragraphs
+- Use section headers (**Overview**, **Specifications**) for structured emails
+- Use bullet points (- item) for feature lists, "Key: Value" for specs
+- Be comprehensive but scannable — white space and structure help readability
+- For simple replies or follow-ups, shorter is fine (50-150 words)
 """
 
 
@@ -578,59 +770,48 @@ LENGTH:
 # =============================================================================
 
 if __name__ == "__main__":
-    # Test the email styler with Machinecraft brand guidelines
-    styler = EmailStyler()
-    
     print("=" * 60)
     print("MACHINECRAFT EMAIL STYLING TEST")
     print("Brand Voice: Simple, Refined and Sophisticated")
     print("=" * 60)
-    
-    raw_content = """I looked into the PF1-3020 specifications you asked about. Here's what I found:
 
-The price is $4,200 per unit with volume discounts available at 10 or more units. Lead time is typically 3-4 weeks for standard orders. The warranty covers 2 years for parts and labor.
+    sample = """Hi Sarah,
 
-The rep mentioned they're running a Q1 promotion that expires March 15th.
+Here are the specs for the **PF1-C-2015**:
 
-Want me to request a formal quote or set up a call with their team?"""
-    
-    print("\nRAW CONTENT:")
+**Technical Specifications**
+Forming Area: 2000 x 1500 mm
+Max Thickness: 8 mm
+Heater Power: 120 kW
+Vacuum: 250 m3/hr
+
+Key features:
+- Sandwich heating (top & bottom IR)
+- Zero-sag closed chamber design
+- PLC with touchscreen HMI
+- Servo-driven frame movement
+
+1. Base price: $85,000 USD (subject to configuration and current pricing)
+2. Lead time: 12-16 weeks from order confirmation
+3. Warranty: 12 months parts and labour
+
+Let me know if you need anything else!
+
+Best,
+Ira
+Machinecraft Technologies"""
+
+    print("\nPLAIN TEXT INPUT:")
     print("-" * 40)
-    print(raw_content)
-    
+    print(sample)
+
+    html = plain_to_html(sample)
     print("\n" + "=" * 60)
-    print("FORMATTED EMAIL (Warm relationship):")
+    print("HTML OUTPUT (first 2000 chars):")
     print("=" * 60)
-    formatted = styler.format_email_response(
-        content=raw_content,
-        recipient_name="Sarah",
-        relationship=RecipientRelationship.WARM,
-    )
-    print(formatted)
-    
-    print("\n" + "=" * 60)
-    print("FORMATTED EMAIL (Stranger):")
-    print("=" * 60)
-    formatted_stranger = styler.format_email_response(
-        content=raw_content,
-        recipient_name="Mr. Johnson",
-        relationship=RecipientRelationship.STRANGER,
-    )
-    print(formatted_stranger)
-    
-    print("\n" + "=" * 60)
-    print("BRAND CONFIG:")
-    print("=" * 60)
-    print(f"Primary Font: {EMAIL_CONFIG['fonts']['primary']}")
-    print(f"Font Stack: {EMAIL_CONFIG['fonts']['fallback_stack']}")
-    print(f"Body Text Color: {EMAIL_CONFIG['colors']['body_text']}")
-    print(f"Accent Color: {EMAIL_CONFIG['colors']['accent']}")
-    print(f"Brand Voice: {EMAIL_CONFIG['brand_voice']['tone']}")
-    
-    print("\n" + "=" * 60)
-    print("QUALITY CHECK:")
-    print("=" * 60)
-    quality = check_email_quality(raw_content)
-    print(f"Word count: {quality['word_count']}")
-    print(f"Quality score: {quality['quality_score']}/100")
-    print(f"Suggestions: {quality['suggestions']}")
+    print(html[:2000])
+
+    out_path = "/tmp/machinecraft_email_test.html"
+    with open(out_path, "w") as f:
+        f.write(html)
+    print(f"\nFull HTML written to {out_path} — open in a browser to preview.")

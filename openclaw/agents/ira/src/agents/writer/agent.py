@@ -80,10 +80,9 @@ IRA_PERSONALITY = [
     "(the engineering equivalent of a Swiss Army knife)",
 ]
 
-# ATHENA: "Response too long" (10x coaching point) - Target lengths
-# Rushabh's emails: 3-5 sentences (50-150 words depending on complexity)
+# Target word counts by channel. Emails default to longer for professional detail.
 MAX_RESPONSE_WORDS = {
-    "email": 120,             # Balanced for emails
+    "email": 500,             # Detailed professional emails
     "telegram": 80,           # Short for messaging
     "cli": 150,               # CLI slightly longer
     "training": 120,          # Training mode - balanced
@@ -210,7 +209,7 @@ def _draft_email(query: str, research: str, context: Dict) -> str:
 
     ATHENA COACHING (2026-02-28):
     - Start with warm greeting ("Hi!" not "Dear")
-    - Keep it SHORT (Rushabh's emails are 3-5 sentences)
+    - Write detailed, thorough emails with full specs and context
     - Use action language ("Let me...", "I'll...")
     - End with clear call-to-action
 
@@ -257,13 +256,12 @@ def _draft_email(query: str, research: str, context: Dict) -> str:
     
     email_parts.append("")
     
-    # Add research content - keep it brief
     if research:
-        # ATHENA: Truncate if too long (10x "too verbose" feedback)
         formatted = _format_research(research)
+        max_words = MAX_RESPONSE_WORDS.get("email", 500)
         words = formatted.split()
-        if len(words) > MAX_RESPONSE_WORDS.get("email", 150):
-            formatted = " ".join(words[:120]) + "\n\nHappy to share more details if needed."
+        if len(words) > max_words:
+            formatted = " ".join(words[:max_words]) + "\n\nHappy to share more details if needed."
         email_parts.append(formatted)
     else:
         email_parts.append("Let me look into this and get back to you.")  # ATHENA: Action language
@@ -454,7 +452,7 @@ async def write_streaming(message: str, context: Optional[Dict] = None) -> Async
     system_parts = [
         "You are Ira, the Intelligent Revenue Assistant for Machinecraft Technologies.",
         "Write in a warm, concise, professional tone. Start with 'Hi!' for greetings.",
-        "Keep responses SHORT (3-5 sentences for emails). Use action language: 'Let me...', 'I'll...'.",
+        "Write detailed, thorough emails with full context and specs. Use action language: 'Let me...', 'I'll...'.",
     ]
     if iris_ctx:
         hooks = []
