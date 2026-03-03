@@ -581,10 +581,35 @@ class EmailCrafter:
                 "Also return 'body' as the email body.\n"
             )
 
+        # WS5: Inject learning insights so the LLM knows what's working
+        insights_section = ""
+        try:
+            insights = LearningLoop.get_insights()
+            if insights.get("total_sent", 0) >= 5:
+                parts = ["WHAT'S WORKING (from past outreach data):"]
+                rr = insights.get("reply_rate", 0)
+                parts.append(f"- Overall reply rate: {rr:.0%}")
+                news_rr = insights.get("news_hook_reply_rate", 0)
+                no_news_rr = insights.get("no_news_hook_reply_rate", 0)
+                if news_rr > no_news_rr and insights.get("total_sent", 0) >= 10:
+                    parts.append(
+                        f"- Emails with company news hooks get {news_rr:.0%} replies "
+                        f"vs {no_news_rr:.0%} without. ALWAYS include a news hook when available."
+                    )
+                a_rr = insights.get("ab_variant_a_reply_rate", 0)
+                b_rr = insights.get("ab_variant_b_reply_rate", 0)
+                if abs(a_rr - b_rr) > 0.05:
+                    better = "A (curiosity-driven)" if a_rr > b_rr else "B (benefit-driven)"
+                    parts.append(f"- Subject line variant {better} performs better. Lean that direction.")
+                insights_section = "\n".join(parts) + "\n\n"
+        except Exception:
+            pass
+
         system_prompt = (
             f"{HermesPersonality.CORE_IDENTITY}\n\n"
             f"REGIONAL TONE: {regional_tone}\n\n"
             f"{stage_directive}\n\n"
+            f"{insights_section}"
             f"{guardrails}\n"
             f"{ab_instruction}"
             "Sign off as: Ira | Machinecraft Technologies | ira@machinecraft.org\n"
@@ -612,7 +637,21 @@ class EmailCrafter:
 
             subject_a = result.get("subject_a") or result.get("subject", f"Machinecraft — for {dossier.company}")
             subject_b = result.get("subject_b", "")
-            chosen_variant = random.choice(["a", "b"]) if subject_b else "a"
+
+            # WS5: Insight-driven A/B selection instead of random
+            chosen_variant = "a"
+            if subject_b:
+                try:
+                    _ins = LearningLoop.get_insights()
+                    a_rr = _ins.get("ab_variant_a_reply_rate", 0)
+                    b_rr = _ins.get("ab_variant_b_reply_rate", 0)
+                    _total = _ins.get("total_sent", 0)
+                    if _total >= 10 and abs(a_rr - b_rr) > 0.1:
+                        chosen_variant = "a" if a_rr >= b_rr else "b"
+                    else:
+                        chosen_variant = random.choice(["a", "b"])
+                except Exception:
+                    chosen_variant = random.choice(["a", "b"])
             chosen_subject = subject_a if chosen_variant == "a" else subject_b
 
             return {

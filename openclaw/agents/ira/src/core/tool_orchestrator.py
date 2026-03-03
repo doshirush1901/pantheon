@@ -406,6 +406,22 @@ async def _run_pantheon_post_pipeline(
     except Exception as e:
         logger.debug("[Pantheon] Sophia reflection skipped: %s", e)
 
+    # WS2: Record interaction in Mem0 so future queries benefit from this exchange.
+    _user_id = context.get("user_id", "unknown")
+    _channel = context.get("channel", "api")
+    try:
+        from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+        _mem0 = get_mem0_service()
+        _mem0.remember_from_message(
+            user_message=message,
+            assistant_response=raw_response[:2000],
+            user_id=_user_id,
+            channel=_channel,
+        )
+        logger.info("[Pantheon] Interaction recorded in Mem0 for %s", _user_id)
+    except Exception as e:
+        logger.debug("[Pantheon] Mem0 recording skipped: %s", e)
+
     return raw_response
 
 
@@ -494,6 +510,21 @@ async def process_with_tools(
     is_internal = context.get("is_internal", False)
     mem0_context = context.get("mem0_context", "")
     personality_context = context.get("personality_context", "")
+
+    # WS1: Auto-fetch Mem0 context if caller didn't provide it.
+    # This ensures Ira "remembers" regardless of which gateway is used.
+    if not mem0_context:
+        try:
+            from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            _mem0 = get_mem0_service()
+            mem0_context = _mem0.get_relevant_context(
+                query=message, user_id=user_id, limit=5,
+            )
+            if mem0_context:
+                context["mem0_context"] = mem0_context
+                logger.info("[Athena] Pre-fetched Mem0 context (%d chars)", len(mem0_context))
+        except Exception as e:
+            logger.debug("[Athena] Mem0 pre-fetch skipped: %s", e)
 
     _normalized_msg = _normalize_for_injection_check(message)
     if not is_internal and _INJECTION_PATTERNS.search(_normalized_msg):

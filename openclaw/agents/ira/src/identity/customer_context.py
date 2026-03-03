@@ -477,7 +477,35 @@ class CustomerContextManager:
                     if m not in context.previous_machines:
                         context.previous_machines.append(m)
         
+        # WS2: Persist interaction to Mem0 so it survives restarts
+        self._persist_interaction_to_mem0(identity_id, inquiry)
         logger.debug(f"Recorded interaction for {identity_id}: {subject}")
+    
+    def _persist_interaction_to_mem0(self, identity_id: str, inquiry: "PastInquiry") -> None:
+        """Persist an interaction record to Mem0 for long-term memory."""
+        try:
+            try:
+                from ..memory.mem0_memory import get_mem0_service
+            except ImportError:
+                from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            
+            mem0 = get_mem0_service()
+            machines_str = ", ".join(inquiry.machines_discussed) if inquiry.machines_discussed else "none"
+            memory_text = (
+                f"Customer interaction ({inquiry.timestamp[:10]}): "
+                f"Asked about {inquiry.subject}. Intent: {inquiry.intent}. "
+                f"Machines discussed: {machines_str}."
+            )
+            if inquiry.outcome:
+                memory_text += f" Outcome: {inquiry.outcome}."
+            
+            mem0.add_memory(
+                text=memory_text,
+                user_id=identity_id,
+                metadata={"source": "customer_context", "type": "interaction_record"},
+            )
+        except Exception as e:
+            logger.debug(f"Mem0 interaction persistence skipped: {e}")
     
     def update_style_preference(
         self,
@@ -487,6 +515,22 @@ class CustomerContextManager:
         """Update a customer's preferred communication style."""
         if identity_id in self._context_cache:
             self._context_cache[identity_id].preferred_style = style
+        
+        # WS2: Persist style preference to Mem0
+        try:
+            try:
+                from ..memory.mem0_memory import get_mem0_service
+            except ImportError:
+                from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+            
+            mem0 = get_mem0_service()
+            mem0.add_memory(
+                text=f"Customer prefers {style.value} communication style.",
+                user_id=identity_id,
+                metadata={"source": "customer_context", "type": "style_preference"},
+            )
+        except Exception as e:
+            logger.debug(f"Mem0 style persistence skipped: {e}")
         
         logger.info(f"Updated style preference for {identity_id}: {style.value}")
     

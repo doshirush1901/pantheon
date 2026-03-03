@@ -128,8 +128,26 @@ async def reflect(interaction_data: Dict[str, Any]) -> ReflectionResult:
         except Exception:
             pass
 
+    # WS4: Positive reinforcement — high-quality answers become memories
+    if quality.overall >= 0.9 and len(response) > 200 and not issues:
+        _reinforce_success(user_message, response, quality.overall)
+
     # Feed back into the endocrine system so agent scores reflect quality
     _signal_quality_to_endocrine(quality, issues, interaction_data)
+
+    # WS3: Record quality score for trend tracking
+    try:
+        from openclaw.agents.ira.src.brain.quality_tracker import record_quality
+        record_quality(
+            message=user_message,
+            response=response,
+            quality_score=quality,
+            issues=issues,
+            channel=interaction_data.get("channel", "api"),
+            user_id=interaction_data.get("user_id", "unknown"),
+        )
+    except Exception:
+        pass
 
     logger.info({
         "agent": "Sophia",
@@ -311,6 +329,36 @@ def _generate_recommendations(quality: QualityScore, issues: List[str]) -> List[
         recommendations.append("Add pricing disclaimer check to response pipeline")
     
     return recommendations
+
+
+def _reinforce_success(user_message: str, response: str, score: float) -> None:
+    """WS4: Store high-quality Q&A patterns in Mem0 as positive reinforcement.
+
+    When Sophia scores an interaction >= 0.9 with no issues, the exchange
+    is worth remembering — it represents a pattern Ira should repeat.
+    """
+    try:
+        from openclaw.agents.ira.src.memory.mem0_memory import get_mem0_service
+        mem0 = get_mem0_service()
+
+        question_preview = user_message[:200].strip()
+        answer_preview = response[:300].strip()
+        mem0.add_memory(
+            text=(
+                f"High-quality answer pattern (score {score:.2f}): "
+                f"Q: {question_preview} → "
+                f"A: {answer_preview}"
+            ),
+            user_id="machinecraft_knowledge",
+            metadata={
+                "source": "positive_reinforcement",
+                "quality_score": score,
+                "type": "good_pattern",
+            },
+        )
+        logger.info("Sophia: Reinforced successful pattern (score %.2f)", score)
+    except Exception as e:
+        logger.debug("Sophia: Positive reinforcement skipped: %s", e)
 
 
 def _signal_quality_to_endocrine(

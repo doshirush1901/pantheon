@@ -415,6 +415,20 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "quality_trend",
+            "description": "Show Ira's quality improvement over time. Returns daily quality scores, week-over-week comparison, and top recurring issues. Use when the user asks 'how are you doing?', 'are you improving?', 'quality report', 'quality trend', or 'show me your scores'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {"type": "integer", "description": "Number of days to look back (default 30)"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "build_quote_pdf",
             "description": "Ask Quotebuilder to build a detailed formal quotation (tech specs, terms, optional extras) and export it as a PDF for sending to the customer. Use when the user wants a formal quote document as an attachment (e.g. 'prepare a quote for PF1-C-2015 for Acme Corp', 'build a detailed quote and PDF'). Returns quote ID and path to the generated PDF file.",
             "parameters": {
@@ -492,6 +506,7 @@ async def execute_tool_call(
         "draft_email": "hermes",
         "run_analysis": "hephaestus",
         "correction_report": "nemesis",
+        "quality_trend": "sophia",
         "build_quote_pdf": "quotebuilder",
     }
     _agent_name = _tool_agent_map.get(tool_name)
@@ -1033,6 +1048,21 @@ async def execute_tool_call(
         except Exception as e:
             logger.warning(f"correction_report failed: {e}")
             return f"(Nemesis report unavailable: {e})"
+
+    elif tool_name == "quality_trend":
+        try:
+            from openclaw.agents.ira.src.brain.quality_tracker import (
+                get_quality_trend,
+                get_improvement_report,
+            )
+            days = arguments.get("days", 30)
+            trend = get_quality_trend(days=days)
+            report = get_improvement_report()
+            import json as _json
+            return f"{report}\n\n---\nRaw trend data:\n{_json.dumps(trend, indent=2)}"
+        except Exception as e:
+            logger.warning(f"quality_trend failed: {e}")
+            return f"(Quality trend unavailable: {e})"
 
     elif tool_name == "build_quote_pdf":
         width_mm = arguments.get("width_mm")
