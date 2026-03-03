@@ -243,7 +243,7 @@ def _decompose_query(query: str) -> List[Dict[str, str]]:
         from openai import OpenAI
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[{
                 "role": "system",
                 "content": (
@@ -283,7 +283,7 @@ def _evaluate_gaps(query: str, findings: List[ResearchFinding]) -> List[str]:
         from openai import OpenAI
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[{
                 "role": "system",
                 "content": (
@@ -332,7 +332,7 @@ def _synthesize_report(query: str, all_findings: List[ResearchFinding], steps: L
         from openai import OpenAI
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=[{
                 "role": "system",
                 "content": (

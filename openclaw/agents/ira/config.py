@@ -479,8 +479,8 @@ EMBEDDING_DIMENSIONS = {
 }
 
 # LLM
-DEFAULT_LLM_MODEL = os.environ.get("DEFAULT_LLM_MODEL", "gpt-4o")
-FAST_LLM_MODEL = os.environ.get("FAST_LLM_MODEL", "gpt-4o-mini")
+DEFAULT_LLM_MODEL = os.environ.get("DEFAULT_LLM_MODEL", "gpt-4.1")
+FAST_LLM_MODEL = os.environ.get("FAST_LLM_MODEL", "gpt-4.1-mini")
 
 # =============================================================================
 # COMPETITOR DATA (Centralized competitor intelligence)

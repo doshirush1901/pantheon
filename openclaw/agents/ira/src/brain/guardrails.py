@@ -715,7 +715,7 @@ Return JSON:
 
         try:
             response_obj = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a fact-checker. Verify claims against provided context."},
                     {"role": "user", "content": prompt}

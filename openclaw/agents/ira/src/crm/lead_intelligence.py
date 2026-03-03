@@ -334,7 +334,7 @@ Just the sentence, no quotes or explanation."""
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=100,
                 temperature=0.7,
@@ -441,7 +441,7 @@ Write one brief, specific sentence or "None"."""
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=100,
                 temperature=0.5,

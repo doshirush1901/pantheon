@@ -453,7 +453,7 @@ class CampaignSelfEvaluator:
         try:
             client = openai.OpenAI()
             result = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": (
                         "You are Ira, an AI sales agent for Machinecraft Technologies "

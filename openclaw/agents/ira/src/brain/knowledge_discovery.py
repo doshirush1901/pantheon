@@ -189,7 +189,7 @@ Return JSON:
 
         try:
             response = self.openai.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "Analyze queries for missing data. Return valid JSON."},
                     {"role": "user", "content": prompt}
@@ -486,7 +486,7 @@ If the data is not in the document, return {{"found": false}}
 
         try:
             response = self.openai.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "Extract specific data points from documents. Be precise and accurate."},
                     {"role": "user", "content": prompt}

@@ -205,7 +205,7 @@ class LLMEmotionDetector:
             client = openai.OpenAI(api_key=api_key)
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are an emotion analysis assistant. Respond only with valid JSON."},
                     {"role": "user", "content": LLM_PROMPT.format(message=message[:1000])}

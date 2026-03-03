@@ -894,7 +894,7 @@ Only include patterns that appear at least 2 times. Be specific to Machinecraft'
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "Extract patterns from conversation data. Return valid JSON only."},
                     {"role": "user", "content": prompt}

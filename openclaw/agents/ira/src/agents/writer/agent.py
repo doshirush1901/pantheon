@@ -473,7 +473,7 @@ async def write_streaming(message: str, context: Optional[Dict] = None) -> Async
         import openai
         client = openai.AsyncOpenAI()
         stream = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": "\n".join(system_parts)},
                 {"role": "user", "content": user_content},

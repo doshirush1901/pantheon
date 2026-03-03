@@ -116,3 +116,6 @@ redis>=5.0.0
 # Async PostgreSQL client for health checks
 asyncpg>=0.29.0
 neo4j>=5.15.0
+
+# Markdown-to-HTML for Telegram research report attachments
+markdown>=3.5.0

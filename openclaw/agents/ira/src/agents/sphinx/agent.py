@@ -34,7 +34,7 @@ try:
     CONFIG_AVAILABLE = True
 except ImportError:
     CONFIG_AVAILABLE = False
-    FAST_LLM_MODEL = "gpt-4o-mini"
+    FAST_LLM_MODEL = "gpt-4.1-mini"
 
 # Task types for question generation checklists
 TASK_TYPES = [

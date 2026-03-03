@@ -51,7 +51,7 @@ INDEX_PROGRESS_PATH = PROJECT_ROOT / "data" / "brain" / "imports_index_progress.
 
 SUPPORTED_EXTENSIONS = {".pdf", ".xlsx", ".xls", ".csv", ".docx", ".txt", ".pptx", ".json", ".md"}
 TEXT_PREVIEW_CHARS = 2000  # first 2000 chars for LLM summary
-LLM_MODEL = "gpt-4o-mini"
+LLM_MODEL = "gpt-4.1-mini"
 
 
 # ===========================================================================

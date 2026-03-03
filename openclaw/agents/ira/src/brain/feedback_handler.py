@@ -108,7 +108,7 @@ def _llm_classify_feedback(message: str, previous_response: str) -> Optional[str
 
         client = openai.OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": (
                     "Classify this message. Is it:\n"
@@ -237,7 +237,7 @@ def _store_confirmed_facts(response: str):
         
         client = openai.OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": (
                     "Extract key facts from this response that was confirmed as correct by the user. "
@@ -413,7 +413,7 @@ def _extract_and_store_corrections(user_message: str, previous_response: str) ->
         
         client = openai.OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": (
                     "Extract specific factual corrections from the user's feedback. "
@@ -512,7 +512,7 @@ def _get_coach_analysis(user_feedback: str, ira_response: str) -> Optional[str]:
 
         client = openai.OpenAI(api_key=api_key)
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": (
                     "You are Ira's coach. The user gave negative feedback on Ira's response. "

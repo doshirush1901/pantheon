@@ -183,7 +183,7 @@ class StartupValidator:
             
             # Quick test call
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": "Say 'ok'"}],
                 max_tokens=5,
             )
@@ -193,7 +193,7 @@ class StartupValidator:
                 passed=True,
                 message="OpenAI API connection successful",
                 is_critical=True,
-                details={"model": "gpt-4o-mini"},
+                details={"model": "gpt-4.1-mini"},
             )
             
         except Exception as e:

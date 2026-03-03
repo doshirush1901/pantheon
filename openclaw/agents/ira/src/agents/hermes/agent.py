@@ -599,7 +599,7 @@ class EmailCrafter:
         try:
             client = openai.OpenAI()
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 response_format={"type": "json_object"},
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -622,7 +622,7 @@ class EmailCrafter:
                 "ab_variant": chosen_variant,
                 "body": result.get("body", ""),
                 "stage": stage,
-                "model_used": "gpt-4o",
+                "model_used": "gpt-4.1",
             }
         except Exception as e:
             logger.error(f"Email generation failed for {dossier.company}: {e}")

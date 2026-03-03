@@ -214,11 +214,23 @@ def _identify_issues(user_message: str, response: str, results: Dict) -> List[st
         if "subject to" not in response.lower():
             issues.append("PRICING_DISCLAIMER_MISSING: Response contains price without disclaimer")
     
-    # Check for potential AM series violation
-    thickness_match = None
+    # Check for potential AM series violation — only when user is asking
+    # about material thickness, not draw depth, forming area, or model numbers.
     import re
-    thickness_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter)', user_message, re.IGNORECASE)
-    if thickness_match:
+    _THICKNESS_CONTEXT = re.compile(
+        r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter)\s*(?:thick|material|sheet|gauge|abs|hdpe|hips|pp\b|pet\b|pc\b|tpo\b|acrylic)',
+        re.IGNORECASE,
+    )
+    _THICKNESS_DIRECT = re.compile(
+        r'(?:thick|thickness|gauge|material)\s*(?:of|is|:)?\s*(\d+(?:\.\d+)?)\s*(?:mm|millimeter)',
+        re.IGNORECASE,
+    )
+    _NON_THICKNESS_CONTEXT = re.compile(
+        r'(?:depth|draw|height|forming\s*area|max\s*depth|model|size)\s*(?:of|is|:)?\s*\d+',
+        re.IGNORECASE,
+    )
+    thickness_match = _THICKNESS_CONTEXT.search(user_message) or _THICKNESS_DIRECT.search(user_message)
+    if thickness_match and not _NON_THICKNESS_CONTEXT.search(user_message):
         thickness = float(thickness_match.group(1))
         if thickness > 1.5:
             if "AM" in response and "1.5" not in response:
@@ -255,9 +267,14 @@ def _extract_lessons(user_message: str, response: str, issues: List[str]) -> Lis
         else:
             lessons.append("IMPROVEMENT: Always include pricing disclaimer for price queries")
     
-    # Lesson from thickness-related queries
+    # Lesson from thickness-related queries — only when the message is
+    # actually about material thickness, not draw depth or forming area.
     import re
-    if re.search(r'\d+\s*mm', user_message, re.IGNORECASE):
+    _is_thickness_query = bool(
+        re.search(r'\d+\s*mm\s*(?:thick|material|sheet|gauge)', user_message, re.IGNORECASE)
+        or re.search(r'(?:thick|thickness|gauge)\s*(?:of|is|:)?\s*\d+\s*mm', user_message, re.IGNORECASE)
+    )
+    if _is_thickness_query:
         if "1.5" in response or "AM series" in response:
             lessons.append("GOOD_PRACTICE: Thickness guidance provided correctly")
     
@@ -397,7 +414,7 @@ async def _evaluate_quality_llm(user_message: str, response: str, intent: str) -
 
         client = openai.OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": (
                     "Rate this customer service response on 6 dimensions (0.0-1.0).\n"

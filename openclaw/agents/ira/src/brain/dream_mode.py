@@ -623,7 +623,7 @@ Only include structured_data fields that are present in the document. Use null f
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "Extract knowledge as JSON only. Be thorough with structured data."},
                     {"role": "user", "content": prompt}
@@ -1099,7 +1099,7 @@ Return JSON:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "Generate insights as JSON."},
                     {"role": "user", "content": prompt}

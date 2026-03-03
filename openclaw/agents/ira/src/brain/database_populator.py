@@ -266,7 +266,7 @@ Remember: Only extract explicitly stated data. Return valid JSON array."""
         try:
             client = self._get_openai()
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "You are a technical specification extractor. Extract machine specs from documents with high precision. Return only valid JSON."},
                     {"role": "user", "content": prompt}

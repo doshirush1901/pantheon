@@ -274,7 +274,7 @@ class FactExtractor:
         
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You extract structured facts from business documents. Output valid JSON only."},
                     {"role": "user", "content": FACT_EXTRACTION_PROMPT.format(
@@ -380,7 +380,7 @@ class ConflictDetector:
         
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You detect factual conflicts. Output valid JSON only."},
                     {"role": "user", "content": CONFLICT_DETECTION_PROMPT.format(

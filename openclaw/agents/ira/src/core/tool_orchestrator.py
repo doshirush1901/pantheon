@@ -23,8 +23,8 @@ logger = logging.getLogger("ira.tool_orchestrator")
 
 _request_cost_log: List[Dict[str, Any]] = []
 _MAX_REQUEST_BUDGET_USD = 5.0
-_GPT4O_INPUT_COST_PER_1K = 0.0025
-_GPT4O_OUTPUT_COST_PER_1K = 0.01
+_GPT4O_INPUT_COST_PER_1K = 0.002
+_GPT4O_OUTPUT_COST_PER_1K = 0.008
 
 MAX_TOOL_ROUNDS = 25
 PROPOSAL_NUDGE_ROUND = 12
@@ -318,7 +318,7 @@ async def _generate_telegram_summary(
         api_key = context.get("api_key") or __import__("os").environ.get("OPENAI_API_KEY", "")
         client = _oai.AsyncOpenAI(api_key=api_key)
         resp = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {
                     "role": "system",
@@ -1084,7 +1084,7 @@ or option from your previous response. Resolve the reference and act on it.
         for attempt in range(1, LLM_MAX_RETRIES + 1):
             try:
                 response = await client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4.1",
                     messages=messages,
                     tools=tools,
                     tool_choice="auto",
@@ -1312,7 +1312,7 @@ or option from your previous response. Resolve the reference and act on it.
             ),
         })
         summary_resp = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=messages,
             tools=tools,
             tool_choice="none",

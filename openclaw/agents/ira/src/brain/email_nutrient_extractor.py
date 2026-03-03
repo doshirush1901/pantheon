@@ -286,7 +286,7 @@ def _llm_extract(subject: str, body: str, from_email: str, to_email: str, direct
 
         client = openai.OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": "You extract structured sales data from emails. Return ONLY valid JSON."},
                 {"role": "user", "content": _EXTRACTION_PROMPT.format(

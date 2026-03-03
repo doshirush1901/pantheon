@@ -99,7 +99,7 @@ OPPORTUNITIES_FILE = DATA_DIR / "opportunities.json"
 SCAN_LOG_FILE = DATA_DIR / "scan_log.jsonl"
 INDUSTRY_MAP_FILE = DATA_DIR / "industry_taxonomy.json"
 
-LLM_MODEL = os.getenv("PROMETHEUS_MODEL", "gpt-4o")
+LLM_MODEL = os.getenv("PROMETHEUS_MODEL", "gpt-4.1")
 
 
 # =============================================================================

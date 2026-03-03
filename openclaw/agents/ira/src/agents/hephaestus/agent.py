@@ -104,7 +104,7 @@ async def _generate_code(task: str, data: str) -> str:
         data_preview = data[:3000] if data else "(no data provided)"
 
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": _FORGE_SYSTEM_PROMPT},
                 {"role": "user", "content": (
@@ -134,7 +134,7 @@ async def _fix_code(code: str, error: str, task: str, data: str) -> str:
         client = openai.AsyncOpenAI(api_key=api_key)
 
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": _FORGE_SYSTEM_PROMPT},
                 {"role": "user", "content": (

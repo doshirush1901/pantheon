@@ -823,7 +823,7 @@ class EmailPolisher:
             )
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Fast model for polish pass
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": "Polish this email."}

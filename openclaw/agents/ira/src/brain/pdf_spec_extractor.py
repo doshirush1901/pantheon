@@ -42,7 +42,7 @@ except ImportError:
     CONFIG_AVAILABLE = False
     import logging as log_module
     logger = log_module.getLogger(__name__)
-    FAST_LLM_MODEL = "gpt-4o-mini"
+    FAST_LLM_MODEL = "gpt-4.1-mini"
 
 try:
     import pdfplumber

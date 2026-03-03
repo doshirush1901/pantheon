@@ -393,7 +393,7 @@ class MemoryConflictDetector:
                 mem_texts.append(f"{i+1}. {content[:150]}")
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {
                         "role": "system",
@@ -1133,7 +1133,7 @@ class MemoryCompressor:
                 total_chars += len(content)
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {
                         "role": "system",
@@ -1542,7 +1542,7 @@ class SleepStageSimulator:
                 ]
                 
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {
                             "role": "system",
@@ -1695,7 +1695,7 @@ class CounterfactualReasoner:
                 kb_sample.append(content[:150])
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {
                         "role": "system",

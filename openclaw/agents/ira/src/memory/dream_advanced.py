@@ -353,7 +353,7 @@ class MemoryReplay:
                 ])
                 
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {
                             "role": "system",
@@ -724,7 +724,7 @@ class WakeUpSelfTest:
             try:
                 # Ask Ira (via LLM) to answer
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {
                             "role": "system",
@@ -885,7 +885,7 @@ class SchemaBuilder:
             facts_text = "\n".join([f"- {f}" for f in facts[:20]])
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {
                         "role": "system",

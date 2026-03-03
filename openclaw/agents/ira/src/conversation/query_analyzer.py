@@ -35,7 +35,7 @@ try:
 except ImportError:
     CONFIG_AVAILABLE = False
     logger = logging.getLogger(__name__)
-    FAST_LLM_MODEL = "gpt-4o-mini"
+    FAST_LLM_MODEL = "gpt-4.1-mini"
     
     def get_openai_client():
         import openai

@@ -174,7 +174,7 @@ async def _retrieval_augmented_verify(
         client = openai.OpenAI(api_key=api_key)
         
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": """You are Vera, a rigorous fact-checker for Machinecraft Technologies.
 
@@ -284,9 +284,23 @@ def _check_am_series_rule(draft: str, query: str) -> Dict[str, Any]:
         "correction": None
     }
     
-    # Check if query mentions thick materials (>1.5mm)
-    thickness_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter)', query, re.IGNORECASE)
-    if thickness_match:
+    # Check if query mentions thick materials (>1.5mm).
+    # Only match when context indicates material thickness — not draw depth,
+    # forming area, or model-number dimensions (e.g. "800 mm depth").
+    _THICKNESS_CTX = re.compile(
+        r'(\d+(?:\.\d+)?)\s*(?:mm|millimeter)\s*(?:thick|material|sheet|gauge|abs|hdpe|hips|pp\b|pet\b|pc\b|tpo\b|acrylic)',
+        re.IGNORECASE,
+    )
+    _THICKNESS_DIR = re.compile(
+        r'(?:thick|thickness|gauge|material)\s*(?:of|is|:)?\s*(\d+(?:\.\d+)?)\s*(?:mm|millimeter)',
+        re.IGNORECASE,
+    )
+    _NON_THICKNESS = re.compile(
+        r'(?:depth|draw|height|forming\s*area|max\s*depth|model|size)\s*(?:of|is|:)?\s*\d+',
+        re.IGNORECASE,
+    )
+    thickness_match = _THICKNESS_CTX.search(query) or _THICKNESS_DIR.search(query)
+    if thickness_match and not _NON_THICKNESS.search(query):
         thickness = float(thickness_match.group(1))
         
         # If thickness > 1.5mm and response doesn't mention AM limitation
@@ -474,7 +488,7 @@ async def _cross_reference_entities(
         companies_str = ", ".join(company_names[:15])
         
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": (
                     "You are Vera, a fact-checker. Given a draft response and the SOURCE DATA it was based on, "

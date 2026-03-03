@@ -537,7 +537,7 @@ Provide a concise, informative summary."""
 
         try:
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a Machinecraft product expert."},
                     {"role": "user", "content": prompt}
@@ -600,7 +600,7 @@ Provide a clear, specific answer based on the evidence gathered."""
 
         try:
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a technical expert answering based on gathered evidence."},
                     {"role": "user", "content": prompt}

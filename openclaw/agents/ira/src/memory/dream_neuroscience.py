@@ -603,7 +603,7 @@ class DreamCreativity:
         for concept_a, concept_b in pairs[:count]:
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-4.1-mini",
                     messages=[
                         {
                             "role": "system",

@@ -1120,7 +1120,7 @@ The test: If Rushabh would correct you, you should have said "I don't know" inst
     return base_prompt
 
 
-def _call_llm(prompt: str, user_message: str, model: str = "gpt-4o-mini", max_tokens: int = 800) -> str:
+def _call_llm(prompt: str, user_message: str, model: str = "gpt-4.1-mini", max_tokens: int = 800) -> str:
     """Call OpenAI API with resilience."""
     try:
         import openai
@@ -1371,7 +1371,7 @@ def extract_and_verify_facts(
 def _generate_draft(
     intent: str,
     system_prompt: str,
-    model: str = "gpt-4o-mini"
+    model: str = "gpt-4.1-mini"
 ) -> str:
     """
     PASS 1: Generate comprehensive draft response.
@@ -1428,7 +1428,7 @@ Return ONLY the revised response, no explanations."""
     polished = _call_llm(
         "You are Ira, a precise technical assistant. Apply the corrections exactly as specified.",
         polish_prompt,
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         max_tokens=1000
     )
     

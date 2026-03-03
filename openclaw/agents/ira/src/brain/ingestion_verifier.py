@@ -285,7 +285,7 @@ Rules:
         import openai
         client = openai.OpenAI(api_key=api_key)
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": "Verify entities for a knowledge base. Return only valid JSON."},
                 {"role": "user", "content": prompt},

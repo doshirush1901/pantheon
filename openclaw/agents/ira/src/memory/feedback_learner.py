@@ -45,7 +45,7 @@ except ImportError:
     CONFIG_AVAILABLE = False
     import logging
     logger = logging.getLogger(__name__)
-    FAST_LLM_MODEL = "gpt-4o-mini"
+    FAST_LLM_MODEL = "gpt-4.1-mini"
     PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
 
 

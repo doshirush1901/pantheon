@@ -38,7 +38,7 @@ Usage:
         
         trace.generation(
             name="llm_call",
-            model="gpt-4o",
+            model="gpt-4.1",
             input=prompt,
             output=response
         )
@@ -98,6 +98,8 @@ class TraceMetadata:
 
 
 TOKEN_COSTS = {
+    "gpt-4.1": {"input": 0.002, "output": 0.008},
+    "gpt-4.1-mini": {"input": 0.0004, "output": 0.0016},
     "gpt-4o": {"input": 0.0025, "output": 0.01},
     "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
     "gpt-4-turbo": {"input": 0.01, "output": 0.03},
@@ -110,7 +112,7 @@ TOKEN_COSTS = {
 
 def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Calculate cost for an LLM call."""
-    costs = TOKEN_COSTS.get(model, TOKEN_COSTS.get("gpt-4o-mini"))
+    costs = TOKEN_COSTS.get(model, TOKEN_COSTS.get("gpt-4.1-mini"))
     if not costs:
         return 0.0
     
@@ -153,7 +155,7 @@ class LangfuseTracer:
             
             tracer.generation(
                 name="llm_call",
-                model="gpt-4o",
+                model="gpt-4.1",
                 input=prompt,
                 output=response,
                 usage={"input": 100, "output": 50}
@@ -440,7 +442,7 @@ class OpenAICallbackHandler:
         handler = OpenAICallbackHandler(trace_name="chat")
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1",
             messages=[{"role": "user", "content": "Hello"}]
         )
         
@@ -548,7 +550,7 @@ if __name__ == "__main__":
             
             tracer.generation(
                 name="test_generation",
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 input="Hello",
                 output="Hi there!",
                 usage={"input": 10, "output": 5},
@@ -562,7 +564,7 @@ if __name__ == "__main__":
         print("⚠️ Langfuse not configured")
         print("Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to enable")
     
-    cost = calculate_cost("gpt-4o-mini", input_tokens=1000, output_tokens=500)
+    cost = calculate_cost("gpt-4.1-mini", input_tokens=1000, output_tokens=500)
     print(f"✅ Cost calculation: ${cost:.4f} for 1000 in / 500 out tokens")
     
     print("\n✅ Langfuse integration test complete")
