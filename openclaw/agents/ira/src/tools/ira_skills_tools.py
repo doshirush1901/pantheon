@@ -429,6 +429,52 @@ IRA_TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "create_report",
+            "description": "Create a professional HTML/Markdown report as a downloadable artifact. Use when the user asks for a report, analysis document, competitive comparison, market research, or any deliverable that should be more than a chat message. Returns a file path that can be attached to emails or sent via Telegram. Examples: 'create a report on EV battery opportunities', 'competitive analysis of ILLIG vs us', 'weekly sales report'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Report title (e.g. 'EV Battery Market Opportunities')"},
+                    "body_markdown": {"type": "string", "description": "Full report content in markdown format. Use ##, ###, bullet points, tables (|col|col|), bold (**text**). Be thorough — this is a document, not a chat reply."},
+                    "report_type": {"type": "string", "description": "Type: research, competitive, financial, pipeline, market, custom"},
+                },
+                "required": ["title", "body_markdown"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "deep_web_research",
+            "description": "Deep multi-page web research: searches multiple engines, fetches full page content from top results, and synthesizes a research brief. Use for thorough company research, market analysis, or when web_search returns thin results. More thorough than web_search — reads actual page content, not just snippets.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Research query (e.g. 'TSN Germany thermoforming expansion 2025')"},
+                    "num_pages": {"type": "integer", "description": "Number of pages to fetch and read (default 5, max 8)"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "background_task",
+            "description": "Launch a long-running task in the background. Ira will work on it and send the results to Telegram when done. Use for complex multi-step work: 'research 20 companies and draft emails for top 5', 'full market analysis across all industries', 'audit the entire order book'. Returns immediately with a task ID; results delivered proactively.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_description": {"type": "string", "description": "Detailed description of what to do"},
+                    "notify_channel": {"type": "string", "description": "Where to send results: telegram (default) or email"},
+                },
+                "required": ["task_description"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "build_quote_pdf",
             "description": "Ask Quotebuilder to build a detailed formal quotation (tech specs, terms, optional extras) and export it as a PDF for sending to the customer. Use when the user wants a formal quote document as an attachment (e.g. 'prepare a quote for PF1-C-2015 for Acme Corp', 'build a detailed quote and PDF'). Returns quote ID and path to the generated PDF file.",
             "parameters": {
@@ -507,6 +553,9 @@ async def execute_tool_call(
         "run_analysis": "hephaestus",
         "correction_report": "nemesis",
         "quality_trend": "sophia",
+        "create_report": "hephaestus",
+        "deep_web_research": "iris",
+        "background_task": "athena",
         "build_quote_pdf": "quotebuilder",
     }
     _agent_name = _tool_agent_map.get(tool_name)
@@ -1064,6 +1113,119 @@ async def execute_tool_call(
             logger.warning(f"quality_trend failed: {e}")
             return f"(Quality trend unavailable: {e})"
 
+    elif tool_name == "create_report":
+        title = arguments.get("title", "Untitled Report")
+        body_md = arguments.get("body_markdown", "")
+        rtype = arguments.get("report_type", "research")
+        if not body_md or len(body_md) < 50:
+            return "(Error: body_markdown must be at least 50 characters. Write a thorough report.)"
+        try:
+            from openclaw.agents.ira.src.tools.report_builder import build_report
+            result = build_report(title=title, body_markdown=body_md, report_type=rtype)
+            if context is not None:
+                context.setdefault("_report_files", [])
+                context["_report_files"].append(result)
+            return (
+                f"Report generated successfully.\n"
+                f"Report ID: {result['report_id']}\n"
+                f"Title: {result['title']}\n"
+                f"HTML: {result['html_path']}\n"
+                f"Markdown: {result['md_path']}\n"
+                f"The report is ready to attach to an email or send via Telegram."
+            )
+        except Exception as e:
+            logger.warning("create_report failed: %s", e)
+            return f"(Report generation error: {e})"
+
+    elif tool_name == "deep_web_research":
+        import httpx
+
+        query = arguments.get("query", "")
+        num_pages = min(arguments.get("num_pages", 5), 8)
+        if not query:
+            return "(Error: query is required)"
+
+        tavily_key = os.environ.get("TAVILY_API_KEY", "")
+        results_parts = []
+
+        try:
+            # Step 1: Search to get URLs
+            urls = []
+            if tavily_key:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    resp = await client.post(
+                        "https://api.tavily.com/search",
+                        json={
+                            "api_key": tavily_key,
+                            "query": query,
+                            "search_depth": "advanced",
+                            "max_results": num_pages,
+                            "include_answer": True,
+                        },
+                    )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("answer"):
+                        results_parts.append(f"**AI Summary:** {data['answer']}\n")
+                    for r in data.get("results", [])[:num_pages]:
+                        urls.append({"url": r.get("url", ""), "title": r.get("title", ""), "snippet": r.get("content", "")[:200]})
+
+            # Step 2: Fetch full page content via Jina Reader
+            async def _fetch_page(url_info: dict) -> str:
+                url = url_info["url"]
+                title = url_info["title"]
+                if not url:
+                    return ""
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.get(
+                            f"https://r.jina.ai/{url}",
+                            headers={"Accept": "text/plain"},
+                        )
+                    if resp.status_code == 200 and len(resp.text) > 100:
+                        content = resp.text[:3000]
+                        return f"### {title}\n*Source: {url}*\n\n{content}\n"
+                except Exception:
+                    pass
+                return f"### {title}\n*Source: {url}*\n\n{url_info.get('snippet', '(Could not fetch full page)')}\n"
+
+            if urls:
+                page_results = await asyncio.gather(
+                    *[_fetch_page(u) for u in urls[:num_pages]],
+                    return_exceptions=True,
+                )
+                for pr in page_results:
+                    if isinstance(pr, str) and pr:
+                        results_parts.append(pr)
+
+        except Exception as e:
+            logger.warning("deep_web_research failed: %s", e)
+            results_parts.append(f"(Research error: {e})")
+
+        return "\n\n---\n\n".join(results_parts) if results_parts else "(No results found)"
+
+    elif tool_name == "background_task":
+        task_desc = arguments.get("task_description", "")
+        notify = arguments.get("notify_channel", "telegram")
+        if not task_desc:
+            return "(Error: task_description is required)"
+        try:
+            from openclaw.agents.ira.src.tools.background_runner import launch_background_task
+            task_id = launch_background_task(
+                task_description=task_desc,
+                notify_channel=notify,
+                context=context,
+            )
+            return (
+                f"Background task launched.\n"
+                f"Task ID: {task_id}\n"
+                f"I'll work on this and send you the results on {notify} when done.\n"
+                f"Task: {task_desc[:200]}"
+            )
+        except Exception as e:
+            logger.warning("background_task launch failed: %s", e)
+            return f"(Background task error: {e})"
+
     elif tool_name == "build_quote_pdf":
         width_mm = arguments.get("width_mm")
         height_mm = arguments.get("height_mm")
@@ -1121,6 +1283,9 @@ _TOOL_SCHEMAS: Dict[str, Dict[str, type]] = {
     "search_contacts": {"query": str},
     "lead_intelligence": {"company": str, "context": str},
     "build_quote_pdf": {"width_mm": int, "height_mm": int, "variant": str, "customer_name": str, "company_name": str, "customer_email": str, "country": str},
+    "create_report": {"title": str, "body_markdown": str, "report_type": str},
+    "deep_web_research": {"query": str, "num_pages": int},
+    "background_task": {"task_description": str, "notify_channel": str},
 }
 
 _MAX_ARG_LENGTH = 16000
