@@ -1037,12 +1037,10 @@ async def execute_tool_call(
                 customer_email=str(arguments.get("customer_email", "")),
                 country=str(arguments.get("country", "India")),
             )
-            # Store file paths in context so the gateway can send them as documents
             if context is not None:
                 context.setdefault("_quote_files", [])
                 context["_quote_files"].append({
                     "pdf_path": result.pdf_path,
-                    "md_path": result.md_path,
                     "quote_id": result.quote_id,
                     "model": result.model,
                 })
@@ -1052,8 +1050,7 @@ async def execute_tool_call(
                 f"Model: {result.model}\n"
                 f"Total: ₹{result.total_inr:,} INR (approx. ${result.total_usd:,} USD)\n"
                 f"PDF: {result.pdf_path}\n"
-                f"Markdown: {result.md_path}\n"
-                f"Both files are ready to attach and send to the customer."
+                f"PDF is ready to attach and send to the customer."
             )
         except ImportError as e:
             return f"(Quotebuilder not available: {e})"

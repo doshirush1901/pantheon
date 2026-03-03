@@ -7738,23 +7738,15 @@ Total: {len(draft_ids)}""",
                     caption=f"Full report ({len(response.text):,} chars, {elapsed:.0f}s research)",
                 )
 
-            # Send any quote files (PDF + Markdown) generated during the pipeline
             for qf in getattr(self, "_pending_quote_files", []):
                 try:
-                    md_path = qf.get("md_path", "")
                     pdf_path = qf.get("pdf_path", "")
                     qid = qf.get("quote_id", "")
                     model = qf.get("model", "")
-                    if md_path and Path(md_path).exists():
-                        self.send_document(
-                            md_path,
-                            caption=f"Quote {qid} — {model} (Markdown)",
-                            parse_mode="Markdown",
-                        )
                     if pdf_path and Path(pdf_path).exists():
                         self.send_document(
                             pdf_path,
-                            caption=f"Quote {qid} — {model} (PDF)",
+                            caption=f"Quote {qid} — {model}",
                         )
                 except Exception as qe:
                     logger.warning("[Quote] Failed to send quote file: %s", qe)
