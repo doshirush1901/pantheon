@@ -1,0 +1,278 @@
+# =============================================================================
+# Python
+# =============================================================================
+.venv/
+venv/
+env/
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.eggs/
+*.manifest
+*.spec
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# =============================================================================
+# OS Generated
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =============================================================================
+# Credentials & Secrets
+# =============================================================================
+credentials.json
+credentials_*.json
+token.json
+token_*.json
+token*.bak*
+*_oauth_gmail.json
+*_outh_gmail.json
+rushabh_*.json
+service_account.json
+service_account_*.json
+*.pem
+*.key
+secrets/
+.secrets/
+
+# =============================================================================
+# macOS Launch Agents (contain user-specific paths)
+# =============================================================================
+*.plist
+
+# =============================================================================
+# Database & Cache
+# =============================================================================
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+crm/cache/
+*.cache
+.cache/
+
+# =============================================================================
+# Logs
+# =============================================================================
+logs/*
+!logs/.gitkeep
+*.log
+*.log.*
+
+# =============================================================================
+# Data — ALL runtime data is proprietary and must not be committed.
+# Only .gitkeep files are tracked to preserve directory structure.
+# =============================================================================
+data/**/*.json
+data/**/*.jsonl
+data/**/*.html
+data/**/*.csv
+data/**/*.xlsx
+data/**/*.db
+data/**/*.db-shm
+data/**/*.db-wal
+data/**/*.db-journal
+data/**/*.txt
+data/**/*.md
+data/imports/*
+!data/imports/.gitkeep
+!data/imports/docs_from_telegram/
+data/imports/docs_from_telegram/*
+!data/imports/docs_from_telegram/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/knowledge/*
+!data/knowledge/.gitkeep
+data/mem0_storage/*
+!data/mem0_storage/.gitkeep
+
+# =============================================================================
+# Runtime & Temporary
+# =============================================================================
+*.tmp
+*.temp
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# =============================================================================
+# Build & Distribution
+# =============================================================================
+*.manifest
+*.spec
+pip-wheel-metadata/
+
+# =============================================================================
+# Jupyter Notebooks
+# =============================================================================
+.ipynb_checkpoints/
+*.ipynb
+
+# =============================================================================
+# Local Configuration
+# =============================================================================
+.env.local
+.env.*.local
+local_settings.py
+
+# =============================================================================
+# Runtime Data & Reports (generated files)
+# =============================================================================
+learning_metrics.json
+test_results.txt
+email_test_results.md
+ira_test_suite.md
+improvement_report.md
+generated_lessons.md
+*_REPORT.md
+
+# =============================================================================
+# Cursor IDE
+# =============================================================================
+.cursor/
+
+# =============================================================================
+# Data Caches & Runtime State
+# =============================================================================
+data/cache/
+data/dream_results/
+data/dream_backups/
+data/audit_logs/
+data/simulations/
+data/learning_sessions/
+data/training/
+data/nemesis/
+data/delphi/
+data/echo/
+data/shadow_training/
+
+# =============================================================================
+# Proprietary Business Data (NEVER commit)
+# =============================================================================
+data/brain/machine_specs.json
+data/brain/hard_rules.txt
+data/brain/training_history.json
+data/brain/training_weights.json
+data/brain/correction_map.json
+data/brain/mistake_patterns.json
+data/brain/top_lessons.json
+data/brain/imports_metadata.json
+data/brain/hard_rules_hygiene.json
+data/brain/bulk_ingest_progress.json
+data/brain/etd_ingest_progress.json
+data/brain/file_manifest.json
+data/brain/ingestion_audit_report.json
+data/brain/imports_summary_embeddings.json
+data/brain/deferred_ingestion_queue.jsonl
+openclaw/agents/data/cache/
+data/atlas_machine_knowledge.json
+data/case_studies/
+scripts/extract_alp_bedliner_project.py
+data/stock_machines_go_to_market.json
+data/dream_journal.json
+data/drip_strategies.json
+data/drip_dream_ideas.json
+data/european_campaign_state.json
+data/proactive_state.json
+data/compressed_memories.json
+data/conflicts.json
+data/counterfactuals.json
+data/creative_insights.json
+data/quote_counter.txt
+data/feedback_log.jsonl
+data/feedback_backlog.jsonl
+
+# =============================================================================
+# Holistic System State (runtime, may contain interaction data)
+# =============================================================================
+data/holistic/
+data/logs/
+
+# =============================================================================
+# Benchmark Data (contains real query/response data)
+# =============================================================================
+data/benchy_deep/
+data/benchy_100/
+data/benchy_telegram/
+
+# =============================================================================
+# Sensitive Runtime Data (PII, chat logs, memory state, learnings)
+# =============================================================================
+data/realtime_learnings/
+data/telegram_history.json
+data/chat_log/
+data/european_lead_conversations.json
+data/quotes_knowledge.json
+# Mr Sanitiser config (contains the actual blocklist of confidential names/emails)
+.sanitiser.json
+
+# Agent runtime data (learned patterns, errors, corrections — all contain customer data)
+openclaw/agents/ira/data/*.md
+openclaw/agents/ira/data/*.json
+openclaw/agents/ira/src/brain/learned_facts.json
+openclaw/agents/ira/src/brain/learned_truth_hints.txt
+openclaw/agents/ira/src/brain/machine_database_updates.jsonl
+openclaw/agents/ira/src/agents/chief_of_staff/*.md
+openclaw/agents/ira/src/memory/state/
+openclaw/agents/ira/src/brain/learned_corrections.json
+openclaw/agents/ira/src/brain/knowledge_health_state.json
+openclaw/data/feedback_log.jsonl
+openclaw/data/feedback_backlog.jsonl
+openclaw/data/outreach_state.json
+openclaw/data/learned_lessons/
+openclaw/data/training/
+openclaw/data/holistic/
+crm/logs/
+crm/*.db-shm
+crm/*.db-wal
+
+# =============================================================================
+# Archive (contains real customer data, PII, financials)
+# =============================================================================
+_archive/
+
+# =============================================================================
+# OpenClaw Workspace (runtime state)
+# =============================================================================
+openclaw/agents/ira/workspace/*.json
+!openclaw/agents/ira/workspace/.gitkeep
+
+# Credential backups
+token.json.bak.*
+data/cadmus/
+scripts/send_tyche_batch.py
+scripts/send_cadmus_linkedin_draft.py

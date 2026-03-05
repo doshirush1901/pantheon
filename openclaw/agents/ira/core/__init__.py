@@ -1,0 +1,157 @@
+"""
+Ira Core - Shared infrastructure for all Ira components
+
+Provides:
+- Configuration loading
+- Logging utilities
+- Production resilience (circuit breakers, retries)
+"""
+
+# Production resilience
+try:
+    from .resilience import (
+        ProductionCircuitBreaker,
+        CircuitBreakerOpenError,
+        openai_breaker,
+        qdrant_breaker,
+        postgres_breaker,
+        voyage_breaker,
+        mem0_breaker,
+        get_service_status,
+        get_system_health_summary,
+        with_resilience,
+        retry_with_exponential_backoff,
+    )
+    RESILIENCE_AVAILABLE = True
+except ImportError:
+    RESILIENCE_AVAILABLE = False
+
+# Production logging & observability
+try:
+    from .observability import (
+        configure_logging,
+        get_logger,
+        bind_trace_context,
+        start_trace,
+        end_trace,
+        get_trace_id,
+        PerformanceSpan,
+        traced,
+        log_event,
+        log_error,
+    )
+    OBSERVABILITY_AVAILABLE = True
+except ImportError:
+    OBSERVABILITY_AVAILABLE = False
+
+# Rate limiting
+try:
+    from .rate_limiter import (
+        ServiceRateLimiter,
+        RateLimitConfig,
+        RateLimitStrategy,
+        RateLimitExceeded,
+        get_limiter,
+        rate_limit,
+        get_rate_limit_status,
+        openai_limiter,
+        voyage_limiter,
+        qdrant_limiter,
+    )
+    RATE_LIMITER_AVAILABLE = True
+except ImportError:
+    RATE_LIMITER_AVAILABLE = False
+
+# Langfuse LLM observability
+try:
+    from .langfuse_integration import (
+        get_langfuse,
+        create_trace,
+        trace_llm_call,
+        LangfuseTracer,
+        OpenAICallbackHandler,
+        calculate_cost,
+    )
+    LANGFUSE_AVAILABLE = True
+except ImportError:
+    LANGFUSE_AVAILABLE = False
+
+# Caching layer
+try:
+    from .cache import (
+        LRUCache,
+        RedisCache,
+        EmbeddingCache,
+        QueryCache,
+        get_cache,
+        get_embedding_cache,
+        get_query_cache,
+        cache_result,
+        cache_embedding,
+        get_all_cache_stats,
+        clear_all_caches,
+    )
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+
+__all__ = [
+    # Resilience (if available)
+    "ProductionCircuitBreaker",
+    "CircuitBreakerOpenError",
+    "openai_breaker",
+    "qdrant_breaker",
+    "postgres_breaker",
+    "voyage_breaker",
+    "mem0_breaker",
+    "get_service_status",
+    "get_system_health_summary",
+    "with_resilience",
+    "retry_with_exponential_backoff",
+    "RESILIENCE_AVAILABLE",
+    # Observability (if available)
+    "configure_logging",
+    "get_logger",
+    "bind_trace_context",
+    "start_trace",
+    "end_trace",
+    "get_trace_id",
+    "PerformanceSpan",
+    "traced",
+    "log_event",
+    "log_error",
+    "OBSERVABILITY_AVAILABLE",
+    # Rate limiting (if available)
+    "ServiceRateLimiter",
+    "RateLimitConfig",
+    "RateLimitStrategy",
+    "RateLimitExceeded",
+    "get_limiter",
+    "rate_limit",
+    "get_rate_limit_status",
+    "openai_limiter",
+    "voyage_limiter",
+    "qdrant_limiter",
+    "RATE_LIMITER_AVAILABLE",
+    # Langfuse (if available)
+    "get_langfuse",
+    "create_trace",
+    "trace_llm_call",
+    "LangfuseTracer",
+    "OpenAICallbackHandler",
+    "calculate_cost",
+    "LANGFUSE_AVAILABLE",
+    # Cache (if available)
+    "LRUCache",
+    "RedisCache",
+    "EmbeddingCache",
+    "QueryCache",
+    "get_cache",
+    "get_embedding_cache",
+    "get_query_cache",
+    "cache_result",
+    "cache_embedding",
+    "get_all_cache_stats",
+    "clear_all_caches",
+    "CACHE_AVAILABLE",
+]

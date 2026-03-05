@@ -1,0 +1,3 @@
+{"timestamp": "2026-02-27T23:06:43.769034", "event_type": "request_started", "data": {"request_id": "c578c0d44132", "thread_id": "test-thread-123", "query_preview": "Test query for PF1-X-1520"}}
+{"timestamp": "2026-02-27T23:06:43.769166", "event_type": "machines_found", "data": {"count": 1, "machines": [{"model": "PF1-X-1520", "series": "PF1", "forming_area": "1500x2000", "price_usd": 190000}]}}
+{"timestamp": "2026-02-27T23:06:43.769232", "event_type": "request_completed", "data": {"request_id": "c578c0d44132", "status": "success", "duration_ms": 0, "machines_used": ["PF1-X-1520"], "qdrant_chunks_count": 0, "validations_passed": 2, "validations_failed": 0, "regeneration_attempts": 0, "reply_word_count": 2, "fallback_used": false}}
